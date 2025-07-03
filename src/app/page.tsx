@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Mic, Loader2, Share2, History, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -50,37 +50,13 @@ export default function Home() {
     return `${hours}:${minutes}:${seconds}`;
   };
 
-  const resetToIdle = () => {
+  const resetToIdle = useCallback(() => {
     setRecordingStatus("idle");
     setElapsedTime(0);
     setLastRecording(null);
-  };
+  }, []);
   
-  useEffect(() => {
-    if (recordingStatus === "recording") {
-      timerRef.current = setInterval(() => {
-        setElapsedTime((prev) => {
-          const newTime = prev + 1;
-          if (newTime >= RECORDING_TIME_LIMIT_SECONDS) {
-            requestStopRecording();
-          }
-          return newTime;
-        });
-      }, 1000);
-    } else {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    }
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
-  }, [recordingStatus]);
-  
-  const onStop = async () => {
+  const onStop = useCallback(async () => {
     setRecordingStatus("transcribing");
     const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
     const reader = new FileReader();
@@ -123,9 +99,39 @@ export default function Home() {
         audioChunksRef.current = [];
       }
     };
-  }
+  }, [toast, resetToIdle]);
 
-  const startRecording = async () => {
+  const requestStopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && recordingStatus === "recording") {
+      setRecordingStatus("confirm_stop");
+    }
+  }, [recordingStatus]);
+
+  useEffect(() => {
+    if (recordingStatus === "recording") {
+      timerRef.current = setInterval(() => {
+        setElapsedTime((prev) => {
+          const newTime = prev + 1;
+          if (newTime >= RECORDING_TIME_LIMIT_SECONDS) {
+            requestStopRecording();
+          }
+          return newTime;
+        });
+      }, 1000);
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [recordingStatus, requestStopRecording]);
+
+  const startRecording = useCallback(async () => {
     setElapsedTime(0);
     setRecordingStatus("recording");
     try {
@@ -151,25 +157,19 @@ export default function Home() {
       });
       resetToIdle();
     }
-  };
+  }, [onStop, toast, resetToIdle]);
 
-  const requestStopRecording = () => {
-    if (mediaRecorderRef.current && recordingStatus === "recording") {
-      setRecordingStatus("confirm_stop");
-    }
-  };
-
-  const handleConfirmStop = () => {
+  const handleConfirmStop = useCallback(() => {
       if (mediaRecorderRef.current) {
           mediaRecorderRef.current.stop();
       }
-  };
+  }, []);
 
-  const resumeRecording = () => {
+  const resumeRecording = useCallback(() => {
       setRecordingStatus("recording");
-  }
+  }, []);
 
-  const handleShare = async (recording: Recording) => {
+  const handleShare = useCallback(async (recording: Recording) => {
     const shareData = {
       title: recording.name,
       text: recording.transcription,
@@ -189,7 +189,7 @@ export default function Home() {
       const emailBody = `Check out this note: "${recording.name}"\n\n${recording.transcription}`;
       window.location.href = `mailto:?subject=${encodeURIComponent(recording.name)}&body=${encodeURIComponent(emailBody)}`;
     }
-  };
+  }, [toast]);
 
   const getStatusText = () => {
     switch(recordingStatus) {
