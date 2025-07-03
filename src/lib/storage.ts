@@ -55,14 +55,20 @@ export async function getRecording(id: string): Promise<Recording | undefined> {
 }
 
 export async function saveRecording(data: Omit<Recording, 'id' | 'date'>): Promise<Recording> {
+  console.log("saveRecording: Function called.");
   const newRecordingData = {
     ...data,
     date: new Date().toISOString(),
   };
+  console.log("saveRecording: Prepared recording data:", newRecordingData);
 
   try {
+    console.log("saveRecording: Attempting to add document to Firestore...");
     const docRef = await addDoc(collection(db, RECORDINGS_COLLECTION), newRecordingData);
-    return { id: docRef.id, ...newRecordingData };
+    console.log("saveRecording: Document added with ID:", docRef.id);
+    const finalRecording = { id: docRef.id, ...newRecordingData };
+    console.log("saveRecording: Returning final recording object:", finalRecording);
+    return finalRecording;
   } catch (error) {
     console.error("Error adding document: ", error);
     throw new Error("Failed to save recording to the database.");

@@ -69,30 +69,42 @@ export default function Home() {
   };
   
   const onStop = async () => {
+    console.log("onStop: Process started.");
     setRecordingStatus("transcribing");
     const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
     
     try {
         const audioDataUri = await blobToDataUri(audioBlob);
+        console.log("onStop: Audio converted to Data URI.");
+
+        console.log("onStop: Calling transcribeVoiceNote...");
         const transcribeResult = await transcribeVoiceNote({ audioDataUri });
+        console.log("onStop: Transcription received:", transcribeResult);
         if (!transcribeResult || !transcribeResult.transcription) {
           throw new Error("Transcription failed to produce output.");
         }
         
         setRecordingStatus("naming");
+        console.log("onStop: Status set to 'naming'.");
+
         const { transcription } = transcribeResult;
         
         const newName = `Recording #${recordingCount + 1}`;
+        console.log(`onStop: Generated dumb name: "${newName}"`);
 
-        const newRecording = await saveRecording({
+        const recordingData = {
           name: newName,
           transcription,
           audioDataUri,
-        });
+        };
+        console.log("onStop: Calling saveRecording with data:", recordingData);
+        const newRecording = await saveRecording(recordingData);
+        console.log("onStop: Recording saved to database:", newRecording);
         
         setRecordingCount(c => c + 1);
         setLastRecording(newRecording);
         setRecordingStatus("completed");
+        console.log("onStop: UI state updated. Process complete.");
 
       } catch (error) {
         console.error("Processing error:", error);
@@ -103,6 +115,7 @@ export default function Home() {
         });
         resetToIdle();
       } finally {
+        console.log("onStop: Cleaning up media recorder.");
         mediaRecorderRef.current?.stream.getTracks().forEach(track => track.stop());
         audioChunksRef.current = [];
       }
