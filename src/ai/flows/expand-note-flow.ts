@@ -13,6 +13,7 @@ import {z} from 'genkit';
 const ExpandNoteInputSchema = z.object({
   transcription: z.string().describe('The transcription to be expanded.'),
   aiModel: z.string().optional(),
+  aiApiKey: z.string().optional(),
 });
 export type ExpandNoteInput = z.infer<typeof ExpandNoteInputSchema>;
 
@@ -44,11 +45,33 @@ const expandNoteFlow = ai.defineFlow(
     outputSchema: ExpandNoteOutputSchema,
   },
   async (input) => {
-    const model = (input.aiModel && input.aiModel.includes('/')) 
+    const modelToUse = (input.aiModel && input.aiModel.includes('/')) 
       ? input.aiModel 
       : `googleai/${input.aiModel || 'gemini-2.0-flash'}`;
 
-    const {output} = await prompt(input, { model });
-    return output!;
+    const [providerName] = modelToUse.split('/');
+    if (providerName !== 'googleai') {
+        throw new Error(`Provider "${providerName}" is not configured. Please install the required Genkit plugin.`);
+    }
+
+    let originalGoogleKey: string | undefined;
+
+    if (input.aiApiKey) {
+      if (providerName === 'googleai') {
+        originalGoogleKey = process.env.GOOGLE_API_KEY;
+        process.env.GOOGLE_API_KEY = input.aiApiKey;
+      }
+    }
+
+    try {
+      const {output} = await prompt(input, { model: modelToUse });
+      return output!;
+    } finally {
+      if (input.aiApiKey) {
+          if (providerName === 'googleai') {
+            process.env.GOOGLE_API_KEY = originalGoogleKey;
+          }
+      }
+    }
   }
 );

@@ -101,7 +101,7 @@ export default function HistoryPage() {
     setNoteToExpand(recording);
     setExpandedNote(null);
     setIsExpanding(true);
-    expandNote({ transcription: recording.transcription, aiModel: settings.aiModel })
+    expandNote({ transcription: recording.transcription, aiModel: settings.aiModel, aiApiKey: settings.aiApiKey })
       .then(result => {
         setExpandedNote(result.expandedDocument);
       })

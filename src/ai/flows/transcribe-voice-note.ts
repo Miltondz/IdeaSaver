@@ -17,6 +17,7 @@ const TranscribeVoiceNoteInputSchema = z.object({
       "The voice note as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
   aiModel: z.string().optional(),
+  aiApiKey: z.string().optional(),
 });
 export type TranscribeVoiceNoteInput = z.infer<typeof TranscribeVoiceNoteInputSchema>;
 
@@ -46,10 +47,33 @@ const transcribeVoiceNoteFlow = ai.defineFlow(
     outputSchema: TranscribeVoiceNoteOutputSchema,
   },
   async input => {
-     const model = (input.aiModel && input.aiModel.includes('/')) 
+    const modelToUse = (input.aiModel && input.aiModel.includes('/')) 
       ? input.aiModel 
       : `googleai/${input.aiModel || 'gemini-2.0-flash'}`;
-    const {output} = await prompt(input, { model });
-    return output!;
+    
+    const [providerName] = modelToUse.split('/');
+    if (providerName !== 'googleai') {
+        throw new Error(`Provider "${providerName}" is not configured. Please install the required Genkit plugin.`);
+    }
+
+    let originalGoogleKey: string | undefined;
+
+    if (input.aiApiKey) {
+      if (providerName === 'googleai') {
+        originalGoogleKey = process.env.GOOGLE_API_KEY;
+        process.env.GOOGLE_API_KEY = input.aiApiKey;
+      }
+    }
+
+    try {
+      const {output} = await prompt(input, { model: modelToUse });
+      return output!;
+    } finally {
+      if (input.aiApiKey) {
+          if (providerName === 'googleai') {
+            process.env.GOOGLE_API_KEY = originalGoogleKey;
+          }
+      }
+    }
   }
 );

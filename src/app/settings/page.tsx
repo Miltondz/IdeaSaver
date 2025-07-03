@@ -18,7 +18,7 @@ export default function SettingsPage() {
   const [deletionPolicy, setDeletionPolicy] = useState<DeletionPolicy>("never");
   const [trelloApiKey, setTrelloApiKey] = useState("");
   const [trelloToken, setTrelloToken] = useState("");
-  const [geminiApiKey, setGeminiApiKey] = useState("");
+  const [aiApiKey, setAiApiKey] = useState("");
   const [aiModel, setAiModel] = useState("");
   const [dbIntegrationEnabled, setDbIntegrationEnabled] = useState(false);
   const [autoSendToDB, setAutoSendToDB] = useState(false);
@@ -30,7 +30,7 @@ export default function SettingsPage() {
     setDeletionPolicy(settings.deletionPolicy);
     setTrelloApiKey(settings.trelloApiKey || "");
     setTrelloToken(settings.trelloToken || "");
-    setGeminiApiKey(settings.geminiApiKey || "");
+    setAiApiKey(settings.aiApiKey || "");
     setAiModel(settings.aiModel || "gemini-2.0-flash");
     setDbIntegrationEnabled(settings.dbIntegrationEnabled || false);
     setAutoSendToDB(settings.autoSendToDB || false);
@@ -42,7 +42,7 @@ export default function SettingsPage() {
       deletionPolicy,
       trelloApiKey,
       trelloToken,
-      geminiApiKey,
+      aiApiKey,
       aiModel,
       dbIntegrationEnabled,
       autoSendToDB
@@ -135,16 +135,16 @@ export default function SettingsPage() {
             <div className="space-y-4">
                 <h3 className="text-lg font-medium flex items-center gap-2"><KeyRound className="h-5 w-5" /> API Keys & Models</h3>
                 <div className="space-y-2">
-                    <Label htmlFor="gemini-key">Gemini API Key</Label>
+                    <Label htmlFor="ai-key">AI Provider API Key</Label>
                     <div className="flex items-center gap-2">
-                      <Input id="gemini-key" type="password" placeholder="Enter your Gemini API Key" value={geminiApiKey} onChange={(e) => setGeminiApiKey(e.target.value)} />
-                      <Button variant="ghost" size="icon" onClick={() => handlePaste(setGeminiApiKey)}><Copy className="h-4 w-4" /></Button>
+                      <Input id="ai-key" type="password" placeholder="Enter your provider API Key" value={aiApiKey} onChange={(e) => setAiApiKey(e.target.value)} />
+                      <Button variant="ghost" size="icon" onClick={() => handlePaste(setAiApiKey)}><Copy className="h-4 w-4" /></Button>
                     </div>
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="ai-model">AI Model Name</Label>
                     <div className="flex items-center gap-2">
-                      <Input id="ai-model" type="text" placeholder="e.g., gemini-2.0-flash" value={aiModel} onChange={(e) => setAiModel(e.target.value)} />
+                      <Input id="ai-model" type="text" placeholder="e.g., openai/gpt-4 or gemini-2.0-flash" value={aiModel} onChange={(e) => setAiModel(e.target.value)} />
                        <Button variant="ghost" size="icon" onClick={() => handlePaste(setAiModel)}><Copy className="h-4 w-4" /></Button>
                     </div>
                     <p className="text-sm text-muted-foreground">Specify the model name for AI features. If no provider is included, 'googleai/' will be used.</p>

@@ -20,7 +20,7 @@ export interface AppSettings {
   deletionPolicy: DeletionPolicy;
   trelloApiKey: string;
   trelloToken: string;
-  geminiApiKey: string;
+  aiApiKey: string;
   aiModel: string;
   dbIntegrationEnabled: boolean;
   autoSendToDB: boolean;
@@ -53,7 +53,7 @@ export function getSettings(): AppSettings {
       deletionPolicy: "never",
       trelloApiKey: "",
       trelloToken: "",
-      geminiApiKey: "",
+      aiApiKey: "",
       aiModel: "gemini-2.0-flash",
       dbIntegrationEnabled: false,
       autoSendToDB: false,
@@ -64,7 +64,7 @@ export function getSettings(): AppSettings {
       deletionPolicy: "never",
       trelloApiKey: "",
       trelloToken: "",
-      geminiApiKey: "",
+      aiApiKey: "",
       aiModel: "gemini-2.0-flash",
       dbIntegrationEnabled: false,
       autoSendToDB: false,
@@ -75,11 +75,6 @@ export function getSettings(): AppSettings {
 export function saveSettings(settings: AppSettings): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-  // This is a simple way to update the Gemini API key for Genkit if it's provided.
-  // A more robust solution might involve a dedicated backend or server-side config.
-  if(settings.geminiApiKey) {
-    process.env.GOOGLE_API_KEY = settings.geminiApiKey;
-  }
 }
 
 // --- Firestore Functions ---

@@ -90,7 +90,7 @@ export default function Home() {
         log("onStop: Audio converted to Data URI.");
 
         log("onStop: Calling transcribeVoiceNote...");
-        const transcribeResult = await transcribeVoiceNote({ audioDataUri, aiModel: settings.aiModel });
+        const transcribeResult = await transcribeVoiceNote({ audioDataUri, aiModel: settings.aiModel, aiApiKey: settings.aiApiKey });
         log("onStop: Transcription received:", transcribeResult);
         if (!transcribeResult || !transcribeResult.transcription) {
           throw new Error("Transcription failed to produce output.");
@@ -102,7 +102,7 @@ export default function Home() {
         const { transcription } = transcribeResult;
         
         log("onStop: Calling nameTranscription...");
-        const nameResult = await nameTranscription({ transcription, aiModel: settings.aiModel });
+        const nameResult = await nameTranscription({ transcription, aiModel: settings.aiModel, aiApiKey: settings.aiApiKey });
         log("onStop: Name received:", nameResult);
         if (!nameResult || !nameResult.name) {
             throw new Error("Naming failed to produce output.");
@@ -137,7 +137,7 @@ export default function Home() {
         }
         audioChunksRef.current = [];
       }
-  }, [resetToIdle, toast, log, settings.aiModel]);
+  }, [resetToIdle, toast, log, settings.aiModel, settings.aiApiKey]);
 
   const requestStopRecording = useCallback(() => {
     if (mediaRecorderRef.current && recordingStatus === "recording") {
