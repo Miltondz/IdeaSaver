@@ -11,7 +11,7 @@ export function Footer() {
 
   const navItems = [
     { href: "/history", icon: History, label: "History" },
-    { href: "/", icon: Mic, label: "Record" },
+    { href: "/record", icon: Mic, label: "Record" },
     { href: "/settings", icon: Settings, label: "Settings" },
   ];
 
