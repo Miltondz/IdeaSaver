@@ -3,11 +3,6 @@ import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getFirestore, Firestore } from "firebase/firestore";
 import { getAuth, Auth } from "firebase/auth";
 
-let app: FirebaseApp | null = null;
-let db: Firestore | null = null;
-let auth: Auth | null = null;
-export let firebaseConfigError: string | null = null;
-
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -17,25 +12,12 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Check for missing or placeholder environment variables
-const missingKeys = Object.entries(firebaseConfig)
-  .filter(([, value]) => !value || value.includes('_REPLACE_WITH_'))
-  .map(([key]) => `NEXT_PUBLIC_FIREBASE_${key.replace(/([A-Z])/g, '_$1').toUpperCase()}`);
+// Initialize Firebase
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const db = getFirestore(app);
+const auth = getAuth(app);
 
-if (missingKeys.length > 0) {
-    firebaseConfigError = `The following Firebase credentials are missing or are still placeholders in your .env file: ${missingKeys.join(', ')}. Please update the file with your actual Firebase project credentials.`;
-}
-
-
-if (!firebaseConfigError) {
-    try {
-        app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-        db = getFirestore(app);
-        auth = getAuth(app);
-    } catch (error: any) {
-        console.error("Firebase initialization error:", error);
-        firebaseConfigError = `Failed to initialize Firebase: ${error.message}. Please check your Firebase project configuration and credentials in the .env file.`;
-    }
-}
+// This is a placeholder for potential future error handling, but is not currently used.
+export const firebaseConfigError: string | null = null;
 
 export { app, db, auth };
