@@ -247,6 +247,9 @@ export default function SettingsPage() {
                       <Button variant="ghost" size="icon" onClick={() => handlePaste((v) => updateSetting('trelloToken', v))} disabled={!settings.isPro}><Copy className="h-4 w-4" /></Button>
                     </div>
                  </div>
+                 <p className="text-xs text-muted-foreground !mt-2" style={{ opacity: !settings.isPro ? 0.5 : 1 }}>
+                    Your Trello keys are stored securely in your browser's local storage and are never sent to our servers.
+                 </p>
             </fieldset>
             
             <div className="flex justify-end">
