@@ -117,12 +117,19 @@ export default function HistoryPage() {
   };
 
   const handleExpandClick = (recording: Recording) => {
+    if (!user) return;
     setNoteForAi(recording);
     setAiAction('expand');
     setAiResult(null);
     setIsProcessingAi(true);
     expandNote({ transcription: recording.transcription, aiModel: settings.aiModel })
-      .then(result => setAiResult(result.expandedDocument))
+      .then(async (result) => {
+        const updatedRec = { ...recording, expandedTranscription: result.expandedDocument };
+        await updateRecording(updatedRec, user.uid);
+        refreshRecordings();
+        setAiResult(result.expandedDocument);
+        toast({ title: "Note expanded and saved!" });
+      })
       .catch(err => {
         console.error("Expansion failed:", err);
         toast({ variant: "destructive", title: "Expansion Failed", description: "Could not expand the note." });
@@ -132,12 +139,19 @@ export default function HistoryPage() {
   };
   
   const handleSummarizeClick = (recording: Recording) => {
+    if (!user) return;
     setNoteForAi(recording);
     setAiAction('summarize');
     setAiResult(null);
     setIsProcessingAi(true);
     summarizeNote({ transcription: recording.transcription, aiModel: settings.aiModel })
-      .then(result => setAiResult(result.summary))
+      .then(async (result) => {
+        const updatedRec = { ...recording, summary: result.summary };
+        await updateRecording(updatedRec, user.uid);
+        refreshRecordings();
+        setAiResult(result.summary);
+        toast({ title: "Note summarized and saved!" });
+      })
       .catch(err => {
         console.error("Summarization failed:", err);
         toast({ variant: "destructive", title: "Summarization Failed", description: "Could not summarize the note." });
@@ -153,24 +167,6 @@ export default function HistoryPage() {
         toast({ title: "Copied to clipboard!", className: "bg-accent text-accent-foreground border-accent" });
         setTimeout(() => setCopiedStates(prev => ({...prev, [id]: false})), 2000);
     });
-  };
-
-  const handleSaveAiResult = async () => {
-    if (!noteForAi || !aiResult || !user || !aiAction) return;
-    try {
-      const updatedRec = { ...noteForAi };
-      if (aiAction === 'expand') {
-        updatedRec.expandedTranscription = aiResult;
-      } else if (aiAction === 'summarize') {
-        updatedRec.summary = aiResult;
-      }
-      await updateRecording(updatedRec, user.uid);
-      refreshRecordings();
-      setNoteForAi(null);
-      toast({ title: "Expanded note saved!", description: "The new version has been saved to your history." });
-    } catch (error) {
-      toast({ variant: "destructive", title: "Save Failed", description: "Could not save the expanded note." });
-    }
   };
   
   if (isLoading) {
@@ -420,7 +416,7 @@ export default function HistoryPage() {
                     {aiAction === 'expand' ? 'Expanded Note' : 'Summarized Note'}: {noteForAi?.name}
                 </DialogTitle>
                 <DialogDescription>
-                    This is an AI-generated {aiAction} of your original note. Review and save.
+                    This is an AI-generated {aiAction} of your original note. The result has been automatically saved.
                 </DialogDescription>
             </DialogHeader>
             <div className="py-4 flex-1 min-h-0">
@@ -457,7 +453,6 @@ export default function HistoryPage() {
             {aiResult && !isProcessingAi && (
                 <DialogFooter className="pt-4 border-t">
                     <Button variant="outline" onClick={() => setNoteForAi(null)}>Close</Button>
-                    <Button onClick={handleSaveAiResult}><Save className="mr-2 h-4 w-4" /> Save Result</Button>
                 </DialogFooter>
             )}
         </DialogContent>
