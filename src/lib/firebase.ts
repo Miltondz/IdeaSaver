@@ -12,12 +12,23 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const db = getFirestore(app);
-const auth = getAuth(app);
+let app: FirebaseApp;
+let db: Firestore;
+let auth: Auth;
+let firebaseConfigError: string | null = null;
 
-// This is a placeholder for potential future error handling, but is not currently used.
-export const firebaseConfigError: string | null = null;
+if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+  firebaseConfigError = "Firebase configuration is missing. Please set up your .env file.";
+  console.error(firebaseConfigError);
+}
 
-export { app, db, auth };
+try {
+    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    db = getFirestore(app);
+    auth = getAuth(app);
+} catch (e: any) {
+    firebaseConfigError = `Failed to initialize Firebase: ${e.message}. Please check your .env file and Firebase project setup.`;
+    console.error(e);
+}
+
+export { app, db, auth, firebaseConfigError };

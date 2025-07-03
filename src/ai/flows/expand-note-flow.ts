@@ -48,33 +48,19 @@ const expandNoteFlow = ai.defineFlow(
     outputSchema: ExpandNoteOutputSchema,
   },
   async (input) => {
+    // The googleAI() plugin is configured in `src/ai/genkit.ts` and will use the GOOGLE_API_KEY from .env
+    // The user can override the model via the settings page.
     const modelToUse = (input.aiModel && input.aiModel.includes('/')) 
       ? input.aiModel 
       : `googleai/${input.aiModel || 'gemini-2.0-flash'}`;
 
     const [providerName] = modelToUse.split('/');
     if (providerName !== 'googleai') {
-        throw new Error(`Provider "${providerName}" is not configured. Please install the required Genkit plugin.`);
+        // This is a safeguard. The UI should ideally prevent this.
+        throw new Error(`Provider "${providerName}" is not supported or configured. Please use a 'googleai' model or update the application to include the necessary plugin.`);
     }
 
-    let originalGoogleKey: string | undefined;
-
-    if (input.aiApiKey) {
-      if (providerName === 'googleai') {
-        originalGoogleKey = process.env.GOOGLE_API_KEY;
-        process.env.GOOGLE_API_KEY = input.aiApiKey;
-      }
-    }
-
-    try {
-      const {output} = await prompt(input, { model: modelToUse });
-      return output!;
-    } finally {
-      if (input.aiApiKey) {
-          if (providerName === 'googleai') {
-            process.env.GOOGLE_API_KEY = originalGoogleKey;
-          }
-      }
-    }
+    const {output} = await prompt(input, { model: modelToUse });
+    return output!;
   }
 );
