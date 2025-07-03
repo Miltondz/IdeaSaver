@@ -16,6 +16,7 @@ const TranscribeVoiceNoteInputSchema = z.object({
     .describe(
       "The voice note as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
+  aiModel: z.string().optional(),
 });
 export type TranscribeVoiceNoteInput = z.infer<typeof TranscribeVoiceNoteInputSchema>;
 
@@ -45,7 +46,10 @@ const transcribeVoiceNoteFlow = ai.defineFlow(
     outputSchema: TranscribeVoiceNoteOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+     const model = (input.aiModel && input.aiModel.includes('/')) 
+      ? input.aiModel 
+      : `googleai/${input.aiModel || 'gemini-2.0-flash'}`;
+    const {output} = await prompt(input, { model });
     return output!;
   }
 );

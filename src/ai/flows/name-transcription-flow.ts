@@ -12,6 +12,7 @@ import {z} from 'genkit';
 
 const NameTranscriptionInputSchema = z.object({
   transcription: z.string().describe('The transcription to be named.'),
+  aiModel: z.string().optional(),
 });
 export type NameTranscriptionInput = z.infer<typeof NameTranscriptionInputSchema>;
 
@@ -42,7 +43,10 @@ const nameTranscriptionFlow = ai.defineFlow(
     outputSchema: NameTranscriptionOutputSchema,
   },
   async (input) => {
-    const {output} = await prompt(input);
+    const model = (input.aiModel && input.aiModel.includes('/')) 
+      ? input.aiModel 
+      : `googleai/${input.aiModel || 'gemini-2.0-flash'}`;
+    const {output} = await prompt(input, { model });
     return output!;
   }
 );

@@ -7,6 +7,7 @@ import {
   doc,
   setDoc,
   deleteDoc,
+  writeBatch
 } from "firebase/firestore";
 import { db } from "./firebase";
 import type { Recording } from "@/types";
@@ -20,6 +21,7 @@ export interface AppSettings {
   trelloApiKey: string;
   trelloToken: string;
   geminiApiKey: string;
+  aiModel: string;
   dbIntegrationEnabled: boolean;
   autoSendToDB: boolean;
 }
@@ -52,16 +54,18 @@ export function getSettings(): AppSettings {
       trelloApiKey: "",
       trelloToken: "",
       geminiApiKey: "",
+      aiModel: "gemini-2.0-flash",
       dbIntegrationEnabled: false,
       autoSendToDB: false,
     };
   }
   const data = localStorage.getItem(SETTINGS_KEY);
-  const defaults = { 
+  const defaults: AppSettings = { 
       deletionPolicy: "never",
       trelloApiKey: "",
       trelloToken: "",
       geminiApiKey: "",
+      aiModel: "gemini-2.0-flash",
       dbIntegrationEnabled: false,
       autoSendToDB: false,
   };
@@ -71,6 +75,11 @@ export function getSettings(): AppSettings {
 export function saveSettings(settings: AppSettings): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  // This is a simple way to update the Gemini API key for Genkit if it's provided.
+  // A more robust solution might involve a dedicated backend or server-side config.
+  if(settings.geminiApiKey) {
+    process.env.GOOGLE_API_KEY = settings.geminiApiKey;
+  }
 }
 
 // --- Firestore Functions ---
@@ -113,7 +122,8 @@ export async function getRecordings(): Promise<Recording[]> {
       const q = query(collection(db, "recordings"), orderBy("date", "desc"));
       const querySnapshot = await getDocs(q);
       const recordings = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Recording));
-      _saveRecordingsToStorage(recordings); // Sync to local
+      // Firestore is the source of truth, but we keep local as a cache/fallback
+      _saveRecordingsToStorage(recordings.map(({audioDataUri, ...rest}) => rest)); // Don't save audio data URI to local storage
       return recordings;
     } catch (error) {
       console.error("Error fetching from Firestore, falling back to local storage.", error);
@@ -139,6 +149,7 @@ export async function getRecording(id: string): Promise<Recording | undefined> {
         console.error("Error fetching doc from Firestore, falling back to local", error);
       }
   }
+  // Fallback to local storage if not found in DB or if DB is disabled
   const recordings = _getRecordingsFromStorage();
   return Promise.resolve(recordings.find(rec => rec.id === id));
 }
@@ -153,41 +164,46 @@ export async function saveRecording(data: Omit<Recording, 'id' | 'date'>): Promi
   };
 
   const recordings = _getRecordingsFromStorage();
-  const updatedRecordings = [...recordings, newRecording];
+  // Don't save audio data URI to local storage to avoid size limits
+  const { audioDataUri, ...localData } = newRecording;
+  const updatedRecordings = [...recordings, localData];
   _saveRecordingsToStorage(updatedRecordings);
   
   if (settings.dbIntegrationEnabled && settings.autoSendToDB) {
-    const { audioDataUri, ...dataToSave } = newRecording;
-    await saveRecordingToDB(dataToSave);
+    await saveRecordingToDB(localData);
   }
   
+  // Return the full recording object including the data URI for immediate use
   return Promise.resolve(newRecording);
 }
 
 export async function updateRecording(recording: Recording): Promise<Recording> {
   const settings = getSettings();
   
+  // Exclude audio data from local and DB storage
+  const { audioDataUri, ...dataToSave } = recording;
+  
   // Always update local storage
   let recordings = _getRecordingsFromStorage();
   const index = recordings.findIndex(r => r.id === recording.id);
   if (index !== -1) {
-    recordings[index] = recording;
+    recordings[index] = dataToSave;
   } else {
-    recordings.push(recording);
+    recordings.push(dataToSave);
   }
   _saveRecordingsToStorage(recordings);
 
   // Update firestore if enabled
   if (settings.dbIntegrationEnabled && db) {
     try {
-      const { audioDataUri, ...dataToSave } = recording;
-      const docRef = doc(db, "recordings", recording.id);
+      const docRef = doc(db, "recordings", dataToSave.id);
       await setDoc(docRef, dataToSave, { merge: true });
     } catch (error) {
       console.error("Error updating document in Firestore: ", error);
     }
   }
   
+  // Return the full object for the UI
   return recording;
 }
 
@@ -204,7 +220,6 @@ export async function deleteRecording(id: string): Promise<void> {
   return Promise.resolve();
 }
 
-
 export async function applyDeletions(): Promise<void> {
   if (typeof window === "undefined") return;
 
@@ -217,24 +232,32 @@ export async function applyDeletions(): Promise<void> {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
 
-  const recordings = _getRecordingsFromStorage();
+  const recordings = await getRecordings(); // Get from primary source (DB or local)
+  
   const recordingsToDelete = recordings.filter(rec => new Date(rec.date).getTime() < cutoffDate.getTime());
-  const recordingsToKeep = recordings.filter(rec => new Date(rec.date).getTime() >= cutoffDate.getTime());
 
   if (recordingsToDelete.length > 0) {
-    _saveRecordingsToStorage(recordingsToKeep);
-    console.log(`Auto-deleted ${recordingsToDelete.length} old recordings from local storage.`);
+    console.log(`Auto-deleting ${recordingsToDelete.length} old recordings.`);
     
-    // Also delete from Firestore
-    const settings = getSettings();
-    if (settings.dbIntegrationEnabled && db) {
-        const batch = writeBatch(db);
-        recordingsToDelete.forEach(rec => {
-            const docRef = doc(db, 'recordings', rec.id);
-            batch.delete(docRef);
-        });
-        await batch.commit().catch(err => console.error("Error batch deleting from Firestore", err));
+    // Use a batch delete for efficiency
+    const { dbIntegrationEnabled } = getSettings();
+    if (dbIntegrationEnabled && db) {
+        try {
+            const batch = writeBatch(db);
+            recordingsToDelete.forEach(rec => {
+                const docRef = doc(db, 'recordings', rec.id);
+                batch.delete(docRef);
+            });
+            await batch.commit();
+        } catch (err) {
+            console.error("Error batch deleting from Firestore", err)
+        }
     }
+    
+    // Also update local storage
+    const localRecordings = _getRecordingsFromStorage();
+    const recordingsToKeep = localRecordings.filter(rec => new Date(rec.date).getTime() >= cutoffDate.getTime());
+    _saveRecordingsToStorage(recordingsToKeep);
   }
   return Promise.resolve();
 }

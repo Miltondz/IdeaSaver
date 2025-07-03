@@ -41,7 +41,9 @@ export default function HistoryPage() {
   useEffect(() => {
     setIsMounted(true);
     refreshRecordings();
-    setSettings(getSettings());
+    const handleSettingsChange = () => setSettings(getSettings());
+    window.addEventListener('storage', handleSettingsChange);
+    return () => window.removeEventListener('storage', handleSettingsChange);
   }, []);
   
   const handleDelete = async (id: string) => {
@@ -63,35 +65,43 @@ export default function HistoryPage() {
   };
   
   const handleShare = async (recording: Recording) => {
+    if (!recording.transcription) return;
     const shareData = {
       title: recording.name,
       text: recording.transcription,
     };
-    if (navigator.share) {
+
+    if (navigator.share && typeof navigator.share === 'function') {
       try {
         await navigator.share(shareData);
       } catch (err) {
+        // Silently ignore AbortError, which is triggered when the user cancels the share dialog.
         if (err instanceof DOMException && err.name === 'AbortError') {
           return;
         }
-        console.log("Share failed:", err);
+        console.error("Share failed:", err);
         toast({
           variant: "destructive",
           title: "Sharing failed",
-          description: "Could not share the note. An unexpected error occurred.",
+          description: "Could not share the note. Please try again.",
         });
       }
     } else {
-      const emailBody = `Check out this note: "${recording.name}"\n\n${recording.transcription}`;
-      window.location.href = `mailto:?subject=${encodeURIComponent(recording.name)}&body=${encodeURIComponent(emailBody)}`;
+        // Fallback for browsers that do not support the Web Share API
+        handleCopyToClipboard(recording.transcription);
+        toast({
+            title: "Sharing not supported",
+            description: "Copied the note to your clipboard instead.",
+        });
     }
   };
+
 
   const handleExpandClick = (recording: Recording) => {
     setNoteToExpand(recording);
     setExpandedNote(null);
     setIsExpanding(true);
-    expandNote({ transcription: recording.transcription })
+    expandNote({ transcription: recording.transcription, aiModel: settings.aiModel })
       .then(result => {
         setExpandedNote(result.expandedDocument);
       })
@@ -140,9 +150,11 @@ export default function HistoryPage() {
 
   if (!isMounted) {
     return (
-        <div className="flex justify-center items-center h-full">
-            <Loader2 className="h-8 w-8 animate-spin" />
-            <p className="ml-4">Loading history...</p>
+        <div className="flex justify-center items-center h-full p-4">
+            <div className="flex items-center text-muted-foreground">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <p className="ml-3">Loading history...</p>
+            </div>
         </div>
     );
   }
@@ -152,11 +164,16 @@ export default function HistoryPage() {
       <h1 className="text-3xl font-bold mb-6 text-center">Recording History</h1>
       {recordings.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
-            <p className="text-muted-foreground">You have no recordings yet. Tap the mic to start!</p>
+            <Card className="w-full max-w-sm text-center p-8">
+              <CardHeader>
+                <CardTitle>No Recordings Yet</CardTitle>
+                <CardDescription>Tap the microphone on the Record page to start capturing your ideas.</CardDescription>
+              </CardHeader>
+            </Card>
         </div>
       ) : (
-        <ScrollArea className="flex-1">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <ScrollArea className="flex-1 -mx-4">
+          <div className="px-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {recordings.map((rec) => (
               <Card key={rec.id} className="bg-card/80 border-border backdrop-blur-sm flex flex-col">
                 <CardHeader>
@@ -215,13 +232,13 @@ export default function HistoryPage() {
                       <audio controls className="w-full" src={selectedRecording.audioDataUri}></audio>
                     ) : (
                       <div className="text-sm text-muted-foreground p-4 bg-muted/50 rounded-md border">
-                        Audio playback is not available for saved notes.
+                        Audio playback is not available for this note.
                       </div>
                     )}
                 </div>
                 <div className="flex flex-col gap-2">
                     <h3 className="font-semibold">Transcription</h3>
-                    <ScrollArea className="h-64 rounded-md border p-4 bg-muted/50">
+                    <ScrollArea className="h-40 rounded-md border p-4 bg-muted/50">
                         <p className="text-foreground/90 whitespace-pre-wrap">{selectedRecording.transcription}</p>
                     </ScrollArea>
                 </div>
@@ -264,7 +281,7 @@ export default function HistoryPage() {
                 ) : expandedNote && (
                     <div className="relative h-full">
                         <ScrollArea className="h-full rounded-md border p-4 bg-muted/50">
-                            <div className="whitespace-pre-wrap">{expandedNote}</div>
+                            <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert" dangerouslySetInnerHTML={{ __html: expandedNote }}></div>
                         </ScrollArea>
                         <div className="absolute top-2 right-2 flex gap-1">
                             {settings.dbIntegrationEnabled && (

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeVoiceNote } from "@/ai/flows/transcribe-voice-note";
 import { nameTranscription } from "@/ai/flows/name-transcription-flow";
-import { getSettings, saveRecording } from "@/lib/storage";
+import { getSettings, saveRecording, saveRecordingToDB } from "@/lib/storage";
 import type { Recording } from "@/types";
 import {
   AlertDialog,
@@ -52,8 +52,11 @@ export default function Home() {
   const { toast } = useToast();
   
   useEffect(() => {
+    const handleSettingsChange = () => setSettings(getSettings());
     setSettings(getSettings());
-  }, [recordingStatus]);
+    window.addEventListener('storage', handleSettingsChange); // Listen for changes from other tabs
+    return () => window.removeEventListener('storage', handleSettingsChange);
+  }, []);
   
   const log = useCallback((...args: any[]) => {
     const message = args.map(arg => {
@@ -87,7 +90,7 @@ export default function Home() {
         log("onStop: Audio converted to Data URI.");
 
         log("onStop: Calling transcribeVoiceNote...");
-        const transcribeResult = await transcribeVoiceNote({ audioDataUri });
+        const transcribeResult = await transcribeVoiceNote({ audioDataUri, aiModel: settings.aiModel });
         log("onStop: Transcription received:", transcribeResult);
         if (!transcribeResult || !transcribeResult.transcription) {
           throw new Error("Transcription failed to produce output.");
@@ -99,7 +102,7 @@ export default function Home() {
         const { transcription } = transcribeResult;
         
         log("onStop: Calling nameTranscription...");
-        const nameResult = await nameTranscription({ transcription });
+        const nameResult = await nameTranscription({ transcription, aiModel: settings.aiModel });
         log("onStop: Name received:", nameResult);
         if (!nameResult || !nameResult.name) {
             throw new Error("Naming failed to produce output.");
@@ -134,7 +137,7 @@ export default function Home() {
         }
         audioChunksRef.current = [];
       }
-  }, [resetToIdle, toast, log]);
+  }, [resetToIdle, toast, log, settings.aiModel]);
 
   const requestStopRecording = useCallback(() => {
     if (mediaRecorderRef.current && recordingStatus === "recording") {
@@ -231,7 +234,7 @@ export default function Home() {
   const handleSaveToCloud = async (recording: Recording) => {
     try {
       const { audioDataUri, ...dataToSave } = recording;
-      // await saveRecordingToDB(dataToSave);
+      await saveRecordingToDB(dataToSave);
       toast({ title: "Saved to Cloud!", description: "Your note has been saved to the database." });
     } catch (error) {
       log("handleSaveToCloud error:", error);
@@ -270,7 +273,7 @@ export default function Home() {
                 <Card className="w-full bg-card/80 border-border backdrop-blur-sm shadow-lg">
                     <CardHeader>
                         <CardTitle className="text-2xl text-primary">{lastRecording.name}</CardTitle>
-                        <CardDescription>Your note has been successfully saved.</CardDescription>
+                        <CardDescription>Your note has been successfully saved locally.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                          <ScrollArea className="h-32 rounded-md border p-4 bg-muted/50 text-left">
