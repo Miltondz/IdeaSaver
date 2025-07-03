@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from "react";
@@ -7,10 +8,15 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { getSettings, saveSettings } from "@/lib/storage";
-import { Settings, KeyRound, Trash2, Trello, Save, Database, Copy } from "lucide-react";
+import { getSettings, saveSettings, getLocalRecordings, deleteRecording as deleteRecordingFromStorage } from "@/lib/storage";
+import { Settings, KeyRound, Trash2, Trello, Save, Database, Copy, Archive } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import type { Recording } from "@/types";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+
 
 type DeletionPolicy = "never" | "7" | "15" | "30";
 
@@ -23,6 +29,10 @@ export default function SettingsPage() {
   const [dbIntegrationEnabled, setDbIntegrationEnabled] = useState(false);
   const [autoSendToDB, setAutoSendToDB] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  
+  const [localRecordings, setLocalRecordings] = useState<Recording[]>([]);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -36,6 +46,38 @@ export default function SettingsPage() {
     setAutoSendToDB(settings.autoSendToDB || false);
     setIsMounted(true);
   }, []);
+  
+  const refreshLocalRecordings = () => {
+    const recs = getLocalRecordings();
+    setLocalRecordings(recs.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+  };
+
+  const handleManageClick = () => {
+    refreshLocalRecordings();
+    setIsSheetOpen(true);
+  };
+
+  const handleDeleteLocal = async (id: string) => {
+    try {
+      await deleteRecordingFromStorage(id);
+      refreshLocalRecordings();
+      toast({ title: "Recording Deleted" });
+    } catch (error) {
+       toast({ variant: "destructive", title: "Deletion Failed" });
+    }
+  };
+  
+  const formatBytes = (dataUri: string | undefined): string => {
+      if (!dataUri) return 'N/A';
+      // The Base64 encoded string is about 33% larger than the raw data.
+      // (length * 3/4) is a close approximation of the original file size.
+      const bytes = (dataUri.length * 3/4);
+      if (bytes < 1) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
 
   const handleSave = () => {
     saveSettings({
@@ -83,7 +125,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="container mx-auto p-4 pt-8 flex justify-center">
+    <div className="container mx-auto p-4 pt-8 flex flex-col items-center">
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -174,6 +216,66 @@ export default function SettingsPage() {
             </div>
         </CardContent>
       </Card>
+
+      <Card className="w-full max-w-2xl mt-8">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Archive className="h-5 w-5" /> Local Storage Management
+          </CardTitle>
+          <CardDescription>View and manage recordings stored directly on this device's browser storage.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={handleManageClick}>Manage Local Recordings</Button>
+        </CardContent>
+      </Card>
+      
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <SheetContent className="w-full sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>Local Device Recordings</SheetTitle>
+            <SheetDescription>
+              These recordings are saved in your browser. Deleting them here is permanent.
+            </SheetDescription>
+          </SheetHeader>
+          <ScrollArea className="h-[calc(100%-8rem)] mt-4 pr-4">
+            <div className="flex flex-col gap-4 py-4">
+              {localRecordings.length > 0 ? localRecordings.map(rec => (
+                <div key={rec.id} className="flex items-center justify-between gap-4 p-2 rounded-lg border">
+                  <div className="flex-1 overflow-hidden">
+                    <p className="font-semibold truncate">{rec.name}</p>
+                    <p className="text-sm text-muted-foreground">{new Date(rec.date).toLocaleString()}</p>
+                    <p className="text-sm text-muted-foreground">Size: {formatBytes(rec.audioDataUri)}</p>
+                  </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="icon">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this recording?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action cannot be undone and will permanently delete the recording from your device and the cloud (if synced).
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDeleteLocal(rec.id)}>Delete</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              )) : (
+                <div className="text-muted-foreground text-center py-8">
+                    <p>No local recordings found.</p>
+                    <p className="text-xs mt-1">Recordings appear here when cloud sync is disabled.</p>
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

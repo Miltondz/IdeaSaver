@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeVoiceNote } from "@/ai/flows/transcribe-voice-note";
 import { nameTranscription } from "@/ai/flows/name-transcription-flow";
-import { getSettings, saveRecording, saveRecordingToDB } from "@/lib/storage";
+import { getSettings, saveRecording, saveRecordingToDB, applyDeletions } from "@/lib/storage";
 import type { Recording } from "@/types";
 import {
   AlertDialog,
@@ -88,6 +88,9 @@ export default function Home() {
     const handleSettingsChange = () => setSettings(getSettings());
     setSettings(getSettings());
     window.addEventListener('storage', handleSettingsChange);
+    
+    applyDeletions();
+
     return () => {
         window.removeEventListener('storage', handleSettingsChange);
         if (animationFrameIdRef.current) cancelAnimationFrame(animationFrameIdRef.current);
