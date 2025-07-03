@@ -213,14 +213,7 @@ export default function SettingsPage() {
             </div>
 
             <div className="space-y-4">
-                <h3 className="text-lg font-medium flex items-center gap-2"><KeyRound className="h-5 w-5" /> API Keys & Models</h3>
-                <div className="space-y-2">
-                    <Label htmlFor="ai-key">AI Provider API Key</Label>
-                    <div className="flex items-center gap-2">
-                      <Input id="ai-key" type="password" placeholder="Enter your provider API Key" value={settings.aiApiKey} onChange={(e) => updateSetting('aiApiKey', e.target.value)} />
-                      <Button variant="ghost" size="icon" onClick={() => handlePaste((v) => updateSetting('aiApiKey', v))}><Copy className="h-4 w-4" /></Button>
-                    </div>
-                </div>
+                <h3 className="text-lg font-medium flex items-center gap-2"><KeyRound className="h-5 w-5" /> AI Models</h3>
                  <div className="space-y-2">
                     <Label htmlFor="ai-model">AI Model Name</Label>
                     <div className="flex items-center gap-2">

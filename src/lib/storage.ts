@@ -2,7 +2,6 @@
 import {
   collection,
   query,
-  orderBy,
   getDocs,
   getDoc,
   doc,
@@ -24,7 +23,6 @@ export interface AppSettings {
   deletionPolicy: DeletionPolicy;
   trelloApiKey: string;
   trelloToken: string;
-  aiApiKey: string;
   aiModel: string;
   cloudSyncEnabled: boolean;
   autoCloudSync: boolean;
@@ -66,7 +64,6 @@ export function getSettings(): AppSettings {
       deletionPolicy: "never",
       trelloApiKey: "",
       trelloToken: "",
-      aiApiKey: "",
       aiModel: "gemini-2.0-flash",
       cloudSyncEnabled: false,
       autoCloudSync: false,
@@ -79,7 +76,6 @@ export function getSettings(): AppSettings {
       deletionPolicy: "never",
       trelloApiKey: "",
       trelloToken: "",
-      aiApiKey: "",
       aiModel: "gemini-2.0-flash",
       cloudSyncEnabled: false,
       autoCloudSync: false,

@@ -4,12 +4,12 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Mic, Loader2, Share2, History, PlusCircle, Cloud, Terminal, Sparkles, BrainCircuit } from "lucide-react";
+import { Mic, Loader2, Share2, History, PlusCircle, Cloud, Terminal, Sparkles, BrainCircuit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeVoiceNote } from "@/ai/flows/transcribe-voice-note";
 import { nameTranscription } from "@/ai/flows/name-transcription-flow";
-import { getSettings, saveRecording, saveRecordingToDB, applyDeletions, AppSettings } from "@/lib/storage";
+import { getSettings, saveRecording, saveRecordingToDB, applyDeletions, AppSettings, deleteRecording } from "@/lib/storage";
 import type { Recording } from "@/types";
 import {
   AlertDialog,
@@ -161,7 +161,7 @@ export default function Home() {
         log("onStop: Audio converted to Data URI.");
 
         log("onStop: Calling transcribeVoiceNote...");
-        const transcribeResult = await transcribeVoiceNote({ audioDataUri, aiModel: settings.aiModel, aiApiKey: settings.aiApiKey });
+        const transcribeResult = await transcribeVoiceNote({ audioDataUri, aiModel: settings.aiModel });
         log("onStop: Transcription received:", transcribeResult);
         if (!transcribeResult || !transcribeResult.transcription) {
           throw new Error("Transcription failed to produce output.");
@@ -173,7 +173,7 @@ export default function Home() {
         const { transcription } = transcribeResult;
         
         log("onStop: Calling nameTranscription...");
-        const nameResult = await nameTranscription({ transcription, aiModel: settings.aiModel, aiApiKey: settings.aiApiKey });
+        const nameResult = await nameTranscription({ transcription, aiModel: settings.aiModel });
         log("onStop: Name received:", nameResult);
         if (!nameResult || !nameResult.name) {
             throw new Error("Naming failed to produce output.");
@@ -208,7 +208,7 @@ export default function Home() {
         }
         audioChunksRef.current = [];
       }
-  }, [resetToIdle, toast, log, settings.aiModel, settings.aiApiKey, cleanupVisualizer, user]);
+  }, [resetToIdle, toast, log, settings.aiModel, cleanupVisualizer, user]);
 
   const requestStopRecording = useCallback(() => {
     if (mediaRecorderRef.current && recordingStatus === "recording") {
@@ -390,6 +390,26 @@ export default function Home() {
     }
   };
 
+  const handleDiscard = async () => {
+    if (!lastRecording || !user) return;
+    try {
+      await deleteRecording(lastRecording.id, user.uid);
+      toast({
+        title: "Note Discarded",
+        description: "The recording has been successfully deleted.",
+      });
+    } catch (error) {
+      log("Discard error:", error);
+      toast({
+        variant: "destructive",
+        title: "Deletion Failed",
+        description: "Could not discard the note. Please try again.",
+      });
+    } finally {
+      resetToIdle();
+    }
+  };
+
 
   const getStatusText = () => {
     switch(recordingStatus) {
@@ -478,10 +498,15 @@ export default function Home() {
                             )}
                         </div>
                     </CardContent>
-                    <CardFooter>
-                        <Button className="w-full" onClick={resetToIdle}>
-                            <PlusCircle /> Record Another
-                        </Button>
+                    <CardFooter className="pt-4">
+                        <div className="grid grid-cols-2 gap-2 w-full">
+                            <Button variant="outline" className="border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10 hover:text-destructive" onClick={handleDiscard}>
+                                <Trash2 /> Discard
+                            </Button>
+                            <Button onClick={resetToIdle}>
+                                <PlusCircle /> Record Another
+                            </Button>
+                        </div>
                     </CardFooter>
                 </Card>
               </div>

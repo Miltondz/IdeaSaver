@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview An AI agent for expanding on transcriptions.
@@ -13,7 +14,6 @@ import {z} from 'genkit';
 const ExpandNoteInputSchema = z.object({
   transcription: z.string().describe('The transcription to be expanded.'),
   aiModel: z.string().optional(),
-  aiApiKey: z.string().optional(),
 });
 export type ExpandNoteInput = z.infer<typeof ExpandNoteInputSchema>;
 

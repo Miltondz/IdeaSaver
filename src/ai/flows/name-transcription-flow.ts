@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview An AI agent for naming transcriptions.
@@ -13,7 +14,6 @@ import {z} from 'genkit';
 const NameTranscriptionInputSchema = z.object({
   transcription: z.string().describe('The transcription to be named.'),
   aiModel: z.string().optional(),
-  aiApiKey: z.string().optional(),
 });
 export type NameTranscriptionInput = z.infer<typeof NameTranscriptionInputSchema>;
 
