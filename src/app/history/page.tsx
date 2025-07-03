@@ -49,6 +49,11 @@ export default function HistoryPage() {
         await navigator.share(shareData);
       } catch (err) {
         console.error("Share failed:", err);
+        toast({
+          variant: "destructive",
+          title: "Sharing failed",
+          description: "Could not share the note. Permission may have been denied or the action was cancelled.",
+        });
       }
     } else {
       const emailBody = `Check out this note: "${recording.name}"\n\n${recording.transcription}`;
