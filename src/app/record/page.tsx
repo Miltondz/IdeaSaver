@@ -291,14 +291,24 @@ export default function Home() {
       title: recording.name,
       text: recording.transcription,
     };
-    if (navigator.share) {
+    if (navigator.share && typeof navigator.share === 'function') {
       try {
         await navigator.share(shareData);
       } catch (err) {
-        if (err instanceof DOMException && err.name === 'AbortError') {
+        if (err instanceof DOMException && (err.name === 'AbortError' || err.name === 'NotAllowedError')) {
+          if (err.name === 'NotAllowedError') {
+            navigator.clipboard.writeText(recording.transcription).then(() => {
+                toast({
+                    title: "Sharing Permission Denied",
+                    description: "We couldn't open the share dialog. The note has been copied to your clipboard instead.",
+                });
+            });
+          }
           return;
         }
-        console.log("Share failed:", err);
+        
+        log("Share failed:", err);
+        console.error("Share failed:", err);
         toast({
           variant: "destructive",
           title: "Sharing failed",
@@ -306,8 +316,12 @@ export default function Home() {
         });
       }
     } else {
-      const emailBody = `Check out this note: "${recording.name}"\n\n${recording.transcription}`;
-      window.location.href = `mailto:?subject=${encodeURIComponent(recording.name)}&body=${encodeURIComponent(emailBody)}`;
+      navigator.clipboard.writeText(recording.transcription).then(() => {
+        toast({
+            title: "Sharing not supported",
+            description: "This browser doesn't support sharing. The note has been copied to your clipboard instead.",
+        });
+      });
     }
   };
 
