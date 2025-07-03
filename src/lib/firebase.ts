@@ -17,10 +17,15 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Check for missing environment variables
-if (!firebaseConfig.apiKey) {
-    firebaseConfigError = 'Firebase API Key is missing. Please add `NEXT_PUBLIC_FIREBASE_API_KEY` to your .env file. You can find these keys in your Firebase project settings.';
+// Check for missing or placeholder environment variables
+const missingKeys = Object.entries(firebaseConfig)
+  .filter(([, value]) => !value || value.includes('_REPLACE_WITH_'))
+  .map(([key]) => `NEXT_PUBLIC_FIREBASE_${key.replace(/([A-Z])/g, '_$1').toUpperCase()}`);
+
+if (missingKeys.length > 0) {
+    firebaseConfigError = `The following Firebase credentials are missing or are still placeholders in your .env file: ${missingKeys.join(', ')}. Please update the file with your actual Firebase project credentials.`;
 }
+
 
 if (!firebaseConfigError) {
     try {
