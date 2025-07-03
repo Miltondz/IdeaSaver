@@ -3,12 +3,12 @@
 
 import { useState, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Trash2, FileText, Share2, BrainCircuit, Send, Loader2, Copy, Check } from "lucide-react";
+import { Trash2, FileText, Share2, BrainCircuit, Send, Loader2, Copy, Check, Cloud } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { getRecordings, deleteRecording as deleteRecordingFromStorage } from "@/lib/storage";
+import { getRecordings, deleteRecording as deleteRecordingFromStorage, getSettings, updateRecording, saveRecordingToDB } from "@/lib/storage";
 import type { Recording } from "@/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
@@ -24,20 +24,8 @@ export default function HistoryPage() {
   const [noteToExpand, setNoteToExpand] = useState<Recording | null>(null);
   const [isCopied, setIsCopied] = useState(false);
   const { toast } = useToast();
+  const [settings, setSettings] = useState(getSettings());
 
-  useEffect(() => {
-    setIsMounted(true);
-    getRecordings()
-      .then(setRecordings)
-      .catch(() => {
-        toast({
-          variant: "destructive",
-          title: "Failed to load history",
-          description: "Could not fetch your recordings from the database. Please check your connection.",
-        });
-      });
-  }, [toast]);
-  
   const refreshRecordings = () => {
     getRecordings()
       .then(setRecordings)
@@ -50,6 +38,12 @@ export default function HistoryPage() {
       });
   }
 
+  useEffect(() => {
+    setIsMounted(true);
+    refreshRecordings();
+    setSettings(getSettings());
+  }, []);
+  
   const handleDelete = async (id: string) => {
     try {
       await deleteRecordingFromStorage(id);
@@ -77,9 +71,7 @@ export default function HistoryPage() {
       try {
         await navigator.share(shareData);
       } catch (err) {
-        // Don't show an error if the user cancels the share dialog.
         if (err instanceof DOMException && err.name === 'AbortError') {
-          console.log('Share was cancelled by the user.');
           return;
         }
         console.log("Share failed:", err);
@@ -121,10 +113,36 @@ export default function HistoryPage() {
     });
   };
 
+  const handleSaveExpandedToCloud = async () => {
+    if (!noteToExpand || !expandedNote) return;
+    try {
+      const updatedRec = {
+        ...noteToExpand,
+        expandedTranscription: expandedNote,
+      };
+      await updateRecording(updatedRec);
+      refreshRecordings();
+      toast({ title: "Expanded note saved!", description: "The expanded version has been saved locally and to the cloud." });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Save Failed", description: "Could not save the expanded note." });
+    }
+  };
+
+  const handleSaveToCloud = async (recording: Recording) => {
+    try {
+      const { audioDataUri, ...dataToSave } = recording;
+      await saveRecordingToDB(dataToSave);
+      toast({ title: "Saved to Cloud!", description: "Your note has been saved to the database." });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Save Failed", description: "Could not save to the database." });
+    }
+  };
+
   if (!isMounted) {
     return (
         <div className="flex justify-center items-center h-full">
-            <p>Loading history...</p>
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <p className="ml-4">Loading history...</p>
         </div>
     );
   }
@@ -210,6 +228,11 @@ export default function HistoryPage() {
                   <Button variant="outline" onClick={() => handleShare(selectedRecording)}>
                       <Share2 className="mr-2 h-4 w-4" /> Share
                   </Button>
+                  {settings.dbIntegrationEnabled && (
+                    <Button variant="outline" onClick={() => handleSaveToCloud(selectedRecording)}>
+                      <Cloud className="mr-2 h-4 w-4" /> Save to Cloud
+                    </Button>
+                  )}
                   <Button variant="outline" onClick={() => handleExpandClick(selectedRecording)}>
                       <BrainCircuit className="mr-2 h-4 w-4" /> Expand
                   </Button>
@@ -241,14 +264,26 @@ export default function HistoryPage() {
                         <ScrollArea className="h-full rounded-md border p-4 bg-muted/50">
                             <div className="whitespace-pre-wrap">{expandedNote}</div>
                         </ScrollArea>
-                        <Button
-                            size="icon"
-                            variant="ghost"
-                            className="absolute top-2 right-2 h-8 w-8 bg-background/50 hover:bg-background"
-                            onClick={() => handleCopyToClipboard(expandedNote)}
-                        >
-                            {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                        </Button>
+                        <div className="absolute top-2 right-2 flex gap-1">
+                            {settings.dbIntegrationEnabled && (
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8 bg-background/50 hover:bg-background"
+                                    onClick={handleSaveExpandedToCloud}
+                                >
+                                    <Cloud className="h-4 w-4" />
+                                </Button>
+                            )}
+                            <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 bg-background/50 hover:bg-background"
+                                onClick={() => handleCopyToClipboard(expandedNote)}
+                            >
+                                {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                            </Button>
+                        </div>
                     </div>
                 )}
             </div>

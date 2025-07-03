@@ -8,28 +8,57 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { getSettings, saveSettings } from "@/lib/storage";
-import { Settings, KeyRound, Trash2, Trello, Save } from "lucide-react";
+import { Settings, KeyRound, Trash2, Trello, Save, Database, Copy } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type DeletionPolicy = "never" | "7" | "15" | "30";
 
 export default function SettingsPage() {
   const [deletionPolicy, setDeletionPolicy] = useState<DeletionPolicy>("never");
+  const [trelloApiKey, setTrelloApiKey] = useState("");
+  const [trelloToken, setTrelloToken] = useState("");
+  const [geminiApiKey, setGeminiApiKey] = useState("");
+  const [dbIntegrationEnabled, setDbIntegrationEnabled] = useState(false);
+  const [autoSendToDB, setAutoSendToDB] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     const settings = getSettings();
     setDeletionPolicy(settings.deletionPolicy);
+    setTrelloApiKey(settings.trelloApiKey || "");
+    setTrelloToken(settings.trelloToken || "");
+    setGeminiApiKey(settings.geminiApiKey || "");
+    setDbIntegrationEnabled(settings.dbIntegrationEnabled || false);
+    setAutoSendToDB(settings.autoSendToDB || false);
     setIsMounted(true);
   }, []);
 
   const handleSave = () => {
-    saveSettings({ deletionPolicy });
+    saveSettings({
+      deletionPolicy,
+      trelloApiKey,
+      trelloToken,
+      geminiApiKey,
+      dbIntegrationEnabled,
+      autoSendToDB
+    });
     toast({
       title: "Settings Saved",
       description: "Your new settings have been applied.",
       className: "bg-accent text-accent-foreground border-accent",
     });
+  };
+
+  const handlePaste = async (setter: React.Dispatch<React.SetStateAction<string>>) => {
+    try {
+      const text = await navigator.clipboard.readText();
+      setter(text);
+      toast({ title: "Pasted from clipboard!" });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Failed to paste", description: "Please grant clipboard permissions." });
+    }
   };
   
   if (!isMounted) {
@@ -61,6 +90,22 @@ export default function SettingsPage() {
           <CardDescription>Manage your application settings and integrations.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
+
+            <div className="space-y-4">
+                <h3 className="text-lg font-medium flex items-center gap-2"><Database className="h-5 w-5" /> Database Integration</h3>
+                <div className="flex items-center space-x-2">
+                  <Switch id="db-integration" checked={dbIntegrationEnabled} onCheckedChange={setDbIntegrationEnabled} />
+                  <Label htmlFor="db-integration">Enable Cloud Database (Firebase)</Label>
+                </div>
+                <p className="text-sm text-muted-foreground">Saves your notes to a cloud database, allowing access across devices. Requires Firebase setup.</p>
+                {dbIntegrationEnabled && (
+                  <div className="flex items-center space-x-2 pl-4">
+                    <Checkbox id="auto-send" checked={autoSendToDB} onCheckedChange={(checked) => setAutoSendToDB(!!checked)} />
+                    <Label htmlFor="auto-send">Automatically save new notes to cloud</Label>
+                  </div>
+                )}
+            </div>
+            
             <div className="space-y-4">
                 <h3 className="text-lg font-medium flex items-center gap-2"><Trash2 className="h-5 w-5" /> Auto-delete Recordings</h3>
                 <p className="text-sm text-muted-foreground">Automatically delete old recordings to save space. This cannot be undone.</p>
@@ -86,26 +131,31 @@ export default function SettingsPage() {
 
             <div className="space-y-4">
                 <h3 className="text-lg font-medium flex items-center gap-2"><KeyRound className="h-5 w-5" /> API Keys</h3>
-                <p className="text-sm text-muted-foreground">
-                    Using your own API keys for services like Gemini or OpenRouter is a planned feature but is not yet available. The app currently uses a built-in configuration.
-                </p>
-                <Input placeholder="Gemini or OpenRouter API Key" disabled />
+                <div className="space-y-2">
+                    <Label htmlFor="gemini-key">Gemini API Key</Label>
+                    <div className="flex items-center gap-2">
+                      <Input id="gemini-key" type="password" placeholder="Enter your Gemini API Key" value={geminiApiKey} onChange={(e) => setGeminiApiKey(e.target.value)} />
+                      <Button variant="ghost" size="icon" onClick={() => handlePaste(setGeminiApiKey)}><Copy className="h-4 w-4" /></Button>
+                    </div>
+                </div>
             </div>
 
             <div className="space-y-4">
                  <h3 className="text-lg font-medium flex items-center gap-2"><Trello className="h-5 w-5" /> Trello Integration</h3>
-                 <p className="text-sm text-muted-foreground">
-                    Trello integration is planned for a future update. This will allow you to create Trello cards directly from your transcriptions.
-                 </p>
-                 <Input placeholder="Trello API Key" disabled />
-                 <Input placeholder="Trello Token" disabled />
-            </div>
-
-            <div className="space-y-4">
-                <h3 className="text-lg font-medium">Database Storage</h3>
-                <p className="text-sm text-muted-foreground">
-                    Your notes are currently saved in your browser's local storage. A cloud database integration is a planned feature for syncing across devices.
-                </p>
+                 <div className="space-y-2">
+                    <Label htmlFor="trello-key">Trello API Key</Label>
+                     <div className="flex items-center gap-2">
+                      <Input id="trello-key" type="password" placeholder="Enter your Trello API Key" value={trelloApiKey} onChange={(e) => setTrelloApiKey(e.target.value)} />
+                       <Button variant="ghost" size="icon" onClick={() => handlePaste(setTrelloApiKey)}><Copy className="h-4 w-4" /></Button>
+                    </div>
+                 </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="trello-token">Trello Token</Label>
+                     <div className="flex items-center gap-2">
+                      <Input id="trello-token" type="password" placeholder="Enter your Trello Token" value={trelloToken} onChange={(e) => setTrelloToken(e.target.value)} />
+                       <Button variant="ghost" size="icon" onClick={() => handlePaste(setTrelloToken)}><Copy className="h-4 w-4" /></Button>
+                    </div>
+                 </div>
             </div>
             
             <div className="flex justify-end">

@@ -3,12 +3,12 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Mic, Loader2, Share2, History, PlusCircle } from "lucide-react";
+import { Mic, Loader2, Share2, History, PlusCircle, Cloud } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeVoiceNote } from "@/ai/flows/transcribe-voice-note";
 import { nameTranscription } from "@/ai/flows/name-transcription-flow";
-import { saveRecording } from "@/lib/storage";
+import { getSettings, saveRecording, saveRecordingToDB } from "@/lib/storage";
 import type { Recording } from "@/types";
 import {
   AlertDialog,
@@ -42,6 +42,7 @@ export default function Home() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [lastRecording, setLastRecording] = useState<Recording | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
+  const [settings, setSettings] = useState(getSettings());
 
   const router = useRouter();
 
@@ -49,6 +50,10 @@ export default function Home() {
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
+  
+  useEffect(() => {
+    setSettings(getSettings());
+  }, [recordingStatus]);
   
   const log = useCallback((...args: any[]) => {
     const message = args.map(arg => {
@@ -64,7 +69,6 @@ export default function Home() {
     
     const timestamp = new Date().toLocaleTimeString();
     setLogs(prevLogs => [`[${timestamp}] ${message}`, ...prevLogs]);
-    console.log(`[${timestamp}] ${message}`);
   }, []);
 
   const resetToIdle = useCallback(() => {
@@ -161,6 +165,7 @@ export default function Home() {
   }, [recordingStatus, requestStopRecording]);
 
   const startRecording = useCallback(async () => {
+    setLogs([]);
     setElapsedTime(0);
     setRecordingStatus("recording");
     try {
@@ -207,9 +212,7 @@ export default function Home() {
       try {
         await navigator.share(shareData);
       } catch (err) {
-        // Don't show an error if the user cancels the share dialog.
         if (err instanceof DOMException && err.name === 'AbortError') {
-          console.log('Share was cancelled by the user.');
           return;
         }
         console.log("Share failed:", err);
@@ -224,6 +227,18 @@ export default function Home() {
       window.location.href = `mailto:?subject=${encodeURIComponent(recording.name)}&body=${encodeURIComponent(emailBody)}`;
     }
   };
+
+  const handleSaveToCloud = async (recording: Recording) => {
+    try {
+      const { audioDataUri, ...dataToSave } = recording;
+      await saveRecordingToDB(dataToSave);
+      toast({ title: "Saved to Cloud!", description: "Your note has been saved to the database." });
+    } catch (error) {
+      log("handleSaveToCloud error:", error);
+      toast({ variant: "destructive", title: "Save Failed", description: "Could not save to the database." });
+    }
+  };
+
 
   const getStatusText = () => {
     switch(recordingStatus) {
@@ -261,10 +276,15 @@ export default function Home() {
                          <ScrollArea className="h-32 rounded-md border p-4 bg-muted/50 text-left">
                             <p className="text-foreground/90 whitespace-pre-wrap">{lastRecording.transcription}</p>
                         </ScrollArea>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="flex flex-col gap-2">
                             <Button variant="outline" onClick={() => handleShare(lastRecording)}>
                                 <Share2 className="mr-2 h-4 w-4" /> Share
                             </Button>
+                            {settings.dbIntegrationEnabled && !settings.autoSendToDB && (
+                                <Button variant="outline" onClick={() => handleSaveToCloud(lastRecording!)}>
+                                    <Cloud className="mr-2 h-4 w-4" /> Save to Cloud
+                                </Button>
+                            )}
                             <Button variant="outline" onClick={() => router.push('/history')}>
                                 <History className="mr-2 h-4 w-4" /> View History
                             </Button>
@@ -279,7 +299,7 @@ export default function Home() {
               </div>
             ) : (
                 <div className="flex flex-col items-center justify-center gap-8">
-                    <p className="text-7xl font-mono tracking-tighter text-white/90">{new Date(elapsedTime * 1000).toISOString().slice(14, 19)}</p>
+                    <p className="text-7xl font-mono tracking-tighter text-foreground/90">{new Date(elapsedTime * 1000).toISOString().slice(14, 19)}</p>
                     <div className="h-24">
                         {recordingStatus === 'idle' && (
                             <Button onClick={startRecording} className="w-24 h-24 rounded-full bg-primary/10 border-2 border-primary text-primary shadow-lg hover:bg-primary/20">
@@ -293,7 +313,7 @@ export default function Home() {
                             </Button>
                         )}
                     </div>
-                    <p className="text-white/70 mt-4 h-5">
+                    <p className="text-foreground/70 mt-4 h-5">
                         {recordingStatus === 'recording' && "Tap the mic to stop recording"}
                         {recordingStatus === 'idle' && "Tap the mic to start recording"}
                     </p>

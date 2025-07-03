@@ -4,4 +4,5 @@ export interface Recording {
   transcription: string;
   audioDataUri?: string;
   date: string; // ISO string
+  expandedTranscription?: string;
 }
