@@ -143,7 +143,7 @@ export default function SettingsPage() {
                      {!settings.isPro && (
                         <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md border border-dashed">
                            <p className="font-semibold text-foreground/90">Cloud Sync is a Pro feature.</p>
-                           <p>Sync notes across devices and ensure they're always backed up.</p>
+                           <p>Sync your notes securely across all your devices and ensure they're always backed up.</p>
                            <Button size="sm" className="mt-2" asChild><Link href="/pricing">Upgrade to Pro</Link></Button>
                         </div>
                     )}
@@ -210,7 +210,7 @@ export default function SettingsPage() {
                     <Label htmlFor="trello-token">Trello Token</Label>
                      <div className="flex items-center gap-2">
                       <Input id="trello-token" type="password" placeholder="Enter your Trello Token" value={settings.trelloToken} onChange={(e) => updateSetting('trelloToken', e.target.value)} />
-                       <Button variant="ghost" size="icon" onClick={() => handlePaste((v) => updateSetting('trelloToken', v))}><Copy className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => handlePaste((v) => updateSetting('trelloToken', v))}><Copy className="h-4 w-4" /></Button>
                     </div>
                  </div>
             </fieldset>
