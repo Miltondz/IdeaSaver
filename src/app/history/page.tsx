@@ -216,13 +216,11 @@ export default function HistoryPage() {
                             </Tooltip>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                <span tabIndex={0}>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
-                                    <BrainCircuit className="h-4 w-4" />
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExpandClick(rec)}>
+                                        <BrainCircuit className="h-4 w-4" />
                                     </Button>
-                                </span>
                                 </TooltipTrigger>
-                                <TooltipContent><p>Expand with AI (Pro Feature)</p></TooltipContent>
+                                <TooltipContent><p>Expand with AI</p></TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
                     </div>
@@ -297,20 +295,9 @@ export default function HistoryPage() {
                         <Cloud className="mr-2 h-4 w-4" /> Save to Cloud
                         </Button>
                     )}
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <span tabIndex={0}>
-                                    <Button variant="outline" disabled>
-                                        <BrainCircuit className="mr-2 h-4 w-4" /> Expand Note
-                                    </Button>
-                                </span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>Upgrade to Pro to unlock AI note expansion!</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
+                    <Button variant="outline" onClick={() => handleExpandClick(selectedRecording)}>
+                        <BrainCircuit className="mr-2 h-4 w-4" /> Expand Note
+                    </Button>
               </DialogFooter>
             </>
           )}

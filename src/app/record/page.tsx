@@ -421,8 +421,6 @@ export default function Home() {
                                     <Link href="/settings" className="underline text-primary hover:text-primary/80">Enable Cloud Sync</Link> to access on all devices.
                                 </>
                             )}
-                            <br />
-                            Only 1 recording left this month. <Link href="/pricing" className="underline text-primary hover:text-primary/80">Upgrade for unlimited!</Link>
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -439,35 +437,13 @@ export default function Home() {
                               </Button>
                            </div>
                            
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <span tabIndex={0} className="inline-block w-full">
-                                            <Button disabled className="w-full">
-                                                <Sparkles /> Summarize with AI
-                                            </Button>
-                                        </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>Upgrade to Pro to extract summaries & action items!</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
+                            <Button className="w-full">
+                                <Sparkles /> Summarize with AI
+                            </Button>
                             
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                         <span tabIndex={0} className="inline-block w-full">
-                                            <Button disabled className="w-full">
-                                                <BrainCircuit /> Expand Note with AI
-                                            </Button>
-                                        </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>Upgrade to Pro to unlock AI note expansion!</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
+                            <Button className="w-full" onClick={() => router.push('/history')}>
+                                <BrainCircuit /> Expand Note with AI
+                            </Button>
 
                             {settings.dbIntegrationEnabled && !settings.autoSendToDB && (
                                 <Button variant="outline" onClick={() => handleSaveToCloud(lastRecording!)}>
@@ -517,11 +493,6 @@ export default function Home() {
                           {recordingStatus === 'recording' && "Tap the mic to stop recording"}
                           {recordingStatus === 'idle' && "Tap the mic to start recording"}
                       </p>
-                      {(recordingStatus === 'idle' || recordingStatus === 'recording') && (
-                          <p className="text-sm text-muted-foreground mt-2">
-                              Free Plan: 2 recordings left this month. <Link href="/pricing" className="underline text-primary hover:text-primary/80">Upgrade</Link> for unlimited.
-                          </p>
-                      )}
                     </div>
                 </div>
             )}
