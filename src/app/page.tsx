@@ -27,6 +27,15 @@ type RecordingStatus = "idle" | "recording" | "confirm_stop" | "transcribing" | 
 
 const RECORDING_TIME_LIMIT_SECONDS = 600; // 10 minutes
 
+function blobToDataUri(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
+}
+
 export default function Home() {
   const [recordingStatus, setRecordingStatus] = useState<RecordingStatus>("idle");
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -50,20 +59,18 @@ export default function Home() {
     return `${hours}:${minutes}:${seconds}`;
   };
 
-  const resetToIdle = useCallback(() => {
+  const resetToIdle = () => {
     setRecordingStatus("idle");
     setElapsedTime(0);
     setLastRecording(null);
-  }, []);
+  };
   
-  const onStop = useCallback(async () => {
+  const onStop = async () => {
     setRecordingStatus("transcribing");
     const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-    const reader = new FileReader();
-    reader.readAsDataURL(audioBlob);
-    reader.onloadend = async () => {
-      const audioDataUri = reader.result as string;
-      try {
+    
+    try {
+        const audioDataUri = await blobToDataUri(audioBlob);
         const transcribeResult = await transcribeVoiceNote({ audioDataUri });
         if (!transcribeResult || !transcribeResult.transcription) {
           throw new Error("Transcription failed to produce output.");
@@ -98,8 +105,7 @@ export default function Home() {
         mediaRecorderRef.current?.stream.getTracks().forEach(track => track.stop());
         audioChunksRef.current = [];
       }
-    };
-  }, [toast, resetToIdle]);
+  };
 
   const requestStopRecording = useCallback(() => {
     if (mediaRecorderRef.current && recordingStatus === "recording") {
@@ -131,7 +137,7 @@ export default function Home() {
     };
   }, [recordingStatus, requestStopRecording]);
 
-  const startRecording = useCallback(async () => {
+  const startRecording = async () => {
     setElapsedTime(0);
     setRecordingStatus("recording");
     try {
@@ -157,19 +163,19 @@ export default function Home() {
       });
       resetToIdle();
     }
-  }, [onStop, toast, resetToIdle]);
+  };
 
-  const handleConfirmStop = useCallback(() => {
+  const handleConfirmStop = () => {
       if (mediaRecorderRef.current) {
           mediaRecorderRef.current.stop();
       }
-  }, []);
+  };
 
-  const resumeRecording = useCallback(() => {
+  const resumeRecording = () => {
       setRecordingStatus("recording");
-  }, []);
+  };
 
-  const handleShare = useCallback(async (recording: Recording) => {
+  const handleShare = async (recording: Recording) => {
     const shareData = {
       title: recording.name,
       text: recording.transcription,
@@ -189,7 +195,7 @@ export default function Home() {
       const emailBody = `Check out this note: "${recording.name}"\n\n${recording.transcription}`;
       window.location.href = `mailto:?subject=${encodeURIComponent(recording.name)}&body=${encodeURIComponent(emailBody)}`;
     }
-  }, [toast]);
+  };
 
   const getStatusText = () => {
     switch(recordingStatus) {
