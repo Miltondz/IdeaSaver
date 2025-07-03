@@ -30,8 +30,11 @@ const prompt = ai.definePrompt({
   name: 'expandNotePrompt',
   input: {schema: ExpandNoteInputSchema},
   output: {schema: ExpandNoteOutputSchema},
-  prompt: `You are an expert writer and thought partner. Your task is to take the following raw transcription of a voice note and expand it into a well-structured and detailed document.
-Elaborate on the key ideas, provide additional context or examples where appropriate, and organize the content logically with paragraphs and markdown headings. The expanded document must be in the same language as the original transcription. The goal is to transform a rough idea into a more complete piece of text.
+  prompt: `You are an expert writer. It is critical that you write your response in the same language as the original transcription provided below. Do not translate it to English.
+
+Your task is to take the following raw transcription of a voice note and expand it into a well-structured and detailed document. Elaborate on the key ideas, provide additional context or examples where appropriate, and organize the content logically with paragraphs and markdown headings.
+
+The goal is to transform a rough idea into a more complete piece of text, maintaining the original language.
 
 Original Transcription:
 {{{transcription}}}

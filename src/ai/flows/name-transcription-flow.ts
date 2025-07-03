@@ -30,7 +30,9 @@ const prompt = ai.definePrompt({
   name: 'nameTranscriptionPrompt',
   input: {schema: NameTranscriptionInputSchema},
   output: {schema: NameTranscriptionOutputSchema},
-  prompt: `You are an expert at summarizing and titling text. Based on the following transcription, create a concise and descriptive title. The title should be between 3 and 5 words. The title must be in the same language as the original transcription.
+  prompt: `You are an expert at summarizing text. Your most important task is to create a title in the SAME LANGUAGE as the original transcription. Do not translate.
+
+Based on the following transcription, create a concise and descriptive title. The title should be between 3 and 5 words.
 
 Transcription:
 {{{transcription}}}

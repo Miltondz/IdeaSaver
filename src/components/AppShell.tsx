@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import React from 'react';
 import { Separator } from './ui/separator';
+import { ThemeToggle } from './theme-toggle';
 
 function Header() {
     const pathname = usePathname();
@@ -45,7 +46,8 @@ function Header() {
                     </nav>
                 </div>
 
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2">
+                     <ThemeToggle />
                      <div className="hidden md:flex">
                         <Link href="/">
                             <Button variant="ghost">Logout <LogOut className="ml-2 h-4 w-4"/></Button>
