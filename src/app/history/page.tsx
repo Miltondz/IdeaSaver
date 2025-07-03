@@ -26,17 +26,45 @@ export default function HistoryPage() {
 
   useEffect(() => {
     setIsMounted(true);
-    setRecordings(getRecordings());
-  }, []);
+    getRecordings()
+      .then(setRecordings)
+      .catch(() => {
+        toast({
+          variant: "destructive",
+          title: "Failed to load history",
+          description: "Could not fetch your recordings from the database. Please check your connection.",
+        });
+      });
+  }, [toast]);
   
   const refreshRecordings = () => {
-    setRecordings(getRecordings());
+    getRecordings()
+      .then(setRecordings)
+      .catch(() => {
+        toast({
+          variant: "destructive",
+          title: "Failed to refresh history",
+          description: "Could not fetch recordings. Please try again.",
+        });
+      });
   }
 
-  const handleDelete = (id: string) => {
-    deleteRecordingFromStorage(id);
-    refreshRecordings();
-    setSelectedRecording(null);
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteRecordingFromStorage(id);
+      refreshRecordings();
+      setSelectedRecording(null);
+      toast({
+        title: "Recording Deleted",
+        description: "The recording has been permanently deleted.",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Deletion Failed",
+        description: "Could not delete the recording. Please try again.",
+      });
+    }
   };
   
   const handleShare = async (recording: Recording) => {
