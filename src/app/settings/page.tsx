@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -17,13 +17,14 @@ import type { Recording } from "@/types";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-
+import { useAuth } from "@/hooks/use-auth";
 
 type DeletionPolicy = "never" | "7" | "15" | "30";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<AppSettings>(getSettings());
   const [isMounted, setIsMounted] = useState(false);
+  const { user } = useAuth();
   
   const [localRecordings, setLocalRecordings] = useState<Recording[]>([]);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -43,10 +44,12 @@ export default function SettingsPage() {
     setSettings(prev => ({ ...prev, [key]: value }));
   };
 
-  const refreshLocalRecordings = () => {
-    const recs = getLocalRecordings();
+  const refreshLocalRecordings = useCallback(() => {
+    if (!user) return;
+    const recs = getLocalRecordings(user.uid);
     setLocalRecordings(recs.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-  };
+  }, [user]);
+
 
   const handleManageClick = () => {
     refreshLocalRecordings();
@@ -54,8 +57,9 @@ export default function SettingsPage() {
   };
 
   const handleDeleteLocal = async (id: string) => {
+    if (!user) return;
     try {
-      await deleteRecordingFromStorage(id);
+      await deleteRecordingFromStorage(id, user.uid);
       refreshLocalRecordings();
       toast({ title: "Recording Deleted" });
     } catch (error) {
@@ -65,8 +69,9 @@ export default function SettingsPage() {
   
   const formatBytes = (dataUri: string | undefined): string => {
       if (!dataUri) return 'N/A';
-      const bytes = (dataUri.length * 3/4);
-      if (bytes < 1) return '0 Bytes';
+      // Basic approximation for base64 encoded data
+      const bytes = (dataUri.length * 3/4); 
+      if (bytes === 0) return '0 Bytes';
       const k = 1024;
       const sizes = ['Bytes', 'KB', 'MB', 'GB'];
       const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -92,7 +97,7 @@ export default function SettingsPage() {
     }
   };
   
-  if (!isMounted) {
+  if (!isMounted || !user) {
     return (
         <div className="container mx-auto p-4 pt-8 flex justify-center">
             <Card className="w-full max-w-2xl">
@@ -137,7 +142,7 @@ export default function SettingsPage() {
           <CardDescription>Manage your application settings and integrations.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
-            <fieldset disabled={!settings.isPro} className="space-y-4 group">
+            <fieldset className="space-y-4 group">
                 <div className="space-y-2">
                     <h3 className="text-lg font-medium flex items-center gap-2"><Database className="h-5 w-5" /> Cloud Sync</h3>
                      {!settings.isPro && (
@@ -147,13 +152,13 @@ export default function SettingsPage() {
                            <Button size="sm" className="mt-2" asChild><Link href="/pricing">Upgrade to Pro</Link></Button>
                         </div>
                     )}
-                    <div className="flex items-center space-x-2 group-disabled:opacity-50">
-                        <Switch id="cloud-sync" checked={settings.cloudSyncEnabled} onCheckedChange={(checked) => updateSetting('cloudSyncEnabled', checked)} />
+                    <div className="flex items-center space-x-2" style={{ opacity: !settings.isPro ? 0.5 : 1 }}>
+                        <Switch id="cloud-sync" checked={settings.cloudSyncEnabled} onCheckedChange={(checked) => updateSetting('cloudSyncEnabled', checked)} disabled={!settings.isPro}/>
                         <Label htmlFor="cloud-sync">Enable Cloud Sync</Label>
                     </div>
                     {settings.cloudSyncEnabled && (
-                    <div className="flex items-center space-x-2 pl-4 group-disabled:opacity-50">
-                        <Checkbox id="auto-send" checked={settings.autoCloudSync} onCheckedChange={(checked) => updateSetting('autoCloudSync', !!checked)} />
+                    <div className="flex items-center space-x-2 pl-4" style={{ opacity: !settings.isPro ? 0.5 : 1 }}>
+                        <Checkbox id="auto-send" checked={settings.autoCloudSync} onCheckedChange={(checked) => updateSetting('autoCloudSync', !!checked)} disabled={!settings.isPro} />
                         <Label htmlFor="auto-send">Automatically save new notes to cloud</Label>
                     </div>
                     )}
@@ -190,7 +195,7 @@ export default function SettingsPage() {
                 </div>
             </div>
 
-            <fieldset disabled={!settings.isPro} className="space-y-4 group">
+            <fieldset className="space-y-4 group">
                  <h3 className="text-lg font-medium flex items-center gap-2"><Trello className="h-5 w-5" /> Trello Integration</h3>
                   {!settings.isPro && (
                         <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md border border-dashed">
@@ -199,18 +204,18 @@ export default function SettingsPage() {
                            <Button size="sm" className="mt-2" asChild><Link href="/pricing">Upgrade to Pro</Link></Button>
                         </div>
                     )}
-                 <div className="space-y-2 group-disabled:opacity-50">
+                 <div className="space-y-2" style={{ opacity: !settings.isPro ? 0.5 : 1 }}>
                     <Label htmlFor="trello-key">Trello API Key</Label>
                      <div className="flex items-center gap-2">
-                      <Input id="trello-key" type="password" placeholder="Enter your Trello API Key" value={settings.trelloApiKey} onChange={(e) => updateSetting('trelloApiKey', e.target.value)} />
-                       <Button variant="ghost" size="icon" onClick={() => handlePaste((v) => updateSetting('trelloApiKey', v))}><Copy className="h-4 w-4" /></Button>
+                      <Input id="trello-key" type="password" placeholder="Enter your Trello API Key" value={settings.trelloApiKey} onChange={(e) => updateSetting('trelloApiKey', e.target.value)} disabled={!settings.isPro} />
+                       <Button variant="ghost" size="icon" onClick={() => handlePaste((v) => updateSetting('trelloApiKey', v))} disabled={!settings.isPro}><Copy className="h-4 w-4" /></Button>
                     </div>
                  </div>
-                 <div className="space-y-2 group-disabled:opacity-50">
+                 <div className="space-y-2" style={{ opacity: !settings.isPro ? 0.5 : 1 }}>
                     <Label htmlFor="trello-token">Trello Token</Label>
                      <div className="flex items-center gap-2">
-                      <Input id="trello-token" type="password" placeholder="Enter your Trello Token" value={settings.trelloToken} onChange={(e) => updateSetting('trelloToken', e.target.value)} />
-                      <Button variant="ghost" size="icon" onClick={() => handlePaste((v) => updateSetting('trelloToken', v))}><Copy className="h-4 w-4" /></Button>
+                      <Input id="trello-token" type="password" placeholder="Enter your Trello Token" value={settings.trelloToken} onChange={(e) => updateSetting('trelloToken', e.target.value)} disabled={!settings.isPro} />
+                      <Button variant="ghost" size="icon" onClick={() => handlePaste((v) => updateSetting('trelloToken', v))} disabled={!settings.isPro}><Copy className="h-4 w-4" /></Button>
                     </div>
                  </div>
             </fieldset>
@@ -260,7 +265,7 @@ export default function SettingsPage() {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Delete this recording?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This action cannot be undone and will permanently delete the recording from your device and the cloud (if synced).
+                          This action cannot be undone and will permanently delete the recording from your device.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -272,8 +277,7 @@ export default function SettingsPage() {
                 </div>
               )) : (
                 <div className="text-muted-foreground text-center py-8">
-                    <p>No local recordings found.</p>
-                    <p className="text-xs mt-1">Recordings appear here when cloud sync is disabled.</p>
+                    <p>No local recordings found for this user.</p>
                 </div>
               )}
             </div>

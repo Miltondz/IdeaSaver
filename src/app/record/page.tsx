@@ -25,6 +25,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useAuth } from "@/hooks/use-auth";
 
 
 type RecordingStatus = "idle" | "recording" | "confirm_stop" | "transcribing" | "naming" | "completed";
@@ -70,7 +71,7 @@ export default function Home() {
   const [logs, setLogs] = useState<string[]>([]);
   const [settings, setSettings] = useState<AppSettings>(getSettings());
   const [idleQuote, setIdleQuote] = useState(motivationalQuotes[0]);
-
+  const { user } = useAuth();
   const router = useRouter();
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -91,7 +92,9 @@ export default function Home() {
     setSettings(getSettings());
     window.addEventListener('storage', handleSettingsChange);
     
-    applyDeletions();
+    if (user) {
+        applyDeletions(user.uid);
+    }
 
     return () => {
         window.removeEventListener('storage', handleSettingsChange);
@@ -100,7 +103,7 @@ export default function Home() {
             audioContextRef.current.close();
         }
     };
-  }, []);
+  }, [user]);
   
   const log = useCallback((...args: any[]) => {
     const message = args.map(arg => {
@@ -143,6 +146,11 @@ export default function Home() {
   }, [cleanupVisualizer]);
   
   const onStop = useCallback(async () => {
+    if (!user) {
+        toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to process recordings." });
+        resetToIdle();
+        return;
+    }
     log("onStop: Process started.");
     cleanupVisualizer();
     setRecordingStatus("transcribing");
@@ -178,7 +186,7 @@ export default function Home() {
           audioDataUri,
         };
         log("onStop: Calling saveRecording with data:", recordingData);
-        const newRecording = await saveRecording(recordingData);
+        const newRecording = await saveRecording(recordingData, user.uid);
         log("onStop: Recording saved:", newRecording);
         
         setLastRecording(newRecording);
@@ -200,7 +208,7 @@ export default function Home() {
         }
         audioChunksRef.current = [];
       }
-  }, [resetToIdle, toast, log, settings.aiModel, settings.aiApiKey, cleanupVisualizer, settings.isPro]);
+  }, [resetToIdle, toast, log, settings.aiModel, settings.aiApiKey, cleanupVisualizer, user]);
 
   const requestStopRecording = useCallback(() => {
     if (mediaRecorderRef.current && recordingStatus === "recording") {

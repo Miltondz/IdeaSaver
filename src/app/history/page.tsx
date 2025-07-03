@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Trash2, FileText, Share2, BrainCircuit, Send, Loader2, Copy, Check, Save } from "lucide-react";
 import Link from 'next/link';
@@ -15,21 +15,25 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { expandNote } from "@/ai/flows/expand-note-flow";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useAuth } from "@/hooks/use-auth";
 
 
 export default function HistoryPage() {
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [selectedRecording, setSelectedRecording] = useState<Recording | null>(null);
-  const [isMounted, setIsMounted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isExpanding, setIsExpanding] = useState(false);
   const [expandedNote, setExpandedNote] = useState<string | null>(null);
   const [noteToExpand, setNoteToExpand] = useState<Recording | null>(null);
   const [copiedStates, setCopiedStates] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
   const [settings, setSettings] = useState<AppSettings>(getSettings());
+  const { user } = useAuth();
 
-  const refreshRecordings = () => {
-    getRecordings()
+  const refreshRecordings = useCallback(() => {
+    if (!user) return;
+    setIsLoading(true);
+    getRecordings(user.uid)
       .then(setRecordings)
       .catch(() => {
         toast({
@@ -37,20 +41,21 @@ export default function HistoryPage() {
           title: "Failed to refresh history",
           description: "Could not fetch recordings. Please try again.",
         });
-      });
-  }
+      })
+      .finally(() => setIsLoading(false));
+  }, [user, toast]);
 
   useEffect(() => {
-    setIsMounted(true);
     refreshRecordings();
     const handleSettingsChange = () => setSettings(getSettings());
     window.addEventListener('storage', handleSettingsChange);
     return () => window.removeEventListener('storage', handleSettingsChange);
-  }, []);
+  }, [refreshRecordings]);
   
   const handleDelete = async (id: string) => {
+    if (!user) return;
     try {
-      await deleteRecordingFromStorage(id);
+      await deleteRecordingFromStorage(id, user.uid);
       refreshRecordings();
       setSelectedRecording(null);
       toast({
@@ -136,13 +141,13 @@ export default function HistoryPage() {
   };
 
   const handleSaveExpandedNote = async () => {
-    if (!noteToExpand || !expandedNote) return;
+    if (!noteToExpand || !expandedNote || !user) return;
     try {
       const updatedRec = {
         ...noteToExpand,
         expandedTranscription: expandedNote,
       };
-      await updateRecording(updatedRec);
+      await updateRecording(updatedRec, user.uid);
       refreshRecordings();
       setNoteToExpand(null); // Close the dialog
       toast({ title: "Expanded note saved!", description: "The new version has been saved to your history." });
@@ -151,7 +156,7 @@ export default function HistoryPage() {
     }
   };
   
-  if (!isMounted) {
+  if (isLoading) {
     return (
         <div className="flex justify-center items-center h-full p-4">
             <div className="flex items-center text-muted-foreground">

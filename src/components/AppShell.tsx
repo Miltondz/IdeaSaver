@@ -1,19 +1,36 @@
 
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Lightbulb, History, Settings, User, LogOut, Menu } from 'lucide-react';
+import { Lightbulb, History, Settings, LogOut, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import React from 'react';
 import { Separator } from './ui/separator';
 import { ThemeToggle } from './theme-toggle';
+import { auth } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 
 function Header() {
     const pathname = usePathname();
+    const router = useRouter();
+    const { toast } = useToast();
     const [open, setOpen] = React.useState(false);
+    const { user } = useAuth();
+
+    const handleLogout = async () => {
+      try {
+        await signOut(auth);
+        toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
+        router.push('/');
+      } catch (error) {
+        toast({ variant: 'destructive', title: 'Logout Failed', description: 'Could not log you out. Please try again.' });
+      }
+    };
 
     const navItems = [
         { href: '/record', label: 'Record' },
@@ -22,6 +39,8 @@ function Header() {
         { href: '/about', label: 'About' },
     ];
     
+    if (!user) return null;
+
     return (
         <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="container flex h-14 items-center">
@@ -50,9 +69,7 @@ function Header() {
                 <div className="flex items-center gap-2">
                      <ThemeToggle />
                      <div className="hidden md:flex">
-                        <Link href="/">
-                            <Button variant="ghost">Logout <LogOut className="ml-2 h-4 w-4"/></Button>
-                        </Link>
+                        <Button variant="ghost" onClick={handleLogout}>Logout <LogOut className="ml-2 h-4 w-4"/></Button>
                      </div>
                      {/* Mobile Nav */}
                      <div className="md:hidden">
@@ -80,12 +97,10 @@ function Header() {
                                           </Link>
                                       ))}
                                       <Separator className="my-2" />
-                                      <Link href="/" onClick={() => setOpen(false)}>
-                                          <Button variant="outline" className="w-full">
-                                            <LogOut className="mr-2 h-4 w-4"/>
-                                            Logout
-                                          </Button>
-                                      </Link>
+                                      <Button variant="outline" className="w-full" onClick={() => { handleLogout(); setOpen(false); }}>
+                                        <LogOut className="mr-2 h-4 w-4"/>
+                                        Logout
+                                      </Button>
                                   </nav>
                                 </div>
                             </SheetContent>
@@ -101,9 +116,15 @@ function Header() {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAuthPage = pathname === '/';
+  const { user } = useAuth();
 
   if (isAuthPage) {
     return <>{children}</>;
+  }
+
+  // If we are on an app page but still don't have a user, show nothing (the AuthProvider will redirect)
+  if (!user) {
+    return null;
   }
 
   return (

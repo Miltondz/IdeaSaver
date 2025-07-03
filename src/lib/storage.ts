@@ -1,3 +1,4 @@
+
 import {
   collection,
   query,
@@ -7,7 +8,8 @@ import {
   doc,
   setDoc,
   deleteDoc,
-  writeBatch
+  writeBatch,
+  where
 } from "firebase/firestore";
 import { db } from "./firebase";
 import type { Recording } from "@/types";
@@ -29,9 +31,9 @@ export interface AppSettings {
 
 // --- LocalStorage Helper Functions ---
 
-const _getRecordingsFromStorage = (): Recording[] => {
-  if (typeof window === "undefined") return [];
-  const data = localStorage.getItem(RECORDINGS_KEY);
+const _getRecordingsFromStorage = (userId: string | null): Recording[] => {
+  if (typeof window === "undefined" || !userId) return [];
+  const data = localStorage.getItem(`${RECORDINGS_KEY}_${userId}`);
   try {
     return data ? JSON.parse(data) : [];
   } catch (error) {
@@ -42,10 +44,10 @@ const _getRecordingsFromStorage = (): Recording[] => {
 
 export const getLocalRecordings = _getRecordingsFromStorage;
 
-const _saveRecordingsToStorage = (recordings: Recording[]): void => {
-  if (typeof window === "undefined") return;
+const _saveRecordingsToStorage = (recordings: Recording[], userId: string | null): void => {
+  if (typeof window === "undefined" || !userId) return;
   try {
-    localStorage.setItem(RECORDINGS_KEY, JSON.stringify(recordings));
+    localStorage.setItem(`${RECORDINGS_KEY}_${userId}`, JSON.stringify(recordings));
   } catch (error) {
     console.error("Error saving recordings to localStorage. Data may be too large.", error);
     // Potentially notify the user that storage is full
@@ -58,7 +60,7 @@ const _saveRecordingsToStorage = (recordings: Recording[]): void => {
 export function getSettings(): AppSettings {
   if (typeof window === "undefined") {
     return { 
-      isPro: true, // Default to pro for development
+      isPro: false,
       deletionPolicy: "never",
       trelloApiKey: "",
       trelloToken: "",
@@ -70,7 +72,7 @@ export function getSettings(): AppSettings {
   }
   const data = localStorage.getItem(SETTINGS_KEY);
   const defaults: AppSettings = { 
-      isPro: true, // Default to pro for development
+      isPro: false,
       deletionPolicy: "never",
       trelloApiKey: "",
       trelloToken: "",
@@ -121,33 +123,35 @@ export async function deleteRecordingFromDB(id: string): Promise<void> {
 
 
 // --- Hybrid Functions (Local Storage + Firestore) ---
-export async function getRecordings(): Promise<Recording[]> {
+export async function getRecordings(userId: string): Promise<Recording[]> {
   const { cloudSyncEnabled } = getSettings();
 
   if (cloudSyncEnabled && db) {
     try {
-      const q = query(collection(db, "recordings"), orderBy("date", "desc"));
+      const q = query(collection(db, "recordings"), where("userId", "==", userId), orderBy("date", "desc"));
       const querySnapshot = await getDocs(q);
       const recordings = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Recording));
+      // Sync local storage with what's in the cloud
+      _saveRecordingsToStorage(recordings, userId);
       return recordings;
     } catch (error) {
       console.error("Error fetching from Firestore, falling back to local storage.", error);
-      return Promise.resolve(_getRecordingsFromStorage().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      return Promise.resolve(_getRecordingsFromStorage(userId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     }
   } else {
-    const recordings = _getRecordingsFromStorage();
+    const recordings = _getRecordingsFromStorage(userId);
     recordings.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     return Promise.resolve(recordings);
   }
 }
 
-export async function getRecording(id: string): Promise<Recording | undefined> {
+export async function getRecording(id: string, userId: string): Promise<Recording | undefined> {
   const { cloudSyncEnabled } = getSettings();
   if (cloudSyncEnabled && db) {
       try {
         const docRef = doc(db, "recordings", id);
         const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
+        if (docSnap.exists() && docSnap.data().userId === userId) {
           return { id: docSnap.id, ...docSnap.data() } as Recording;
         }
       } catch (error) {
@@ -155,27 +159,24 @@ export async function getRecording(id: string): Promise<Recording | undefined> {
       }
   }
   // Fallback to local storage if not found in DB or if DB is disabled
-  const recordings = _getRecordingsFromStorage();
+  const recordings = _getRecordingsFromStorage(userId);
   return Promise.resolve(recordings.find(rec => rec.id === id));
 }
 
-export async function saveRecording(data: Omit<Recording, 'id' | 'date'>): Promise<Recording> {
+export async function saveRecording(data: Omit<Recording, 'id' | 'date' | 'userId'>, userId: string): Promise<Recording> {
   const settings = getSettings();
   
   const newRecording: Recording = {
     id: new Date().getTime().toString(),
+    userId: userId,
     ...data,
     date: new Date().toISOString(),
   };
 
-  const recordings = _getRecordingsFromStorage();
+  const recordings = _getRecordingsFromStorage(userId);
   
-  if (!settings.cloudSyncEnabled) {
-    _saveRecordingsToStorage([...recordings, newRecording]);
-  } else {
-    const { audioDataUri, ...localData } = newRecording;
-    _saveRecordingsToStorage([...recordings, localData]);
-  }
+  // Always save to local storage first
+  _saveRecordingsToStorage([...recordings, newRecording], userId);
   
   if (settings.cloudSyncEnabled && settings.autoCloudSync) {
     await saveRecordingToDB(newRecording);
@@ -184,27 +185,18 @@ export async function saveRecording(data: Omit<Recording, 'id' | 'date'>): Promi
   return Promise.resolve(newRecording);
 }
 
-export async function updateRecording(recording: Recording): Promise<Recording> {
+export async function updateRecording(recording: Recording, userId: string): Promise<Recording> {
   const settings = getSettings();
   
-  let recordings = _getRecordingsFromStorage();
+  let recordings = _getRecordingsFromStorage(userId);
   const index = recordings.findIndex(r => r.id === recording.id);
 
-  let recordingToStoreLocally: Recording | Omit<Recording, 'audioDataUri'>;
-
-  if (!settings.cloudSyncEnabled) {
-      recordingToStoreLocally = recording;
-  } else {
-      const { audioDataUri, ...localData } = recording;
-      recordingToStoreLocally = localData;
-  }
-  
   if (index !== -1) {
-    recordings[index] = recordingToStoreLocally;
+    recordings[index] = recording;
   } else {
-    recordings.push(recordingToStoreLocally);
+    recordings.push(recording);
   }
-  _saveRecordingsToStorage(recordings);
+  _saveRecordingsToStorage(recordings, userId);
 
   if (settings.cloudSyncEnabled && db) {
     try {
@@ -218,20 +210,18 @@ export async function updateRecording(recording: Recording): Promise<Recording> 
 }
 
 
-export async function deleteRecording(id: string): Promise<void> {
-  // Local
-  const recordings = _getRecordingsFromStorage();
+export async function deleteRecording(id: string, userId: string): Promise<void> {
+  const recordings = _getRecordingsFromStorage(userId);
   const updatedRecordings = recordings.filter(rec => rec.id !== id);
-  _saveRecordingsToStorage(updatedRecordings);
+  _saveRecordingsToStorage(updatedRecordings, userId);
 
-  // Firestore
   await deleteRecordingFromDB(id).catch(err => console.error("Could not delete from DB", err));
 
   return Promise.resolve();
 }
 
-export async function applyDeletions(): Promise<void> {
-  if (typeof window === "undefined") return;
+export async function applyDeletions(userId: string): Promise<void> {
+  if (typeof window === "undefined" || !userId) return;
 
   const { deletionPolicy, cloudSyncEnabled } = getSettings();
   if (deletionPolicy === "never") {
@@ -244,7 +234,7 @@ export async function applyDeletions(): Promise<void> {
 
   if (cloudSyncEnabled && db) {
       try {
-          const q = query(collection(db, "recordings"));
+          const q = query(collection(db, "recordings"), where("userId", "==", userId));
           const querySnapshot = await getDocs(q);
           const recordingsToDelete = querySnapshot.docs
               .map(d => ({ id: d.id, ...d.data() } as Recording))
@@ -261,11 +251,11 @@ export async function applyDeletions(): Promise<void> {
       }
   }
   
-  const localRecordings = _getRecordingsFromStorage();
+  const localRecordings = _getRecordingsFromStorage(userId);
   const recordingsToKeep = localRecordings.filter(rec => new Date(rec.date).getTime() >= cutoffDate.getTime());
   
   if (localRecordings.length !== recordingsToKeep.length) {
       console.log(`Auto-deleting ${localRecordings.length - recordingsToKeep.length} old recordings from local storage.`);
-      _saveRecordingsToStorage(recordingsToKeep);
+      _saveRecordingsToStorage(recordingsToKeep, userId);
   }
 }

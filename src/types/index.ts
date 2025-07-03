@@ -1,5 +1,7 @@
+
 export interface Recording {
   id: string;
+  userId: string;
   name: string;
   transcription: string;
   audioDataUri?: string;
