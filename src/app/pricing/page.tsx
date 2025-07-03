@@ -123,6 +123,7 @@ export default function PricingPage() {
                 <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>AI-powered Transcription</span></li>
                 <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>AI-powered Naming</span></li>
                 <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>AI-powered Note Expansion <span className="font-semibold text-foreground">(Crucial upgrade feature)</span></span></li>
+                <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>AI-powered Project Planning</span></li>
                 <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>AI-powered Summarization</span></li>
                 <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>Action Item Extraction</span></li>
                 <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>Cloud Sync (Access notes across all your devices)</span></li>

@@ -117,8 +117,8 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // Existing users are assumed to have a plan.
-      saveSettings({ ...getSettings(), planSelected: true });
+      // On successful sign-in, the useAuth hook will handle routing
+      // based on whether a plan has been selected previously.
       router.push('/record');
     } catch (error) {
       handleAuthError(error);
@@ -141,7 +141,7 @@ export default function LoginPage() {
         toast({ title: 'Account Created!', description: "Welcome! Please select a plan to continue." });
         router.push('/pricing');
       } else {
-        saveSettings({ ...getSettings(), planSelected: true });
+        // For existing users, the useAuth hook will handle routing.
         router.push('/record');
       }
     } catch (error) {
