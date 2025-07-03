@@ -97,7 +97,7 @@ function Header() {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAuthPage = pathname === '/' || pathname === '/pricing';
+  const isAuthPage = pathname === '/';
 
   if (isAuthPage) {
     return <>{children}</>;
