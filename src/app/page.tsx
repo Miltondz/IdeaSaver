@@ -6,8 +6,7 @@ import { Mic, Loader2, Share2, History, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeVoiceNote } from "@/ai/flows/transcribe-voice-note";
-import { nameTranscription } from "@/ai/flows/name-transcription-flow";
-import { saveRecording, applyDeletions } from "@/lib/storage";
+import { saveRecording, applyDeletions, getRecordings } from "@/lib/storage";
 import type { Recording } from "@/types";
 import {
   AlertDialog,
@@ -40,6 +39,7 @@ export default function Home() {
   const [recordingStatus, setRecordingStatus] = useState<RecordingStatus>("idle");
   const [elapsedTime, setElapsedTime] = useState(0);
   const [lastRecording, setLastRecording] = useState<Recording | null>(null);
+  const [recordingCount, setRecordingCount] = useState(0);
 
   const router = useRouter();
 
@@ -50,6 +50,9 @@ export default function Home() {
   
   useEffect(() => {
     applyDeletions();
+    getRecordings().then(initialRecordings => {
+      setRecordingCount(initialRecordings.length);
+    });
   }, []);
 
   const formatTime = (totalSeconds: number) => {
@@ -79,17 +82,15 @@ export default function Home() {
         setRecordingStatus("naming");
         const { transcription } = transcribeResult;
         
-        const nameResult = await nameTranscription({ transcription });
-        if (!nameResult || !nameResult.name) {
-            throw new Error("Naming failed to produce a title.");
-        }
+        const newName = `Recording #${recordingCount + 1}`;
 
         const newRecording = await saveRecording({
-          name: nameResult.name,
+          name: newName,
           transcription,
           audioDataUri,
         });
         
+        setRecordingCount(c => c + 1);
         setLastRecording(newRecording);
         setRecordingStatus("completed");
 
