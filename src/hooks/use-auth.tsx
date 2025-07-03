@@ -30,10 +30,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (loading) return;
 
         const isAuthPage = pathname === '/';
+        const isPricingPage = pathname === '/pricing';
+        const isPublicPage = isAuthPage || isPricingPage;
 
-        if (!user && !isAuthPage) {
+        // If there's no user and they are on a private page, redirect to login.
+        if (!user && !isPublicPage) {
             router.push('/');
         }
+        
+        // If there IS a user and they are on the login page, redirect to the app.
         if (user && isAuthPage) {
             router.push('/record');
         }
