@@ -207,13 +207,16 @@ export default function Home() {
       try {
         await navigator.share(shareData);
       } catch (err) {
-        // Using console.log instead of console.error to avoid Next.js error overlay
-        // when the user cancels the share dialog.
-        console.log("Share failed or was cancelled:", err);
+        // Don't show an error if the user cancels the share dialog.
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          console.log('Share was cancelled by the user.');
+          return;
+        }
+        console.log("Share failed:", err);
         toast({
           variant: "destructive",
           title: "Sharing failed",
-          description: "Could not share the note. Permission may have been denied or the action was cancelled.",
+          description: "Could not share the note. An unexpected error occurred.",
         });
       }
     } else {
