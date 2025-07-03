@@ -22,6 +22,7 @@ export default function PricingPage() {
       saveSettings({
         ...settings,
         isPro: true,
+        planSelected: true,
         cloudSyncEnabled: true,
         autoCloudSync: true,
       });
@@ -34,6 +35,7 @@ export default function PricingPage() {
        saveSettings({
         ...settings,
         isPro: false,
+        planSelected: true,
         cloudSyncEnabled: false,
         autoCloudSync: false,
       });

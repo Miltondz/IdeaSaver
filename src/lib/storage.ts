@@ -20,6 +20,7 @@ const SETTINGS_KEY = "voice-note-settings";
 type DeletionPolicy = "never" | "7" | "15" | "30";
 export interface AppSettings {
   isPro: boolean;
+  planSelected: boolean;
   deletionPolicy: DeletionPolicy;
   trelloApiKey: string;
   trelloToken: string;
@@ -61,6 +62,7 @@ export function getSettings(): AppSettings {
   if (typeof window === "undefined") {
     return { 
       isPro: false,
+      planSelected: false,
       deletionPolicy: "never",
       trelloApiKey: "",
       trelloToken: "",
@@ -73,6 +75,7 @@ export function getSettings(): AppSettings {
   const data = localStorage.getItem(SETTINGS_KEY);
   const defaults: AppSettings = { 
       isPro: false,
+      planSelected: false,
       deletionPolicy: "never",
       trelloApiKey: "",
       trelloToken: "",
