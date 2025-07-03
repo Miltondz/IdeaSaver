@@ -3,12 +3,12 @@
 
 import { useState, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Trash2, FileText, Share2, BrainCircuit, Send, Loader2, Copy, Check, Cloud } from "lucide-react";
+import { Trash2, FileText, Share2, BrainCircuit, Send, Loader2, Copy, Check, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { getRecordings, deleteRecording as deleteRecordingFromStorage, getSettings, updateRecording, saveRecordingToDB } from "@/lib/storage";
+import { getRecordings, deleteRecording as deleteRecordingFromStorage, getSettings, updateRecording } from "@/lib/storage";
 import type { Recording } from "@/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
@@ -66,30 +66,30 @@ export default function HistoryPage() {
   };
   
   const handleShare = async (recording: Recording) => {
-    if (!recording.transcription) return;
+    if (!recording) return;
+    const textToShare = recording.expandedTranscription || recording.transcription;
+    if (!textToShare) return;
+
     const shareData = {
       title: recording.name,
-      text: recording.transcription,
+      text: textToShare,
     };
 
     if (navigator.share && typeof navigator.share === 'function') {
       try {
         await navigator.share(shareData);
       } catch (err) {
-        // Silently ignore AbortError (user canceled) and NotAllowedError (permission denied)
         if (err instanceof DOMException && (err.name === 'AbortError' || err.name === 'NotAllowedError')) {
-          // If permission was denied, let's offer the fallback which is to copy to clipboard.
           if (err.name === 'NotAllowedError') {
-              handleCopyToClipboard(recording.transcription);
+              handleCopyToClipboard(textToShare);
               toast({
                   title: "Sharing Permission Denied",
                   description: "We couldn't open the share dialog. The note has been copied to your clipboard instead.",
               });
           }
-          return; // Exit the function gracefully for both AbortError and NotAllowedError
+          return;
         }
         
-        // For any other unexpected errors
         console.error("Share failed:", err);
         toast({
           variant: "destructive",
@@ -98,8 +98,7 @@ export default function HistoryPage() {
         });
       }
     } else {
-        // Fallback for browsers that do not support the Web Share API
-        handleCopyToClipboard(recording.transcription);
+        handleCopyToClipboard(textToShare);
         toast({
             title: "Sharing not supported",
             description: "This browser doesn't support sharing. The note has been copied to your clipboard instead.",
@@ -134,7 +133,7 @@ export default function HistoryPage() {
     });
   };
 
-  const handleSaveExpandedToCloud = async () => {
+  const handleSaveExpandedNote = async () => {
     if (!noteToExpand || !expandedNote) return;
     try {
       const updatedRec = {
@@ -143,21 +142,13 @@ export default function HistoryPage() {
       };
       await updateRecording(updatedRec);
       refreshRecordings();
-      toast({ title: "Expanded note saved!", description: "The expanded version has been saved locally and to the cloud." });
+      setNoteToExpand(null); // Close the dialog
+      toast({ title: "Expanded note saved!", description: "The new version has been saved to your history." });
     } catch (error) {
       toast({ variant: "destructive", title: "Save Failed", description: "Could not save the expanded note." });
     }
   };
-
-  const handleSaveToCloud = async (recording: Recording) => {
-    try {
-      await saveRecordingToDB(recording);
-      toast({ title: "Saved to Cloud!", description: "Your note has been saved to the database." });
-    } catch (error) {
-      toast({ variant: "destructive", title: "Save Failed", description: "Could not save to the database." });
-    }
-  };
-
+  
   if (!isMounted) {
     return (
         <div className="flex justify-center items-center h-full p-4">
@@ -290,11 +281,6 @@ export default function HistoryPage() {
                     <Button variant="outline" onClick={() => handleShare(selectedRecording)}>
                         <Share2 className="mr-2 h-4 w-4" /> Share
                     </Button>
-                    {settings.dbIntegrationEnabled && (
-                        <Button variant="outline" onClick={() => handleSaveToCloud(selectedRecording)}>
-                        <Cloud className="mr-2 h-4 w-4" /> Save to Cloud
-                        </Button>
-                    )}
                     <Button variant="outline" onClick={() => handleExpandClick(selectedRecording)}>
                         <BrainCircuit className="mr-2 h-4 w-4" /> Expand Note
                     </Button>
@@ -309,7 +295,7 @@ export default function HistoryPage() {
             <DialogHeader>
                 <DialogTitle>Expanded Note: {noteToExpand?.name}</DialogTitle>
                 <DialogDescription>
-                    This is an AI-generated expansion of your original note.
+                    This is an AI-generated expansion of your original note. Review and save.
                 </DialogDescription>
             </DialogHeader>
             <div className="py-4 flex-1 min-h-0">
@@ -323,29 +309,32 @@ export default function HistoryPage() {
                         <ScrollArea className="h-full rounded-md border p-4 bg-muted/50">
                             <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert" dangerouslySetInnerHTML={{ __html: expandedNote }}></div>
                         </ScrollArea>
-                        <div className="absolute top-2 right-2 flex gap-1">
-                            {settings.dbIntegrationEnabled && (
-                                <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-8 w-8 bg-background/50 hover:bg-background"
-                                    onClick={handleSaveExpandedToCloud}
-                                >
-                                    <Cloud className="h-4 w-4" />
-                                </Button>
-                            )}
-                            <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8 bg-background/50 hover:bg-background"
-                                onClick={() => handleCopyToClipboard(expandedNote)}
-                            >
-                                {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                            </Button>
+                         <div className="absolute top-2 right-2">
+                             <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                    <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-8 w-8 bg-background/50 hover:bg-background"
+                                        onClick={() => handleCopyToClipboard(expandedNote)}
+                                    >
+                                        {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                    </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent><p>Copy</p></TooltipContent>
+                                </Tooltip>
+                             </TooltipProvider>
                         </div>
                     </div>
                 )}
             </div>
+            {expandedNote && !isExpanding && (
+                <DialogFooter className="pt-4 border-t">
+                    <Button variant="outline" onClick={() => setNoteToExpand(null)}>Close</Button>
+                    <Button onClick={handleSaveExpandedNote}><Save className="mr-2 h-4 w-4" /> Save Expanded Note</Button>
+                </DialogFooter>
+            )}
         </DialogContent>
     </Dialog>
 
