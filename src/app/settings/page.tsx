@@ -217,7 +217,7 @@ export default function SettingsPage() {
                  <div className="space-y-2">
                     <Label htmlFor="ai-model">AI Model Name</Label>
                     <div className="flex items-center gap-2">
-                      <Input id="ai-model" type="text" placeholder="e.g., openai/gpt-4 or gemini-2.0-flash" value={settings.aiModel} onChange={(e) => updateSetting('aiModel', e.target.value)} />
+                      <Input id="ai-model" type="text" placeholder="e.g., gemini-1.5-pro-latest or gemini-1.5-flash-latest" value={settings.aiModel} onChange={(e) => updateSetting('aiModel', e.target.value)} />
                        <Button variant="ghost" size="icon" onClick={() => handlePaste((v) => updateSetting('aiModel', v))}><Copy className="h-4 w-4" /></Button>
                     </div>
                     <p className="text-sm text-muted-foreground">Specify the model name for AI features. If no provider is included, 'googleai/' will be used.</p>

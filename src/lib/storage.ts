@@ -64,7 +64,7 @@ export function getSettings(): AppSettings {
       deletionPolicy: "never",
       trelloApiKey: "",
       trelloToken: "",
-      aiModel: "gemini-2.0-flash",
+      aiModel: "gemini-1.5-flash-latest",
       cloudSyncEnabled: false,
       autoCloudSync: false,
     };
@@ -76,7 +76,7 @@ export function getSettings(): AppSettings {
       deletionPolicy: "never",
       trelloApiKey: "",
       trelloToken: "",
-      aiModel: "gemini-2.0-flash",
+      aiModel: "gemini-1.5-flash-latest",
       cloudSyncEnabled: false,
       autoCloudSync: false,
   };

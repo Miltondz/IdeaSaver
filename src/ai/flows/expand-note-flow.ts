@@ -52,7 +52,7 @@ const expandNoteFlow = ai.defineFlow(
     // The user can override the model via the settings page.
     const modelToUse = (input.aiModel && input.aiModel.includes('/')) 
       ? input.aiModel 
-      : `googleai/${input.aiModel || 'gemini-2.0-flash'}`;
+      : `googleai/${input.aiModel || 'gemini-1.5-flash-latest'}`;
 
     const [providerName] = modelToUse.split('/');
     if (providerName !== 'googleai') {
