@@ -1,6 +1,5 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Linkedin, ExternalLink } from "lucide-react";
 import Link from "next/link";
@@ -8,17 +7,10 @@ import Link from "next/link";
 export default function AboutPage() {
   return (
     <div className="container mx-auto p-4 pt-8 max-w-2xl">
-      <Card className="overflow-hidden shadow-lg border-primary/20">
-        <div className="h-32 bg-gradient-to-r from-primary/10 to-accent/10" />
-        <CardHeader className="items-center text-center -mt-16">
-          <Avatar className="h-32 w-32 border-4 border-background shadow-md">
-              <AvatarImage src="https://canvasdesk.me/1650856821997.jpeg" alt="Milton Diaz" />
-              <AvatarFallback>MD</AvatarFallback>
-          </Avatar>
-          <div className="pt-4">
-            <CardTitle className="text-3xl">Milton Diaz</CardTitle>
-            <CardDescription className="text-lg text-muted-foreground pt-1">Sole Developer & Creator</CardDescription>
-          </div>
+      <Card className="shadow-lg border-primary/20">
+        <CardHeader className="items-center text-center p-8">
+          <CardTitle className="text-3xl">Milton Diaz</CardTitle>
+          <CardDescription className="text-lg text-muted-foreground pt-1">Sole Developer & Creator</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 text-center px-6 sm:px-8 pb-8">
           <p className="text-lg leading-relaxed">
