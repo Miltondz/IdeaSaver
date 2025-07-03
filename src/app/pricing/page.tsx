@@ -1,22 +1,56 @@
+
 'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import Link from 'next/link';
 import { useState } from "react";
-import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
+import { saveSettings, getSettings } from "@/lib/storage";
+
 
 export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const handleSelectPlan = (plan: 'free' | 'pro') => {
+    const settings = getSettings();
+    if (plan === 'pro') {
+      saveSettings({
+        ...settings,
+        isPro: true,
+        cloudSyncEnabled: true,
+        autoCloudSync: true,
+      });
+      toast({ 
+          title: "Pro Trial Activated!",
+          description: "Cloud Sync is now enabled. Welcome aboard!",
+          className: "bg-accent text-accent-foreground border-accent",
+      });
+    } else {
+       saveSettings({
+        ...settings,
+        isPro: false,
+        cloudSyncEnabled: false,
+        autoCloudSync: false,
+      });
+       toast({ 
+          title: "Free Plan Selected",
+          description: "Welcome to Idea Saver!",
+      });
+    }
+    router.push('/record');
+  };
     
   return (
     <div className="container mx-auto py-12 px-4">
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold tracking-tight">Find the perfect plan</h1>
+        <h1 className="text-4xl font-bold tracking-tight">Choose your plan to get started</h1>
         <p className="text-muted-foreground mt-2 max-w-xl mx-auto">
-          Start for free, then choose a plan that fits your needs. Simple, transparent pricing.
+          You're almost there! Select a plan to start capturing your ideas.
         </p>
       </div>
 
@@ -50,8 +84,8 @@ export default function PricingPage() {
             </ul>
           </CardContent>
           <CardFooter>
-            <Button variant="outline" className="w-full" asChild>
-                <Link href="/record">Start for Free</Link>
+            <Button variant="outline" className="w-full" onClick={() => handleSelectPlan('free')}>
+                Continue with Free Plan
             </Button>
           </CardFooter>
         </Card>
@@ -97,8 +131,8 @@ export default function PricingPage() {
             </ul>
           </CardContent>
           <CardFooter>
-             <Button className="w-full">
-                Choose Plan (PayPal)
+             <Button className="w-full" onClick={() => handleSelectPlan('pro')}>
+                Start 7-Day Pro Trial
              </Button>
           </CardFooter>
         </Card>
