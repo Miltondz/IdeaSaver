@@ -91,23 +91,24 @@ export default function HistoryPage() {
     }
   };
   
-  const handleShare = async (recording: Recording | null) => {
-    if (!recording) return;
-    const textToShare = recording.expandedTranscription || recording.transcription;
-    if (!textToShare) return;
+  const handleCopyToClipboard = (text: string | null, id: string) => {
+    if (!text) return;
+    const cleanText = text.replace(/<[^>]*>?/gm, '');
+    navigator.clipboard.writeText(cleanText).then(() => {
+        setCopiedStates(prev => ({...prev, [id]: true}));
+        toast({ title: "Copied to clipboard!", className: "bg-accent text-accent-foreground border-accent" });
+        setTimeout(() => setCopiedStates(prev => ({...prev, [id]: false})), 2000);
+    });
+  };
 
-    const shareData = {
-      title: recording.name,
-      text: textToShare,
-    };
-
+  const shareContent = async (shareData: { title: string, text: string }) => {
     if (navigator.share && typeof navigator.share === 'function') {
       try {
         await navigator.share(shareData);
       } catch (err) {
-        if (err instanceof DOMException && (err.name === 'AbortError' || err.name === 'NotAllowedError')) {
+         if (err instanceof DOMException && (err.name === 'AbortError' || err.name === 'NotAllowedError')) {
           if (err.name === 'NotAllowedError') {
-              handleCopyToClipboard(textToShare, 'share-fallback');
+              handleCopyToClipboard(shareData.text, 'share-fallback');
               toast({
                   title: "Sharing Permission Denied",
                   description: "We couldn't open the share dialog. The note has been copied to your clipboard instead.",
@@ -124,12 +125,52 @@ export default function HistoryPage() {
         });
       }
     } else {
-        handleCopyToClipboard(textToShare, 'share-fallback');
+        handleCopyToClipboard(shareData.text, 'share-fallback');
         toast({
             title: "Sharing not supported",
             description: "This browser doesn't support sharing. The note has been copied to your clipboard instead.",
         });
     }
+  };
+
+  const handleSimpleShare = async (recording: Recording | null) => {
+    if (!recording) return;
+    const textToShare = (recording.summary || recording.transcription).replace(/<[^>]*>?/gm, '');
+    if (!textToShare) return;
+    await shareContent({ title: recording.name, text: textToShare });
+  }
+
+  const handleShareAll = async (recording: Recording | null) => {
+    if (!recording) return;
+
+    const sections = [
+        { title: 'Transcription', content: editableTranscription },
+        { title: 'Summary', content: recording.summary },
+        { title: 'Expanded Note', content: recording.expandedTranscription },
+        { title: 'Project Plan', content: recording.projectPlan },
+        { title: 'Action Items', content: recording.actionItems },
+    ];
+
+    const textToShare = sections
+        .filter(section => section.content)
+        .map(section => `## ${section.title}\n\n${section.content.replace(/<[^>]*>?/gm, '')}`)
+        .join('\n\n---\n\n');
+
+    if (!textToShare) {
+      toast({
+        variant: "destructive",
+        title: "Nothing to share",
+        description: "This note has no content to share.",
+      });
+      return;
+    }
+    await shareContent({ title: recording.name, text: textToShare });
+  };
+  
+  const handleShareSection = async (title: string, text: string | undefined | null) => {
+    if (!text) return;
+    const cleanText = text.replace(/<[^>]*>?/gm, '');
+    await shareContent({ title, text: cleanText });
   };
 
   const proceedWithExpand = (recording: Recording) => {
@@ -272,15 +313,6 @@ export default function HistoryPage() {
     }
   };
 
-  const handleCopyToClipboard = (text: string | null, id: string) => {
-    if (!text) return;
-    navigator.clipboard.writeText(text).then(() => {
-        setCopiedStates(prev => ({...prev, [id]: true}));
-        toast({ title: "Copied to clipboard!", className: "bg-accent text-accent-foreground border-accent" });
-        setTimeout(() => setCopiedStates(prev => ({...prev, [id]: false})), 2000);
-    });
-  };
-
   const handleSaveTranscription = async () => {
     if (!selectedRecording || !user) return;
     if (editableTranscription === selectedRecording.transcription) {
@@ -382,7 +414,7 @@ export default function HistoryPage() {
                             </Tooltip>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleShare(rec)}>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleSimpleShare(rec)}>
                                     <Share2 className="h-4 w-4" />
                                 </Button>
                                 </TooltipTrigger>
@@ -485,6 +517,16 @@ export default function HistoryPage() {
                           {isSaving ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
                           Save
                         </Button>
+                         <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                               <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleShareSection(selectedRecording.name, editableTranscription)}>
+                                  <Share2 className="h-4 w-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent><p>Share Transcription</p></TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -518,8 +560,18 @@ export default function HistoryPage() {
                           <AccordionTrigger className="font-semibold">Summary</AccordionTrigger>
                           <AccordionContent>
                             <div className="relative">
-                              <p className="text-foreground/90 whitespace-pre-wrap bg-muted/50 rounded-md p-4 pr-12 border">{selectedRecording.summary}</p>
-                              <div className="absolute top-2 right-2">
+                              <p className="text-foreground/90 whitespace-pre-wrap bg-muted/50 rounded-md p-4 pr-24 border">{selectedRecording.summary}</p>
+                              <div className="absolute top-2 right-2 flex items-center">
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button size="icon" variant="ghost" className="h-8 w-8 bg-background/50 hover:bg-background" onClick={() => handleShareSection(`${selectedRecording.name} - Summary`, selectedRecording.summary)}>
+                                              <Share2 className="h-4 w-4" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>Share Summary</p></TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
                                 <TooltipProvider>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
@@ -545,8 +597,18 @@ export default function HistoryPage() {
                           <AccordionTrigger className="font-semibold">Expanded Note</AccordionTrigger>
                           <AccordionContent>
                             <div className="relative">
-                              <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-12" dangerouslySetInnerHTML={{ __html: selectedRecording.expandedTranscription }}></div>
-                              <div className="absolute top-2 right-2">
+                              <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-24" dangerouslySetInnerHTML={{ __html: selectedRecording.expandedTranscription }}></div>
+                              <div className="absolute top-2 right-2 flex items-center">
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button size="icon" variant="ghost" className="h-8 w-8 bg-background/50 hover:bg-background" onClick={() => handleShareSection(`${selectedRecording.name} - Expanded Note`, selectedRecording.expandedTranscription)}>
+                                              <Share2 className="h-4 w-4" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>Share Expanded Note</p></TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
                                 <TooltipProvider>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
@@ -572,8 +634,18 @@ export default function HistoryPage() {
                           <AccordionTrigger className="font-semibold">Project Plan</AccordionTrigger>
                           <AccordionContent>
                             <div className="relative">
-                              <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-12" dangerouslySetInnerHTML={{ __html: selectedRecording.projectPlan }}></div>
-                              <div className="absolute top-2 right-2">
+                              <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-24" dangerouslySetInnerHTML={{ __html: selectedRecording.projectPlan }}></div>
+                              <div className="absolute top-2 right-2 flex items-center">
+                                 <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button size="icon" variant="ghost" className="h-8 w-8 bg-background/50 hover:bg-background" onClick={() => handleShareSection(`${selectedRecording.name} - Project Plan`, selectedRecording.projectPlan)}>
+                                              <Share2 className="h-4 w-4" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>Share Project Plan</p></TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
                                 <TooltipProvider>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
@@ -599,8 +671,18 @@ export default function HistoryPage() {
                           <AccordionTrigger className="font-semibold">Action Items</AccordionTrigger>
                           <AccordionContent>
                             <div className="relative">
-                              <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-12" dangerouslySetInnerHTML={{ __html: selectedRecording.actionItems }}></div>
-                              <div className="absolute top-2 right-2">
+                              <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-24" dangerouslySetInnerHTML={{ __html: selectedRecording.actionItems }}></div>
+                              <div className="absolute top-2 right-2 flex items-center">
+                                 <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button size="icon" variant="ghost" className="h-8 w-8 bg-background/50 hover:bg-background" onClick={() => handleShareSection(`${selectedRecording.name} - Action Items`, selectedRecording.actionItems)}>
+                                              <Share2 className="h-4 w-4" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>Share Action Items</p></TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
                                 <TooltipProvider>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
@@ -627,8 +709,8 @@ export default function HistoryPage() {
               </div>
 
                <DialogFooter className="flex-wrap justify-end gap-2 pt-4 border-t mt-auto">
-                    <Button variant="outline" onClick={() => handleShare(selectedRecording)}>
-                        <Share2 className="mr-2 h-4 w-4" /> Share
+                    <Button variant="outline" onClick={() => handleShareAll(selectedRecording)}>
+                        <Share2 className="mr-2 h-4 w-4" /> Share All
                     </Button>
                      <TooltipProvider>
                       <Tooltip>
