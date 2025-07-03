@@ -13,6 +13,7 @@ import type { Recording } from "@/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { expandNote } from "@/ai/flows/expand-note-flow";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
 export default function HistoryPage() {
@@ -176,7 +177,7 @@ export default function HistoryPage() {
             <Card className="w-full max-w-sm text-center p-8">
               <CardHeader>
                 <CardTitle>No Recordings Yet</CardTitle>
-                <CardDescription>Tap the microphone on the Record page to start capturing your ideas.</CardDescription>
+                <CardDescription>No recordings yet! Tap 'Record' to capture your first idea.</CardDescription>
               </CardHeader>
             </Card>
         </div>
@@ -194,29 +195,56 @@ export default function HistoryPage() {
                 <CardContent className="flex-1">
                   <p className="text-muted-foreground line-clamp-3">{rec.transcription}</p>
                 </CardContent>
-                <CardFooter className="flex justify-between">
-                  <Button variant="ghost" size="sm" onClick={() => setSelectedRecording(rec)}>
-                    <FileText className="mr-2 h-4 w-4" /> View
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive" size="icon" className="h-8 w-8">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This action cannot be undone. This will permanently delete this recording and its transcription.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDelete(rec.id)}>Delete</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                <CardFooter className="flex justify-between items-center">
+                    <div className="flex gap-1">
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedRecording(rec)}>
+                                    <FileText className="h-4 w-4" />
+                                </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>View Details</p></TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleShare(rec)}>
+                                    <Share2 className="h-4 w-4" />
+                                </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Share Note</p></TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                <span tabIndex={0}>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
+                                    <BrainCircuit className="h-4 w-4" />
+                                    </Button>
+                                </span>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Expand with AI (Pro Feature)</p></TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </div>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="icon" className="h-8 w-8">
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete this recording and its transcription.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(rec.id)}>Delete</AlertDialogAction>
+                        </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </CardFooter>
               </Card>
             ))}
@@ -253,20 +281,28 @@ export default function HistoryPage() {
                 </div>
               </div>
                <DialogFooter className="flex-wrap justify-end gap-2 pt-4 border-t">
-                  <Button variant="outline" onClick={() => handleShare(selectedRecording)}>
-                      <Share2 className="mr-2 h-4 w-4" /> Share
-                  </Button>
-                  {settings.dbIntegrationEnabled && (
-                    <Button variant="outline" onClick={() => handleSaveToCloud(selectedRecording)}>
-                      <Cloud className="mr-2 h-4 w-4" /> Save to Cloud
+                    <Button variant="outline" onClick={() => handleShare(selectedRecording)}>
+                        <Share2 className="mr-2 h-4 w-4" /> Share
                     </Button>
-                  )}
-                  <Button variant="outline" onClick={() => handleExpandClick(selectedRecording)}>
-                      <BrainCircuit className="mr-2 h-4 w-4" /> Expand
-                  </Button>
-                  <Button variant="outline" disabled>
-                      <Send className="mr-2 h-4 w-4" /> Create Trello Task
-                  </Button>
+                    {settings.dbIntegrationEnabled && (
+                        <Button variant="outline" onClick={() => handleSaveToCloud(selectedRecording)}>
+                        <Cloud className="mr-2 h-4 w-4" /> Save to Cloud
+                        </Button>
+                    )}
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <span tabIndex={0}>
+                                    <Button variant="outline" disabled>
+                                        <BrainCircuit className="mr-2 h-4 w-4" /> Expand Note
+                                    </Button>
+                                </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Upgrade to Pro to unlock AI note expansion!</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
               </DialogFooter>
             </>
           )}
