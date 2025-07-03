@@ -254,7 +254,7 @@ export default function Home() {
   }
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-between text-center p-4 pt-16 pb-8">
+    <div className="flex h-full flex-col items-center justify-between p-4 text-center">
         <div className="h-16 flex items-center justify-center">
              <h1 className="text-2xl font-light whitespace-pre-line">{getStatusText()}</h1>
         </div>

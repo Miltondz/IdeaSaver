@@ -148,12 +148,14 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="container mx-auto p-4 pt-8">
+    <div className="container mx-auto p-4 pt-8 flex h-full flex-col">
       <h1 className="text-3xl font-bold mb-6 text-center">Recording History</h1>
       {recordings.length === 0 ? (
-        <p className="text-center text-muted-foreground mt-12">You have no recordings yet. Tap the mic to start!</p>
+        <div className="flex-1 flex items-center justify-center">
+            <p className="text-muted-foreground">You have no recordings yet. Tap the mic to start!</p>
+        </div>
       ) : (
-        <ScrollArea className="h-[calc(100vh-12rem)]">
+        <ScrollArea className="flex-1">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {recordings.map((rec) => (
               <Card key={rec.id} className="bg-card/80 border-border backdrop-blur-sm flex flex-col">
