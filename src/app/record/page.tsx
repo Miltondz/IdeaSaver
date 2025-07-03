@@ -29,6 +29,29 @@ type RecordingStatus = "idle" | "recording" | "confirm_stop" | "transcribing" | 
 
 const RECORDING_TIME_LIMIT_SECONDS = 600; // 10 minutes
 
+const motivationalQuotes = [
+  "Your ideas, amplified.",
+  "Capture brilliance. Instantly.",
+  "Unlock your mind's potential.",
+  "Thoughts made tangible.",
+  "The future of note-taking is here.",
+  "From thought to masterpiece.",
+  "Ideas, unchained.",
+  "Never lose an 'aha!' moment again.",
+  "Beyond notes. It's intelligence.",
+  "Stop forgetting. Start creating.",
+  "Turn fleeting thoughts into fully-formed concepts.",
+  "Your brain, supercharged by AI.",
+  "Transform spoken words into expanded wisdom.",
+  "The ultimate tool for creators, innovators, and thinkers.",
+  "Don't just save ideas, grow them.",
+  "What if your notes could write themselves?",
+  "Discover the true power of your voice.",
+  "The secret weapon for your next breakthrough.",
+  "Experience notes like never before.",
+];
+
+
 function blobToDataUri(blob: Blob): Promise<string> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -44,6 +67,7 @@ export default function Home() {
   const [lastRecording, setLastRecording] = useState<Recording | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
   const [settings, setSettings] = useState(getSettings());
+  const [idleQuote, setIdleQuote] = useState(motivationalQuotes[0]);
 
   const router = useRouter();
 
@@ -57,6 +81,9 @@ export default function Home() {
   const animationFrameIdRef = useRef<number | null>(null);
   
   useEffect(() => {
+    // Set a random quote on client-side mount to avoid hydration mismatch
+    setIdleQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
+
     const handleSettingsChange = () => setSettings(getSettings());
     setSettings(getSettings());
     window.addEventListener('storage', handleSettingsChange);
@@ -106,6 +133,7 @@ export default function Home() {
     setRecordingStatus("idle");
     setElapsedTime(0);
     setLastRecording(null);
+    setIdleQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
   }, [cleanupVisualizer]);
   
   const onStop = useCallback(async () => {
@@ -327,8 +355,7 @@ export default function Home() {
 
   const handleSaveToCloud = async (recording: Recording) => {
     try {
-      const { audioDataUri, ...dataToSave } = recording;
-      await saveRecordingToDB(dataToSave);
+      await saveRecordingToDB(recording);
       toast({ title: "Saved to Cloud!", description: "Your note has been saved to the database." });
     } catch (error) {
       log("handleSaveToCloud error:", error);
@@ -339,7 +366,7 @@ export default function Home() {
 
   const getStatusText = () => {
     switch(recordingStatus) {
-      case 'idle': return "Each word matters.\nMake a note of them";
+      case 'idle': return idleQuote;
       case 'recording':
       case 'confirm_stop':
         return "Audio Capture";
