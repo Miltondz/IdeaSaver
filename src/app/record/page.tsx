@@ -4,23 +4,13 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Mic, Loader2, Share2, History, PlusCircle, Cloud, Terminal, Sparkles, BrainCircuit, Trash2 } from "lucide-react";
+import { Mic, Loader2, Share2, History, PlusCircle, Cloud, Terminal, Sparkles, BrainCircuit, Trash2, Play, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeVoiceNote } from "@/ai/flows/transcribe-voice-note";
 import { nameTranscription } from "@/ai/flows/name-transcription-flow";
 import { getSettings, saveRecording, saveRecordingToDB, applyDeletions, AppSettings, deleteRecording } from "@/lib/storage";
 import type { Recording } from "@/types";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -28,7 +18,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useAuth } from "@/hooks/use-auth";
 
 
-type RecordingStatus = "idle" | "recording" | "confirm_stop" | "transcribing" | "naming" | "completed";
+type RecordingStatus = "idle" | "recording" | "reviewing" | "transcribing" | "naming" | "completed";
 
 const RECORDING_TIME_LIMIT_SECONDS = 600; // 10 minutes
 
@@ -68,6 +58,7 @@ export default function Home() {
   const [recordingStatus, setRecordingStatus] = useState<RecordingStatus>("idle");
   const [elapsedTime, setElapsedTime] = useState(0);
   const [lastRecording, setLastRecording] = useState<Recording | null>(null);
+  const [recordedAudio, setRecordedAudio] = useState<{ blob: Blob; dataUri: string } | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
   const [settings, setSettings] = useState<AppSettings>(getSettings());
   const [idleQuote, setIdleQuote] = useState(motivationalQuotes[0]);
@@ -85,7 +76,6 @@ export default function Home() {
   const streamRef = useRef<MediaStream | null>(null);
   
   useEffect(() => {
-    // Set a random quote on client-side mount to avoid hydration mismatch
     setIdleQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
 
     const handleSettingsChange = () => setSettings(getSettings());
@@ -142,39 +132,42 @@ export default function Home() {
     setRecordingStatus("idle");
     setElapsedTime(0);
     setLastRecording(null);
+    setRecordedAudio(null);
     setIdleQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
   }, [cleanupVisualizer]);
   
-  const onStop = useCallback(async () => {
+  const handleProcessRecording = useCallback(async () => {
     if (!user) {
         toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to process recordings." });
         resetToIdle();
         return;
     }
-    log("onStop: Process started.");
-    cleanupVisualizer();
+    if (!recordedAudio) {
+        toast({ variant: "destructive", title: "No Recording Found", description: "Could not find the audio to process." });
+        resetToIdle();
+        return;
+    }
+    
+    log("handleProcessRecording: Process started.");
     setRecordingStatus("transcribing");
-    const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
     
     try {
-        const audioDataUri = await blobToDataUri(audioBlob);
-        log("onStop: Audio converted to Data URI.");
-
-        log("onStop: Calling transcribeVoiceNote...");
+        const audioDataUri = recordedAudio.dataUri;
+        log("handleProcessRecording: Calling transcribeVoiceNote...");
         const transcribeResult = await transcribeVoiceNote({ audioDataUri, aiModel: settings.aiModel });
-        log("onStop: Transcription received:", transcribeResult);
+        log("handleProcessRecording: Transcription received:", transcribeResult);
         if (!transcribeResult || !transcribeResult.transcription) {
           throw new Error("Transcription failed to produce output.");
         }
         
         setRecordingStatus("naming");
-        log("onStop: Status set to 'naming'.");
+        log("handleProcessRecording: Status set to 'naming'.");
 
         const { transcription } = transcribeResult;
         
-        log("onStop: Calling nameTranscription...");
+        log("handleProcessRecording: Calling nameTranscription...");
         const nameResult = await nameTranscription({ transcription, aiModel: settings.aiModel });
-        log("onStop: Name received:", nameResult);
+        log("handleProcessRecording: Name received:", nameResult);
         if (!nameResult || !nameResult.name) {
             throw new Error("Naming failed to produce output.");
         }
@@ -185,13 +178,13 @@ export default function Home() {
           transcription,
           audioDataUri,
         };
-        log("onStop: Calling saveRecording with data:", recordingData);
+        log("handleProcessRecording: Calling saveRecording with data:", recordingData);
         const newRecording = await saveRecording(recordingData, user.uid);
-        log("onStop: Recording saved:", newRecording);
+        log("handleProcessRecording: Recording saved:", newRecording);
         
         setLastRecording(newRecording);
         setRecordingStatus("completed");
-        log("onStop: UI state updated. Process complete.");
+        log("handleProcessRecording: UI state updated. Process complete.");
 
       } catch (error) {
         log("Processing error:", error);
@@ -202,17 +195,35 @@ export default function Home() {
         });
         resetToIdle();
       } finally {
-        log("onStop: Cleaning up media recorder.");
+        log("handleProcessRecording: Cleaning up media recorder references.");
         if (mediaRecorderRef.current?.stream) {
           mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
         }
-        audioChunksRef.current = [];
       }
-  }, [resetToIdle, toast, log, settings.aiModel, cleanupVisualizer, user]);
+  }, [resetToIdle, toast, log, settings.aiModel, user, recordedAudio]);
+
+  const onStop = useCallback(async () => {
+    log("onStop: Recording stopped, entering review phase.");
+    cleanupVisualizer();
+
+    if (audioChunksRef.current.length === 0) {
+        log("onStop: No audio chunks recorded. Resetting.");
+        toast({ variant: "destructive", title: "No audio recorded", description: "The recording was empty. Please try again." });
+        resetToIdle();
+        return;
+    }
+
+    const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+    const audioDataUri = await blobToDataUri(audioBlob);
+
+    setRecordedAudio({ blob: audioBlob, dataUri: audioDataUri });
+    setRecordingStatus("reviewing");
+    audioChunksRef.current = [];
+  }, [cleanupVisualizer, log, resetToIdle, toast]);
 
   const requestStopRecording = useCallback(() => {
     if (mediaRecorderRef.current && recordingStatus === "recording") {
-      setRecordingStatus("confirm_stop");
+      mediaRecorderRef.current.stop();
     }
   }, [recordingStatus]);
 
@@ -241,6 +252,7 @@ export default function Home() {
   const startRecording = useCallback(async () => {
     setLogs([]);
     setElapsedTime(0);
+    setRecordedAudio(null);
     
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -330,17 +342,6 @@ export default function Home() {
     };
   }, [recordingStatus]);
 
-
-  const handleConfirmStop = () => {
-      if (mediaRecorderRef.current) {
-          mediaRecorderRef.current.stop();
-      }
-  };
-
-  const resumeRecording = () => {
-      setRecordingStatus("recording");
-  };
-
   const handleShare = async (recording: Recording) => {
     const shareData = {
       title: recording.name,
@@ -390,7 +391,7 @@ export default function Home() {
     }
   };
 
-  const handleDiscard = async () => {
+  const handleDiscardLastRecording = async () => {
     if (!lastRecording || !user) return;
     try {
       await deleteRecording(lastRecording.id, user.uid);
@@ -410,13 +411,11 @@ export default function Home() {
     }
   };
 
-
   const getStatusText = () => {
     switch(recordingStatus) {
       case 'idle': return idleQuote;
-      case 'recording':
-      case 'confirm_stop':
-        return "Idea Saver";
+      case 'recording': return "Recording your brilliance...";
+      case 'reviewing': return "Review Your Note";
       case 'transcribing': return "Transcribing...";
       case 'naming': return "Creating Title...";
       case 'completed': return "Success!";
@@ -500,7 +499,7 @@ export default function Home() {
                     </CardContent>
                     <CardFooter className="pt-4">
                         <div className="grid grid-cols-2 gap-2 w-full">
-                            <Button variant="outline" className="border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10 hover:text-destructive" onClick={handleDiscard}>
+                            <Button variant="outline" className="border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10 hover:text-destructive" onClick={handleDiscardLastRecording}>
                                 <Trash2 /> Discard
                             </Button>
                             <Button onClick={resetToIdle}>
@@ -510,6 +509,29 @@ export default function Home() {
                     </CardFooter>
                 </Card>
               </div>
+            ) : recordingStatus === 'reviewing' && recordedAudio ? (
+                <div className="w-full max-w-md mx-auto">
+                    <Card className="w-full bg-card/80 border-border backdrop-blur-sm shadow-lg">
+                        <CardHeader>
+                            <CardTitle>Review Recording</CardTitle>
+                            <CardDescription>Listen to your note before processing it.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <audio controls src={recordedAudio.dataUri} className="w-full"></audio>
+                            <p className="text-sm text-muted-foreground">
+                                Duration: {new Date(elapsedTime * 1000).toISOString().slice(14, 19)}
+                            </p>
+                        </CardContent>
+                        <CardFooter className="grid grid-cols-2 gap-4">
+                            <Button variant="outline" onClick={resetToIdle}>
+                                <Trash2 className="mr-2 h-4 w-4" /> Discard
+                            </Button>
+                            <Button onClick={handleProcessRecording}>
+                                <Send className="mr-2 h-4 w-4" /> Transcribe & Save
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                </div>
             ) : (
                 <div className="flex flex-col items-center justify-center gap-8">
                      <div className="h-28 w-full max-w-sm flex items-center justify-center">
@@ -532,7 +554,7 @@ export default function Home() {
                                 <Mic className="w-10 h-10"/>
                             </Button>
                         )}
-                        {(recordingStatus === 'recording' || recordingStatus === 'confirm_stop') && (
+                        {(recordingStatus === 'recording') && (
                             <Button onClick={requestStopRecording} className="relative w-24 h-24 rounded-full bg-primary/10 border-2 border-primary text-primary shadow-lg">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary/50 opacity-75"></span>
                                 <Mic className="w-10 h-10"/>
@@ -575,21 +597,6 @@ export default function Home() {
                 </SheetContent>
             </Sheet>
         </div>
-
-        <AlertDialog open={recordingStatus === 'confirm_stop'} onOpenChange={(open) => !open && resumeRecording()}>
-             <AlertDialogContent className="bg-card border-border text-foreground">
-                <AlertDialogHeader>
-                    <AlertDialogTitle>End recording?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        Do you want to stop and save your recording? You can also cancel to continue recording.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel onClick={resumeRecording}>Continue Recording</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleConfirmStop}>Stop and Save</AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
     </div>
   );
 }
