@@ -4,22 +4,26 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Mic, Loader2, Share2, History, PlusCircle, Cloud, Terminal, Sparkles, BrainCircuit, Trash2, Play, Send, Pause } from "lucide-react";
+import { Mic, Loader2, Share2, History, PlusCircle, Cloud, Terminal, Sparkles, BrainCircuit, Trash2, Play, Send, Pause, Save, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeVoiceNote } from "@/ai/flows/transcribe-voice-note";
 import { nameTranscription } from "@/ai/flows/name-transcription-flow";
-import { getSettings, saveRecording, saveRecordingToDB, applyDeletions, AppSettings, deleteRecording } from "@/lib/storage";
+import { expandNote } from "@/ai/flows/expand-note-flow";
+import { summarizeNote } from "@/ai/flows/summarize-note-flow";
+import { getSettings, saveRecording, saveRecordingToDB, applyDeletions, AppSettings, deleteRecording, updateRecording } from "@/lib/storage";
 import type { Recording } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { Slider } from "@/components/ui/slider";
 
 
 type RecordingStatus = "idle" | "recording" | "reviewing" | "transcribing" | "naming" | "completed";
+type AiAction = "expand" | "summarize";
 
 const RECORDING_TIME_LIMIT_SECONDS = 600; // 10 minutes
 
@@ -79,6 +83,13 @@ export default function Home() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioProgress, setAudioProgress] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
+
+  // State for AI actions
+  const [aiAction, setAiAction] = useState<AiAction | null>(null);
+  const [isProcessingAi, setIsProcessingAi] = useState(false);
+  const [aiResult, setAiResult] = useState<string | null>(null);
+  const [noteForAi, setNoteForAi] = useState<Recording | null>(null);
+  const [copiedStates, setCopiedStates] = useState<Record<string, boolean>>({});
   
   useEffect(() => {
     setIdleQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
@@ -460,6 +471,65 @@ export default function Home() {
     }
   };
 
+  // --- AI Action Handlers ---
+  const handleExpandClick = (recording: Recording) => {
+    setNoteForAi(recording);
+    setAiAction('expand');
+    setAiResult(null);
+    setIsProcessingAi(true);
+    expandNote({ transcription: recording.transcription, aiModel: settings.aiModel })
+      .then(result => setAiResult(result.expandedDocument))
+      .catch(err => {
+        log("Expansion failed:", err);
+        toast({ variant: "destructive", title: "Expansion Failed", description: "Could not expand the note." });
+        setNoteForAi(null);
+      })
+      .finally(() => setIsProcessingAi(false));
+  };
+
+  const handleSummarizeClick = (recording: Recording) => {
+    setNoteForAi(recording);
+    setAiAction('summarize');
+    setAiResult(null);
+    setIsProcessingAi(true);
+    summarizeNote({ transcription: recording.transcription, aiModel: settings.aiModel })
+      .then(result => setAiResult(result.summary))
+      .catch(err => {
+        log("Summarization failed:", err);
+        toast({ variant: "destructive", title: "Summarization Failed", description: "Could not summarize the note." });
+        setNoteForAi(null);
+      })
+      .finally(() => setIsProcessingAi(false));
+  };
+
+  const handleSaveAiResult = async () => {
+    if (!noteForAi || !aiResult || !user || !aiAction) return;
+    try {
+      const updatedRec: Recording = { ...noteForAi };
+      if (aiAction === 'expand') {
+        updatedRec.expandedTranscription = aiResult;
+      } else if (aiAction === 'summarize') {
+        updatedRec.summary = aiResult;
+      }
+
+      const savedRecording = await updateRecording(updatedRec, user.uid);
+      setLastRecording(savedRecording);
+      setNoteForAi(null);
+      toast({ title: "Note updated!", description: `The ${aiAction} has been saved.` });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Save Failed", description: "Could not save the updated note." });
+    }
+  };
+  
+  const handleCopyToClipboard = (text: string | null, id: string) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+        setCopiedStates(prev => ({...prev, [id]: true}));
+        toast({ title: "Copied to clipboard!", className: "bg-accent text-accent-foreground border-accent" });
+        setTimeout(() => setCopiedStates(prev => ({...prev, [id]: false})), 2000);
+    });
+  };
+
   return (
     <div className="flex h-full flex-col items-center justify-between p-4 text-center">
         <div className="h-16 flex items-center justify-center">
@@ -505,7 +575,7 @@ export default function Home() {
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <div className="w-full">
-                                    <Button className="w-full" disabled={!settings.isPro}>
+                                    <Button className="w-full" onClick={() => lastRecording && handleSummarizeClick(lastRecording)} disabled={!settings.isPro}>
                                         <Sparkles /> Summarize with AI
                                     </Button>
                                   </div>
@@ -518,7 +588,7 @@ export default function Home() {
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                    <div className="w-full">
-                                    <Button className="w-full" onClick={() => router.push('/history')} disabled={!settings.isPro}>
+                                    <Button className="w-full" onClick={() => lastRecording && handleExpandClick(lastRecording)} disabled={!settings.isPro}>
                                         <BrainCircuit /> Expand Note with AI
                                     </Button>
                                   </div>
@@ -628,6 +698,56 @@ export default function Home() {
             )}
         </div>
         
+        <Dialog open={!!noteForAi} onOpenChange={(open) => {if (!open) setNoteForAi(null)}}>
+            <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
+                <DialogHeader>
+                    <DialogTitle>
+                        {aiAction === 'expand' ? 'Expanded Note' : 'Summarized Note'}: {noteForAi?.name}
+                    </DialogTitle>
+                    <DialogDescription>
+                        This is an AI-generated {aiAction} of your original note. Review and save.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4 flex-1 min-h-0">
+                    {isProcessingAi ? (
+                        <div className="flex items-center justify-center h-full">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            <p className="ml-4">{aiAction === 'expand' ? 'Expanding' : 'Summarizing'} your idea...</p>
+                        </div>
+                    ) : aiResult && (
+                        <div className="relative h-full">
+                            <ScrollArea className="h-full rounded-md border p-4 bg-muted/50 pr-12">
+                                <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert" dangerouslySetInnerHTML={{ __html: aiResult }}></div>
+                            </ScrollArea>
+                             <div className="absolute top-2 right-2">
+                                 <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            className="h-8 w-8 bg-background/50 hover:bg-background"
+                                            onClick={() => handleCopyToClipboard(aiResult, 'ai-result-dialog')}
+                                        >
+                                            {copiedStates['ai-result-dialog'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                        </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>Copy</p></TooltipContent>
+                                    </Tooltip>
+                                 </TooltipProvider>
+                            </div>
+                        </div>
+                    )}
+                </div>
+                {aiResult && !isProcessingAi && (
+                    <DialogFooter className="pt-4 border-t">
+                        <Button variant="outline" onClick={() => setNoteForAi(null)}>Close</Button>
+                        <Button onClick={handleSaveAiResult}><Save className="mr-2 h-4 w-4" /> Save Result</Button>
+                    </DialogFooter>
+                )}
+            </DialogContent>
+        </Dialog>
+
         <div className="fixed bottom-4 right-4 z-50">
             <Sheet>
                 <SheetTrigger asChild>

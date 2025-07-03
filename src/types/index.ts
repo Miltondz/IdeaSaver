@@ -7,4 +7,5 @@ export interface Recording {
   audioDataUri?: string;
   date: string; // ISO string
   expandedTranscription?: string;
+  summary?: string;
 }

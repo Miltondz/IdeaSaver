@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Trash2, FileText, Share2, BrainCircuit, Send, Loader2, Copy, Check, Save } from "lucide-react";
+import { Trash2, FileText, Share2, BrainCircuit, Send, Loader2, Copy, Check, Save, Sparkles } from "lucide-react";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import type { Recording } from "@/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { expandNote } from "@/ai/flows/expand-note-flow";
+import { summarizeNote } from "@/ai/flows/summarize-note-flow";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -22,13 +23,16 @@ export default function HistoryPage() {
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [selectedRecording, setSelectedRecording] = useState<Recording | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isExpanding, setIsExpanding] = useState(false);
-  const [expandedNote, setExpandedNote] = useState<string | null>(null);
-  const [noteToExpand, setNoteToExpand] = useState<Recording | null>(null);
   const [copiedStates, setCopiedStates] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
   const [settings, setSettings] = useState<AppSettings>(getSettings());
   const { user } = useAuth();
+  
+  // AI Action State
+  const [aiAction, setAiAction] = useState<'expand' | 'summarize' | null>(null);
+  const [isProcessingAi, setIsProcessingAi] = useState(false);
+  const [aiResult, setAiResult] = useState<string | null>(null);
+  const [noteForAi, setNoteForAi] = useState<Recording | null>(null);
 
   const refreshRecordings = useCallback(() => {
     if (!user) return;
@@ -112,23 +116,34 @@ export default function HistoryPage() {
     }
   };
 
-
   const handleExpandClick = (recording: Recording) => {
-    setNoteToExpand(recording);
-    setExpandedNote(null);
-    setIsExpanding(true);
+    setNoteForAi(recording);
+    setAiAction('expand');
+    setAiResult(null);
+    setIsProcessingAi(true);
     expandNote({ transcription: recording.transcription, aiModel: settings.aiModel })
-      .then(result => {
-        setExpandedNote(result.expandedDocument);
-      })
+      .then(result => setAiResult(result.expandedDocument))
       .catch(err => {
         console.error("Expansion failed:", err);
         toast({ variant: "destructive", title: "Expansion Failed", description: "Could not expand the note." });
-        setNoteToExpand(null);
+        setNoteForAi(null);
       })
-      .finally(() => {
-        setIsExpanding(false);
-      });
+      .finally(() => setIsProcessingAi(false));
+  };
+  
+  const handleSummarizeClick = (recording: Recording) => {
+    setNoteForAi(recording);
+    setAiAction('summarize');
+    setAiResult(null);
+    setIsProcessingAi(true);
+    summarizeNote({ transcription: recording.transcription, aiModel: settings.aiModel })
+      .then(result => setAiResult(result.summary))
+      .catch(err => {
+        console.error("Summarization failed:", err);
+        toast({ variant: "destructive", title: "Summarization Failed", description: "Could not summarize the note." });
+        setNoteForAi(null);
+      })
+      .finally(() => setIsProcessingAi(false));
   };
 
   const handleCopyToClipboard = (text: string | null, id: string) => {
@@ -140,16 +155,18 @@ export default function HistoryPage() {
     });
   };
 
-  const handleSaveExpandedNote = async () => {
-    if (!noteToExpand || !expandedNote || !user) return;
+  const handleSaveAiResult = async () => {
+    if (!noteForAi || !aiResult || !user || !aiAction) return;
     try {
-      const updatedRec = {
-        ...noteToExpand,
-        expandedTranscription: expandedNote,
-      };
+      const updatedRec = { ...noteForAi };
+      if (aiAction === 'expand') {
+        updatedRec.expandedTranscription = aiResult;
+      } else if (aiAction === 'summarize') {
+        updatedRec.summary = aiResult;
+      }
       await updateRecording(updatedRec, user.uid);
       refreshRecordings();
-      setNoteToExpand(null); // Close the dialog
+      setNoteForAi(null);
       toast({ title: "Expanded note saved!", description: "The new version has been saved to your history." });
     } catch (error) {
       toast({ variant: "destructive", title: "Save Failed", description: "Could not save the expanded note." });
@@ -198,7 +215,7 @@ export default function HistoryPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex-1">
-                  <p className="text-muted-foreground line-clamp-3">{rec.transcription}</p>
+                  <p className="text-muted-foreground line-clamp-3">{rec.summary || rec.transcription}</p>
                 </CardContent>
                 <CardFooter className="flex justify-between items-center">
                     <div className="flex gap-1">
@@ -219,13 +236,21 @@ export default function HistoryPage() {
                                 </TooltipTrigger>
                                 <TooltipContent><p>Share Note</p></TooltipContent>
                             </Tooltip>
+                             <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleSummarizeClick(rec)} disabled={!settings.isPro}>
+                                        <Sparkles className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>{settings.isPro ? "Summarize with AI" : "Upgrade to Pro to summarize"}</p></TooltipContent>
+                            </Tooltip>
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExpandClick(rec)} disabled={!settings.isPro}>
                                         <BrainCircuit className="h-4 w-4" />
                                     </Button>
                                 </TooltipTrigger>
-                                <TooltipContent><p>{settings.isPro ? "Expand with AI" : "Upgrade to Pro to expand with AI"}</p></TooltipContent>
+                                <TooltipContent><p>{settings.isPro ? "Expand with AI" : "Upgrade to Pro to expand"}</p></TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
                     </div>
@@ -276,6 +301,31 @@ export default function HistoryPage() {
                       </div>
                     )}
                 </div>
+                 {selectedRecording.summary && (
+                  <div className="flex flex-col gap-2">
+                    <h3 className="font-semibold">Summary</h3>
+                     <div className="relative">
+                        <p className="text-foreground/90 whitespace-pre-wrap bg-muted/50 rounded-md p-4 pr-12">{selectedRecording.summary}</p>
+                        <div className="absolute top-2 right-2">
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            className="h-8 w-8 bg-background/50 hover:bg-background"
+                                            onClick={() => handleCopyToClipboard(selectedRecording.summary, 'details-summary')}
+                                        >
+                                            {copiedStates['details-summary'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent><p>Copy</p></TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </div>
+                    </div>
+                  </div>
+                )}
                 <div className="flex flex-col gap-2">
                     <h3 className="font-semibold">Transcription</h3>
                     <div className="relative">
@@ -337,6 +387,18 @@ export default function HistoryPage() {
                       <Tooltip>
                         <TooltipTrigger asChild>
                             <div className="inline-block">
+                               <Button variant="outline" onClick={() => handleSummarizeClick(selectedRecording)} disabled={!settings.isPro}>
+                                  <Sparkles className="mr-2 h-4 w-4" /> Summarize
+                              </Button>
+                            </div>
+                        </TooltipTrigger>
+                        {!settings.isPro && <TooltipContent><p>Upgrade to Pro to use AI summarization</p></TooltipContent>}
+                      </Tooltip>
+                    </TooltipProvider>
+                     <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div className="inline-block">
                                <Button variant="outline" onClick={() => handleExpandClick(selectedRecording)} disabled={!settings.isPro}>
                                   <BrainCircuit className="mr-2 h-4 w-4" /> Expand Note
                               </Button>
@@ -351,24 +413,26 @@ export default function HistoryPage() {
         </DialogContent>
       </Dialog>
       
-      <Dialog open={!!noteToExpand} onOpenChange={(open) => {if (!open) setNoteToExpand(null)}}>
+      <Dialog open={!!noteForAi} onOpenChange={(open) => {if (!open) setNoteForAi(null)}}>
         <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
             <DialogHeader>
-                <DialogTitle>Expanded Note: {noteToExpand?.name}</DialogTitle>
+                <DialogTitle>
+                    {aiAction === 'expand' ? 'Expanded Note' : 'Summarized Note'}: {noteForAi?.name}
+                </DialogTitle>
                 <DialogDescription>
-                    This is an AI-generated expansion of your original note. Review and save.
+                    This is an AI-generated {aiAction} of your original note. Review and save.
                 </DialogDescription>
             </DialogHeader>
             <div className="py-4 flex-1 min-h-0">
-                {isExpanding ? (
+                {isProcessingAi ? (
                     <div className="flex items-center justify-center h-full">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        <p className="ml-4">Expanding your idea...</p>
+                        <p className="ml-4">{aiAction === 'expand' ? 'Expanding' : 'Summarizing'} your idea...</p>
                     </div>
-                ) : expandedNote && (
+                ) : aiResult && (
                     <div className="relative h-full">
                         <ScrollArea className="h-full rounded-md border p-4 bg-muted/50 pr-12">
-                            <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert" dangerouslySetInnerHTML={{ __html: expandedNote }}></div>
+                            <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert" dangerouslySetInnerHTML={{ __html: aiResult }}></div>
                         </ScrollArea>
                          <div className="absolute top-2 right-2">
                              <TooltipProvider>
@@ -378,9 +442,9 @@ export default function HistoryPage() {
                                         size="icon"
                                         variant="ghost"
                                         className="h-8 w-8 bg-background/50 hover:bg-background"
-                                        onClick={() => handleCopyToClipboard(expandedNote, 'expand-dialog')}
+                                        onClick={() => handleCopyToClipboard(aiResult, 'ai-result-dialog')}
                                     >
-                                        {copiedStates['expand-dialog'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                        {copiedStates['ai-result-dialog'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                                     </Button>
                                     </TooltipTrigger>
                                     <TooltipContent><p>Copy</p></TooltipContent>
@@ -390,10 +454,10 @@ export default function HistoryPage() {
                     </div>
                 )}
             </div>
-            {expandedNote && !isExpanding && (
+            {aiResult && !isProcessingAi && (
                 <DialogFooter className="pt-4 border-t">
-                    <Button variant="outline" onClick={() => setNoteToExpand(null)}>Close</Button>
-                    <Button onClick={handleSaveExpandedNote}><Save className="mr-2 h-4 w-4" /> Save Expanded Note</Button>
+                    <Button variant="outline" onClick={() => setNoteForAi(null)}>Close</Button>
+                    <Button onClick={handleSaveAiResult}><Save className="mr-2 h-4 w-4" /> Save Result</Button>
                 </DialogFooter>
             )}
         </DialogContent>
