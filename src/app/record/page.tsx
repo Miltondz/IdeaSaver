@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Mic, Loader2, Share2, History, PlusCircle, Cloud, Terminal, Sparkles, BrainCircuit, Trash2, Play, Send } from "lucide-react";
+import { Mic, Loader2, Share2, History, PlusCircle, Cloud, Terminal, Sparkles, BrainCircuit, Trash2, Play, Send, Pause } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeVoiceNote } from "@/ai/flows/transcribe-voice-note";
@@ -16,6 +16,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
+import { Slider } from "@/components/ui/slider";
 
 
 type RecordingStatus = "idle" | "recording" | "reviewing" | "transcribing" | "naming" | "completed";
@@ -72,6 +73,12 @@ export default function Home() {
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  // State for custom audio player
+  const audioPlayerRef = useRef<HTMLAudioElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [audioProgress, setAudioProgress] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
   
   useEffect(() => {
     setIdleQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
@@ -110,6 +117,14 @@ export default function Home() {
     setElapsedTime(0);
     setLastRecording(null);
     setRecordedAudio(null);
+    // Reset audio player state
+    setIsPlaying(false);
+    setAudioProgress(0);
+    setAudioDuration(0);
+    if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
+        audioPlayerRef.current.src = "";
+    }
     setIdleQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
   }, []);
   
@@ -268,8 +283,8 @@ export default function Home() {
     if (!canvas) return;
 
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const analyser = audioContext.createAnalyser();
     const source = audioContext.createMediaStreamSource(stream);
+    const analyser = audioContext.createAnalyser();
     source.connect(analyser);
 
     analyser.fftSize = 2048;
@@ -406,6 +421,45 @@ export default function Home() {
     }
   }
 
+  // --- Custom Audio Player Logic ---
+  const formatTime = (seconds: number) => {
+    if (isNaN(seconds) || seconds === 0) return "00:00";
+    const date = new Date(seconds * 1000);
+    const mm = date.getUTCMinutes().toString().padStart(2, '0');
+    const ss = date.getUTCSeconds().toString().padStart(2, '0');
+    return `${mm}:${ss}`;
+  };
+
+  const togglePlayPause = () => {
+    if (audioPlayerRef.current) {
+        if (isPlaying) {
+            audioPlayerRef.current.pause();
+        } else {
+            audioPlayerRef.current.play();
+        }
+        setIsPlaying(!isPlaying);
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    if (audioPlayerRef.current) {
+        setAudioProgress(audioPlayerRef.current.currentTime);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (audioPlayerRef.current) {
+        setAudioDuration(audioPlayerRef.current.duration);
+    }
+  };
+
+  const handleSeek = (value: number[]) => {
+    if (audioPlayerRef.current) {
+        audioPlayerRef.current.currentTime = value[0];
+        setAudioProgress(value[0]);
+    }
+  };
+
   return (
     <div className="flex h-full flex-col items-center justify-between p-4 text-center">
         <div className="h-16 flex items-center justify-center">
@@ -500,10 +554,30 @@ export default function Home() {
                             <CardDescription>Listen to your note before processing it.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <audio controls src={recordedAudio.dataUri} className="w-full"></audio>
-                            <p className="text-sm text-muted-foreground">
-                                Duration: {new Date(elapsedTime * 1000).toISOString().slice(14, 19)}
-                            </p>
+                            <audio
+                                ref={audioPlayerRef}
+                                src={recordedAudio.dataUri}
+                                onLoadedMetadata={handleLoadedMetadata}
+                                onTimeUpdate={handleTimeUpdate}
+                                onEnded={() => setIsPlaying(false)}
+                                className="hidden"
+                            />
+                            <div className="flex items-center gap-4 p-2 rounded-lg bg-muted/50 border">
+                                <Button variant="ghost" size="icon" onClick={togglePlayPause}>
+                                    {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
+                                </Button>
+                                <div className="flex-1 flex items-center gap-2">
+                                    <span className="text-sm font-mono text-muted-foreground w-12">{formatTime(audioProgress)}</span>
+                                    <Slider
+                                        value={[audioProgress]}
+                                        max={audioDuration}
+                                        step={0.1}
+                                        onValueChange={handleSeek}
+                                        className="w-full"
+                                    />
+                                    <span className="text-sm font-mono text-muted-foreground w-12">{formatTime(audioDuration)}</span>
+                                </div>
+                            </div>
                         </CardContent>
                         <CardFooter className="grid grid-cols-2 gap-4">
                             <Button variant="outline" onClick={resetToIdle}>
@@ -583,3 +657,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
