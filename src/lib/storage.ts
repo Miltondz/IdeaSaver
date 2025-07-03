@@ -21,8 +21,6 @@ export interface AppSettings {
   isPro: boolean;
   planSelected: boolean;
   deletionPolicy: DeletionPolicy;
-  trelloApiKey: string;
-  trelloToken: string;
   aiModel: string;
   cloudSyncEnabled: boolean;
   autoCloudSync: boolean;
@@ -62,8 +60,6 @@ export function getSettings(): AppSettings {
       isPro: false,
       planSelected: false,
       deletionPolicy: "never",
-      trelloApiKey: "",
-      trelloToken: "",
       aiModel: "gemini-1.5-flash-latest",
       cloudSyncEnabled: false,
       autoCloudSync: false,
@@ -74,8 +70,6 @@ export function getSettings(): AppSettings {
       isPro: false,
       planSelected: false,
       deletionPolicy: "never",
-      trelloApiKey: "",
-      trelloToken: "",
       aiModel: "gemini-1.5-flash-latest",
       cloudSyncEnabled: false,
       autoCloudSync: false,

@@ -10,7 +10,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { getSettings, saveSettings, getLocalRecordings, deleteRecording as deleteRecordingFromStorage, AppSettings } from "@/lib/storage";
-import { Settings, KeyRound, Trash2, Trello, Save, Database, Copy, Archive, Code, BarChart3, LayoutDashboard, Server } from "lucide-react";
+import { Settings, Trash2, Trello, Save, Database, Archive, Code, BarChart3, LayoutDashboard, Server } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { Recording } from "@/types";
@@ -19,6 +19,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 type DeletionPolicy = "never" | "7" | "15" | "30";
 
@@ -87,16 +88,6 @@ export default function SettingsPage() {
       description: "Your new settings have been applied.",
       className: "bg-accent text-accent-foreground border-accent",
     });
-  };
-
-  const handlePaste = async (setter: (value: string) => void) => {
-    try {
-      const text = await navigator.clipboard.readText();
-      setter(text);
-      toast({ title: "Pasted from clipboard!" });
-    } catch (err) {
-      toast({ variant: "destructive", title: "Failed to paste", description: "Please grant clipboard permissions." });
-    }
   };
   
   if (!isMounted || !user) {
@@ -211,46 +202,31 @@ export default function SettingsPage() {
                     <div className="flex items-center space-x-2"><RadioGroupItem value="30" id="30" /><Label htmlFor="30">After 30 days</Label></div>
                 </RadioGroup>
             </div>
-
-            <div className="space-y-4">
-                <h3 className="text-lg font-medium flex items-center gap-2"><KeyRound className="h-5 w-5" /> AI Models</h3>
-                 <div className="space-y-2">
-                    <Label htmlFor="ai-model">AI Model Name</Label>
-                    <div className="flex items-center gap-2">
-                      <Input id="ai-model" type="text" placeholder="e.g., gemini-1.5-pro-latest or gemini-1.5-flash-latest" value={settings.aiModel} onChange={(e) => updateSetting('aiModel', e.target.value)} />
-                       <Button variant="ghost" size="icon" onClick={() => handlePaste((v) => updateSetting('aiModel', v))}><Copy className="h-4 w-4" /></Button>
-                    </div>
-                    <p className="text-sm text-muted-foreground">Specify the model name for AI features. If no provider is included, 'googleai/' will be used.</p>
-                </div>
-            </div>
-
-            <fieldset className="space-y-4 group">
-                 <h3 className="text-lg font-medium flex items-center gap-2"><Trello className="h-5 w-5" /> Trello Integration</h3>
+            
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="trello" className="border-b-0">
+                <AccordionTrigger className="p-0 hover:no-underline">
+                  <h3 className="text-lg font-medium flex items-center gap-2"><Trello className="h-5 w-5" /> Trello Integration</h3>
+                </AccordionTrigger>
+                <AccordionContent className="pt-4 space-y-4">
                   {!settings.isPro && (
-                        <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md border border-dashed">
-                           <p className="font-semibold text-foreground/90">Trello Integration is a Pro feature.</p>
-                           <p>Connect ideas directly to your Trello boards for seamless project management.</p>
-                           <Button size="sm" className="mt-2" asChild><Link href="/pricing">Upgrade to Pro</Link></Button>
-                        </div>
-                    )}
-                 <div className="space-y-2" style={{ opacity: !settings.isPro ? 0.5 : 1 }}>
-                    <Label htmlFor="trello-key">Trello API Key</Label>
-                     <div className="flex items-center gap-2">
-                      <Input id="trello-key" type="password" placeholder="Enter your Trello API Key" value={settings.trelloApiKey} onChange={(e) => updateSetting('trelloApiKey', e.target.value)} disabled={!settings.isPro} />
-                       <Button variant="ghost" size="icon" onClick={() => handlePaste((v) => updateSetting('trelloApiKey', v))} disabled={!settings.isPro}><Copy className="h-4 w-4" /></Button>
+                    <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md border border-dashed">
+                        <p className="font-semibold text-foreground/90">Trello Integration is a Pro feature.</p>
+                        <p>Connect ideas directly to your Trello boards for seamless project management.</p>
+                        <Button size="sm" className="mt-2" asChild><Link href="/pricing">Upgrade to Pro</Link></Button>
                     </div>
-                 </div>
-                 <div className="space-y-2" style={{ opacity: !settings.isPro ? 0.5 : 1 }}>
-                    <Label htmlFor="trello-token">Trello Token</Label>
-                     <div className="flex items-center gap-2">
-                      <Input id="trello-token" type="password" placeholder="Enter your Trello Token" value={settings.trelloToken} onChange={(e) => updateSetting('trelloToken', e.target.value)} disabled={!settings.isPro} />
-                      <Button variant="ghost" size="icon" onClick={() => handlePaste((v) => updateSetting('trelloToken', v))} disabled={!settings.isPro}><Copy className="h-4 w-4" /></Button>
-                    </div>
-                 </div>
-                 <p className="text-xs text-muted-foreground !mt-2" style={{ opacity: !settings.isPro ? 0.5 : 1 }}>
-                    Your Trello keys are stored securely in your browser's local storage and are never sent to our servers.
-                 </p>
-            </fieldset>
+                  )}
+                  <div style={{ opacity: !settings.isPro ? 0.5 : 1 }}>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Connect your Trello account to seamlessly create cards from your notes.
+                    </p>
+                    <Button disabled={!settings.isPro}>
+                        Connect to Trello
+                    </Button>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
             
             <div className="flex justify-end">
                 <Button onClick={handleSave}><Save className="mr-2 h-4 w-4" /> Save Settings</Button>
