@@ -79,6 +79,7 @@ export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const animationFrameIdRef = useRef<number | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   
   useEffect(() => {
     // Set a random quote on client-side mount to avoid hydration mismatch
@@ -230,7 +231,8 @@ export default function Home() {
     
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      setRecordingStatus("recording");
+      streamRef.current = stream; // Store for useEffect
+
       mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm' });
       audioChunksRef.current = [];
 
@@ -243,56 +245,7 @@ export default function Home() {
       mediaRecorderRef.current.onstop = onStop;
       mediaRecorderRef.current.start();
       
-      // Setup visualizer
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      audioContextRef.current = audioContext;
-      const analyser = audioContext.createAnalyser();
-      const source = audioContext.createMediaStreamSource(stream);
-      source.connect(analyser);
-
-      analyser.fftSize = 2048;
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
-      const canvasCtx = canvas.getContext('2d');
-      if (!canvasCtx) return;
-
-      const computedStyle = getComputedStyle(document.documentElement);
-      const primaryColor = `hsl(${computedStyle.getPropertyValue('--primary')})`;
-      const backgroundColor = `hsl(${computedStyle.getPropertyValue('--background')})`;
-
-      const draw = () => {
-        animationFrameIdRef.current = requestAnimationFrame(draw);
-        analyser.getByteTimeDomainData(dataArray);
-
-        canvasCtx.fillStyle = backgroundColor;
-        canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
-        canvasCtx.lineWidth = 2;
-        canvasCtx.strokeStyle = primaryColor;
-        canvasCtx.beginPath();
-
-        const sliceWidth = canvas.width * 1.0 / bufferLength;
-        let x = 0;
-
-        for (let i = 0; i < bufferLength; i++) {
-          const v = dataArray[i] / 128.0;
-          const y = v * canvas.height / 2;
-          if (i === 0) {
-            canvasCtx.moveTo(x, y);
-          } else {
-            canvasCtx.lineTo(x, y);
-          }
-          x += sliceWidth;
-        }
-
-        canvasCtx.lineTo(canvas.width, canvas.height / 2);
-        canvasCtx.stroke();
-      };
-
-      draw();
-
+      setRecordingStatus("recording"); // This will trigger the re-render and the useEffect
     } catch (error) {
       log("Failed to get microphone access:", error);
       toast({
@@ -303,6 +256,67 @@ export default function Home() {
       resetToIdle();
     }
   }, [onStop, resetToIdle, toast, log]);
+
+  useEffect(() => {
+    if (recordingStatus !== 'recording' || !streamRef.current) {
+      return;
+    }
+    const stream = streamRef.current;
+    
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    audioContextRef.current = audioContext;
+    const analyser = audioContext.createAnalyser();
+    const source = audioContext.createMediaStreamSource(stream);
+    source.connect(analyser);
+
+    analyser.fftSize = 2048;
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    const canvasCtx = canvas.getContext('2d');
+    if (!canvasCtx) return;
+
+    const computedStyle = getComputedStyle(document.documentElement);
+    const primaryColor = `hsl(${computedStyle.getPropertyValue('--primary')})`;
+    const backgroundColor = `hsl(${computedStyle.getPropertyValue('--background')})`;
+
+    const draw = () => {
+      animationFrameIdRef.current = requestAnimationFrame(draw);
+      analyser.getByteTimeDomainData(dataArray);
+
+      canvasCtx.fillStyle = backgroundColor;
+      canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+      canvasCtx.lineWidth = 2;
+      canvasCtx.strokeStyle = primaryColor;
+      canvasCtx.beginPath();
+
+      const sliceWidth = canvas.width * 1.0 / bufferLength;
+      let x = 0;
+
+      for (let i = 0; i < bufferLength; i++) {
+        const v = dataArray[i] / 128.0;
+        const y = v * canvas.height / 2;
+        if (i === 0) {
+          canvasCtx.moveTo(x, y);
+        } else {
+          canvasCtx.lineTo(x, y);
+        }
+        x += sliceWidth;
+      }
+
+      canvasCtx.lineTo(canvas.width, canvas.height / 2);
+      canvasCtx.stroke();
+    };
+
+    draw();
+
+    return () => {
+      source.disconnect();
+    };
+  }, [recordingStatus]);
+
 
   const handleConfirmStop = () => {
       if (mediaRecorderRef.current) {
