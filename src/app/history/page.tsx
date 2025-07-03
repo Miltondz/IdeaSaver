@@ -33,6 +33,8 @@ export default function HistoryPage() {
   const [isProcessingAi, setIsProcessingAi] = useState(false);
   const [aiResult, setAiResult] = useState<string | null>(null);
   const [noteForAi, setNoteForAi] = useState<Recording | null>(null);
+  const [confirmationAction, setConfirmationAction] = useState<{ action: () => void; title: string; description: string; } | null>(null);
+
 
   const refreshRecordings = useCallback(() => {
     if (!user) return;
@@ -116,7 +118,7 @@ export default function HistoryPage() {
     }
   };
 
-  const handleExpandClick = (recording: Recording) => {
+  const proceedWithExpand = (recording: Recording) => {
     if (!user) return;
     setNoteForAi(recording);
     setAiAction('expand');
@@ -137,8 +139,20 @@ export default function HistoryPage() {
       })
       .finally(() => setIsProcessingAi(false));
   };
+
+  const handleExpandClick = (recording: Recording) => {
+    if (recording.expandedTranscription) {
+        setConfirmationAction({
+            action: () => proceedWithExpand(recording),
+            title: "Overwrite Expanded Note?",
+            description: "An expanded version of this note already exists. Generating a new version will overwrite the existing one. Are you sure you want to continue?",
+        });
+    } else {
+        proceedWithExpand(recording);
+    }
+  };
   
-  const handleSummarizeClick = (recording: Recording) => {
+  const proceedWithSummarize = (recording: Recording) => {
     if (!user) return;
     setNoteForAi(recording);
     setAiAction('summarize');
@@ -159,6 +173,19 @@ export default function HistoryPage() {
       })
       .finally(() => setIsProcessingAi(false));
   };
+
+  const handleSummarizeClick = (recording: Recording) => {
+    if (recording.summary) {
+        setConfirmationAction({
+            action: () => proceedWithSummarize(recording),
+            title: "Overwrite Summary?",
+            description: "This note already has a summary. Generating a new one will overwrite the existing summary. Are you sure you want to continue?",
+        });
+    } else {
+        proceedWithSummarize(recording);
+    }
+  };
+
 
   const handleCopyToClipboard = (text: string | null, id: string) => {
     if (!text) return;
@@ -383,7 +410,7 @@ export default function HistoryPage() {
                       <Tooltip>
                         <TooltipTrigger asChild>
                             <div className="inline-block">
-                               <Button variant="outline" onClick={() => handleSummarizeClick(selectedRecording)} disabled={!settings.isPro}>
+                               <Button variant="outline" onClick={() => handleSummarizeClick(selectedRecording!)} disabled={!settings.isPro}>
                                   <Sparkles className="mr-2 h-4 w-4" /> Summarize
                               </Button>
                             </div>
@@ -395,7 +422,7 @@ export default function HistoryPage() {
                       <Tooltip>
                         <TooltipTrigger asChild>
                             <div className="inline-block">
-                               <Button variant="outline" onClick={() => handleExpandClick(selectedRecording)} disabled={!settings.isPro}>
+                               <Button variant="outline" onClick={() => handleExpandClick(selectedRecording!)} disabled={!settings.isPro}>
                                   <BrainCircuit className="mr-2 h-4 w-4" /> Expand Note
                               </Button>
                             </div>
@@ -457,6 +484,26 @@ export default function HistoryPage() {
             )}
         </DialogContent>
     </Dialog>
+
+    <AlertDialog open={!!confirmationAction} onOpenChange={(open) => !open && setConfirmationAction(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmationAction?.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmationAction?.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+                confirmationAction?.action();
+                setConfirmationAction(null);
+            }}>
+                Overwrite
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
 
     </div>
   );

@@ -18,6 +18,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { Slider } from "@/components/ui/slider";
 
@@ -90,6 +91,8 @@ export default function Home() {
   const [aiResult, setAiResult] = useState<string | null>(null);
   const [noteForAi, setNoteForAi] = useState<Recording | null>(null);
   const [copiedStates, setCopiedStates] = useState<Record<string, boolean>>({});
+  const [confirmationAction, setConfirmationAction] = useState<{ action: () => void; title: string; description: string; } | null>(null);
+
   
   useEffect(() => {
     setIdleQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
@@ -472,7 +475,7 @@ export default function Home() {
   };
 
   // --- AI Action Handlers ---
-  const handleExpandClick = (recording: Recording) => {
+  const proceedWithExpand = (recording: Recording) => {
     if (!user) return;
     setNoteForAi(recording);
     setAiAction('expand');
@@ -495,7 +498,19 @@ export default function Home() {
         .finally(() => setIsProcessingAi(false));
   };
 
-  const handleSummarizeClick = (recording: Recording) => {
+  const handleExpandClick = (recording: Recording) => {
+      if (recording.expandedTranscription) {
+        setConfirmationAction({
+            action: () => proceedWithExpand(recording),
+            title: "Overwrite Expanded Note?",
+            description: "An expanded version of this note already exists. Generating a new version will overwrite the existing one. Are you sure you want to continue?",
+        });
+      } else {
+          proceedWithExpand(recording);
+      }
+  };
+
+  const proceedWithSummarize = (recording: Recording) => {
     if (!user) return;
     setNoteForAi(recording);
     setAiAction('summarize');
@@ -516,6 +531,18 @@ export default function Home() {
             setNoteForAi(null);
         })
         .finally(() => setIsProcessingAi(false));
+  };
+  
+  const handleSummarizeClick = (recording: Recording) => {
+    if (recording.summary) {
+        setConfirmationAction({
+            action: () => proceedWithSummarize(recording),
+            title: "Overwrite Summary?",
+            description: "This note already has a summary. Generating a new one will overwrite the existing summary. Are you sure you want to continue?",
+        });
+    } else {
+        proceedWithSummarize(recording);
+    }
   };
   
   const handleCopyToClipboard = (text: string | null, id: string) => {
@@ -770,6 +797,26 @@ export default function Home() {
                 </SheetContent>
             </Sheet>
         </div>
+
+        <AlertDialog open={!!confirmationAction} onOpenChange={(open) => !open && setConfirmationAction(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{confirmationAction?.title}</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {confirmationAction?.description}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => {
+                    confirmationAction?.action();
+                    setConfirmationAction(null);
+                }}>
+                    Overwrite
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     </div>
   );
 }
