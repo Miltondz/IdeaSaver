@@ -279,6 +279,14 @@ export default function HistoryPage() {
                         <p className="text-foreground/90 whitespace-pre-wrap">{selectedRecording.transcription}</p>
                     </ScrollArea>
                 </div>
+                {selectedRecording.expandedTranscription && (
+                  <div className="flex flex-col gap-2">
+                    <h3 className="font-semibold">Expanded Note</h3>
+                    <ScrollArea className="h-40 rounded-md border p-4 bg-muted/50">
+                      <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert" dangerouslySetInnerHTML={{ __html: selectedRecording.expandedTranscription }}></div>
+                    </ScrollArea>
+                  </div>
+                )}
               </div>
                <DialogFooter className="flex-wrap justify-end gap-2 pt-4 border-t">
                     <Button variant="outline" onClick={() => handleShare(selectedRecording)}>
