@@ -84,6 +84,10 @@ export default function LoginPage() {
   };
 
   const handleSignUp = async () => {
+    if (!email || !password) {
+      toast({ variant: 'destructive', title: 'Missing Information', description: 'Please enter both an email and a password.' });
+      return;
+    }
     if (!auth) {
         toast({ variant: 'destructive', title: 'Configuration Error', description: 'Firebase is not configured correctly.' });
         return;
@@ -101,6 +105,10 @@ export default function LoginPage() {
   };
 
   const handleSignIn = async () => {
+    if (!email || !password) {
+      toast({ variant: 'destructive', title: 'Missing Information', description: 'Please enter both an email and a password.' });
+      return;
+    }
     if (!auth) {
         toast({ variant: 'destructive', title: 'Configuration Error', description: 'Firebase is not configured correctly.' });
         return;
