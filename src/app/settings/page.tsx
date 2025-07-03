@@ -6,11 +6,11 @@ import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { getSettings, saveSettings, getLocalRecordings, deleteRecording as deleteRecordingFromStorage, AppSettings } from "@/lib/storage";
-import { Settings, KeyRound, Trash2, Trello, Save, Database, Copy, Archive, Code } from "lucide-react";
+import { Settings, KeyRound, Trash2, Trello, Save, Database, Copy, Archive, Code, BarChart3, LayoutDashboard, Server } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { Recording } from "@/types";
@@ -18,6 +18,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTr
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/hooks/use-auth";
+import { cn } from "@/lib/utils";
 
 type DeletionPolicy = "never" | "7" | "15" | "30";
 
@@ -30,6 +31,7 @@ export default function SettingsPage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const { toast } = useToast();
+  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 
   useEffect(() => {
     setIsMounted(true);
@@ -117,22 +119,56 @@ export default function SettingsPage() {
 
   return (
     <div className="container mx-auto p-4 pt-8 flex flex-col items-center">
-       <Card className="w-full max-w-2xl mb-8 border-yellow-500/50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400">
-            <Code className="h-6 w-6" />
-            Developer Controls
-          </CardTitle>
-          <CardDescription>This panel is for testing purposes only.</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <div className="flex items-center space-x-2">
-                <Switch id="is-pro-dev" checked={settings.isPro} onCheckedChange={(checked) => updateSetting('isPro', checked)} />
-                <Label htmlFor="is-pro-dev">Simulate Pro User</Label>
-            </div>
-        </CardContent>
-      </Card>
-      
+      {user.email === 'mdvoid@gmail.com' && (
+         <Card className="w-full max-w-2xl mb-8 border-blue-500/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+              <LayoutDashboard className="h-6 w-6" />
+              Admin Dashboard
+            </CardTitle>
+            <CardDescription>Usage tracking, cost management, and developer controls.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+              <div className="space-y-4">
+                  <h3 className="text-lg font-medium flex items-center gap-2"><Code className="h-5 w-5" /> Developer Controls</h3>
+                  <div className="flex items-center space-x-2">
+                      <Switch id="is-pro-dev" checked={settings.isPro} onCheckedChange={(checked) => updateSetting('isPro', checked)} />
+                      <Label htmlFor="is-pro-dev">Simulate Pro User</Label>
+                  </div>
+              </div>
+              <div className="space-y-4">
+                  <h3 className="text-lg font-medium flex items-center gap-2"><BarChart3 className="h-5 w-5" /> AI Usage & Cost Tracking</h3>
+                  <p className="text-sm text-muted-foreground">
+                      Monitor your AI model usage and associated costs directly in the Google Cloud console. This is the most accurate source for billing information.
+                  </p>
+                  <Link
+                      href={`https://console.cloud.google.com/vertex-ai/usage?project=${projectId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(buttonVariants({ variant: "outline" }), "w-full sm:w-auto")}
+                  >
+                      View Vertex AI Usage
+                  </Link>
+              </div>
+
+              <div className="space-y-4">
+                  <h3 className="text-lg font-medium flex items-center gap-2"><Database className="h-5 w-5" /> Database Management</h3>
+                  <p className="text-sm text-muted-foreground">
+                     Manage your Firestore database, including collections, documents, and security rules.
+                  </p>
+                   <Link
+                      href={`https://console.firebase.google.com/project/${projectId}/firestore/data`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(buttonVariants({ variant: "outline" }), "w-full sm:w-auto")}
+                  >
+                      Open Firestore Console
+                  </Link>
+              </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
