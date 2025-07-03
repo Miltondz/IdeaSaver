@@ -23,6 +23,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { Slider } from "@/components/ui/slider";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 
 type RecordingStatus = "idle" | "recording" | "reviewing" | "transcribing" | "naming" | "completed";
@@ -95,6 +97,10 @@ export default function Home() {
   const [copiedStates, setCopiedStates] = useState<Record<string, boolean>>({});
   const [confirmationAction, setConfirmationAction] = useState<{ action: () => void; title: string; description: string; } | null>(null);
 
+  // State for editing transcription
+  const [editableTranscription, setEditableTranscription] = useState<string>('');
+  const [isSaving, setIsSaving] = useState(false);
+
   
   useEffect(() => {
     setIdleQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
@@ -133,6 +139,7 @@ export default function Home() {
     setElapsedTime(0);
     setLastRecording(null);
     setRecordedAudio(null);
+    setEditableTranscription('');
     // Reset audio player state
     setIsPlaying(false);
     setAudioProgress(0);
@@ -191,6 +198,7 @@ export default function Home() {
         log("handleProcessRecording: Recording saved:", newRecording);
         
         setLastRecording(newRecording);
+        setEditableTranscription(newRecording.transcription);
         setRecordingStatus("completed");
         log("handleProcessRecording: UI state updated. Process complete.");
 
@@ -627,6 +635,34 @@ export default function Home() {
     });
   };
 
+  const handleSaveTranscription = () => {
+    if (!lastRecording || !user) return;
+    if (editableTranscription === lastRecording.transcription) {
+        toast({ title: "No changes to save." });
+        return;
+    }
+
+    setConfirmationAction({
+        action: async () => {
+            setIsSaving(true);
+            try {
+                const updatedRec: Recording = { ...lastRecording, transcription: editableTranscription };
+                const savedRecording = await updateRecording(updatedRec, user.uid);
+                setLastRecording(savedRecording);
+                toast({ title: "Transcription updated!" });
+            } catch (error) {
+                log("Update Failed:", error);
+                toast({ variant: "destructive", title: "Update Failed", description: "Could not save your changes." });
+            } finally {
+                setIsSaving(false);
+            }
+        },
+        title: "Overwrite Transcription?",
+        description: "This will save your changes and overwrite the previous transcription. Are you sure?",
+    });
+  };
+
+
   const getAiActionTitle = () => {
     switch (aiAction) {
         case 'expand': return 'Expanded Note';
@@ -654,91 +690,122 @@ export default function Home() {
                     <p className="text-lg">{recordingStatus === 'transcribing' ? 'Transcribing your genius...' : 'Finding the perfect title...'}</p>
                 </div>
             ) : recordingStatus === 'completed' && lastRecording ? (
-              <div className="w-full max-w-md mx-auto">
+              <div className="w-full max-w-2xl mx-auto">
                 <Card className="w-full bg-card/80 border-border backdrop-blur-sm shadow-lg">
                     <CardHeader>
                         <CardTitle className="text-2xl text-primary">{lastRecording.name}</CardTitle>
                         <CardDescription>
-                            {settings.cloudSyncEnabled ? "Your note has been successfully saved and synced." : "Your note has been successfully saved locally."}
-                             {!settings.cloudSyncEnabled && (
-                                <>
-                                    <br/>
-                                    <Link href="/settings" className="underline text-primary hover:text-primary/80">Enable Cloud Sync</Link> to access on all devices.
-                                </>
-                            )}
+                            Your note is saved. You can now edit the transcription or use AI actions.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                         <ScrollArea className="h-32 rounded-md border p-4 bg-muted/50 text-left">
-                            <p className="text-foreground/90 whitespace-pre-wrap">{lastRecording.transcription}</p>
-                        </ScrollArea>
-                        <div className="space-y-2">
-                           <div className="grid grid-cols-2 gap-2">
-                              <Button variant="outline" onClick={() => handleShare(lastRecording)}>
-                                  <Share2 /> Share
-                              </Button>
-                              <Button variant="outline" onClick={() => router.push('/history')}>
-                                  <History /> View History
-                              </Button>
-                           </div>
-                           
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="w-full">
-                                    <Button className="w-full" onClick={() => lastRecording && handleSummarizeClick(lastRecording)} disabled={!settings.isPro}>
-                                        <Sparkles /> Summarize with AI
+                    <CardContent className="space-y-6">
+                        {lastRecording.audioDataUri && (
+                            <>
+                                <audio
+                                    ref={audioPlayerRef}
+                                    src={lastRecording.audioDataUri}
+                                    onLoadedMetadata={handleLoadedMetadata}
+                                    onTimeUpdate={handleTimeUpdate}
+                                    onEnded={() => setIsPlaying(false)}
+                                    className="hidden"
+                                />
+                                <div className="flex items-center gap-4 p-2 rounded-lg bg-muted/50 border">
+                                    <Button variant="ghost" size="icon" onClick={togglePlayPause}>
+                                        {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
                                     </Button>
-                                  </div>
-                                </TooltipTrigger>
-                                {!settings.isPro && <TooltipContent><p>Upgrade to Pro to use AI summarization.</p></TooltipContent>}
-                              </Tooltip>
-                            </TooltipProvider>
-                            
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                   <div className="w-full">
-                                    <Button className="w-full" onClick={() => lastRecording && handleExpandClick(lastRecording)} disabled={!settings.isPro}>
-                                        <BrainCircuit /> Expand Note with AI
-                                    </Button>
-                                  </div>
-                                </TooltipTrigger>
-                                {!settings.isPro && <TooltipContent><p>Upgrade to Pro to use AI note expansion.</p></TooltipContent>}
-                              </Tooltip>
-                            </TooltipProvider>
-
-                             <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                   <div className="w-full">
-                                    <Button className="w-full" onClick={() => lastRecording && handleExpandAsProjectClick(lastRecording)} disabled={!settings.isPro}>
-                                        <FolderKanban /> Expand as Project
-                                    </Button>
-                                  </div>
-                                </TooltipTrigger>
-                                {!settings.isPro && <TooltipContent><p>Upgrade to Pro to generate project plans.</p></TooltipContent>}
-                              </Tooltip>
-                            </TooltipProvider>
-
-                             <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                   <div className="w-full">
-                                    <Button className="w-full" onClick={() => lastRecording && handleExtractTasksClick(lastRecording)} disabled={!settings.isPro}>
-                                        <ListTodo /> Extract Tasks
-                                    </Button>
-                                  </div>
-                                </TooltipTrigger>
-                                {!settings.isPro && <TooltipContent><p>Upgrade to Pro to extract action items.</p></TooltipContent>}
-                              </Tooltip>
-                            </TooltipProvider>
-
-                            {settings.cloudSyncEnabled && !settings.autoCloudSync && (
-                                <Button variant="outline" onClick={() => handleSaveToCloud(lastRecording!)}>
-                                    <Cloud /> Save to Cloud
+                                    <div className="flex-1 flex items-center gap-2">
+                                        <span className="text-sm font-mono text-muted-foreground w-12">{formatTime(audioProgress)}</span>
+                                        <Slider
+                                            value={[audioProgress]}
+                                            max={audioDuration}
+                                            step={0.1}
+                                            onValueChange={handleSeek}
+                                            className="w-full"
+                                        />
+                                        <span className="text-sm font-mono text-muted-foreground w-12">{formatTime(audioDuration)}</span>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                        <div className="space-y-2 text-left">
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="transcription-editor" className="font-semibold">Transcription</Label>
+                                <Button variant="outline" size="sm" onClick={handleSaveTranscription} disabled={isSaving || editableTranscription === lastRecording.transcription}>
+                                    {isSaving ? <Loader2 className="animate-spin" /> : <Save />}
+                                    Save
                                 </Button>
-                            )}
+                            </div>
+                            <Textarea
+                                id="transcription-editor"
+                                value={editableTranscription}
+                                onChange={(e) => setEditableTranscription(e.target.value)}
+                                className="h-40 border-primary/30 focus-visible:ring-primary/50 resize-none"
+                                placeholder="Your transcription appears here..."
+                            />
+                        </div>
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-left">AI Actions</h3>
+                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="w-full">
+                                      <Button className="w-full" variant="outline" onClick={() => lastRecording && handleSummarizeClick(lastRecording)} disabled={!settings.isPro}>
+                                          <Sparkles /> Summarize
+                                      </Button>
+                                    </div>
+                                  </TooltipTrigger>
+                                  {!settings.isPro && <TooltipContent><p>Upgrade to Pro to use AI summarization.</p></TooltipContent>}
+                                </Tooltip>
+                              </TooltipProvider>
+                              
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                     <div className="w-full">
+                                      <Button className="w-full" variant="outline" onClick={() => lastRecording && handleExpandClick(lastRecording)} disabled={!settings.isPro}>
+                                          <BrainCircuit /> Expand
+                                      </Button>
+                                    </div>
+                                  </TooltipTrigger>
+                                  {!settings.isPro && <TooltipContent><p>Upgrade to Pro to use AI note expansion.</p></TooltipContent>}
+                                </Tooltip>
+                              </TooltipProvider>
+
+                               <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                     <div className="w-full">
+                                      <Button className="w-full" variant="outline" onClick={() => lastRecording && handleExpandAsProjectClick(lastRecording)} disabled={!settings.isPro}>
+                                          <FolderKanban /> As Project
+                                      </Button>
+                                    </div>
+                                  </TooltipTrigger>
+                                  {!settings.isPro && <TooltipContent><p>Upgrade to Pro to generate project plans.</p></TooltipContent>}
+                                </Tooltip>
+                              </TooltipProvider>
+
+                               <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                     <div className="w-full">
+                                      <Button className="w-full" variant="outline" onClick={() => lastRecording && handleExtractTasksClick(lastRecording)} disabled={!settings.isPro}>
+                                          <ListTodo /> Get Tasks
+                                      </Button>
+                                    </div>
+                                  </TooltipTrigger>
+                                  {!settings.isPro && <TooltipContent><p>Upgrade to Pro to extract action items.</p></TooltipContent>}
+                                </Tooltip>
+                              </TooltipProvider>
+                           </div>
+                           <div className="grid grid-cols-2 gap-2">
+                                <Button variant="outline" onClick={() => handleShare(lastRecording)}>
+                                    <Share2 /> Share Note
+                                </Button>
+                                <Button variant="outline" onClick={() => router.push('/history')}>
+                                    <History /> View History
+                                </Button>
+                           </div>
                         </div>
                     </CardContent>
                     <CardFooter className="pt-4">
