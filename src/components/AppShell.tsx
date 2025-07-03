@@ -1,8 +1,9 @@
+
 'use client';
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Mic, History, Settings, User, LogOut, Menu } from 'lucide-react';
+import { Lightbulb, History, Settings, User, LogOut, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
@@ -26,8 +27,8 @@ function Header() {
             <div className="container flex h-14 items-center">
                 <div className="mr-auto flex items-center">
                     <Link href="/record" className="mr-6 flex items-center space-x-2">
-                        <Mic className="h-6 w-6"/>
-                        <span className="font-bold hidden sm:inline-block">Audio Capture</span>
+                        <Lightbulb className="h-6 w-6"/>
+                        <span className="font-bold hidden sm:inline-block">Idea Saver</span>
                     </Link>
                     {/* Desktop Nav */}
                     <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">

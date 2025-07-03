@@ -5,7 +5,7 @@ import { AppShell } from '@/components/AppShell';
 import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
-  title: 'Audio Capture',
+  title: 'Idea Saver',
   description: 'Quickly capture and transcribe your ideas.',
 };
 
