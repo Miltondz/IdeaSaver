@@ -3,7 +3,8 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Mic, Loader2, Share2, History, PlusCircle, Cloud, Terminal } from "lucide-react";
+import Link from "next/link";
+import { Mic, Loader2, Share2, History, PlusCircle, Cloud, Terminal, Sparkles, BrainCircuit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeVoiceNote } from "@/ai/flows/transcribe-voice-note";
@@ -23,6 +24,7 @@ import {
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
 type RecordingStatus = "idle" | "recording" | "confirm_stop" | "transcribing" | "naming" | "completed";
@@ -386,7 +388,7 @@ export default function Home() {
       case 'idle': return idleQuote;
       case 'recording':
       case 'confirm_stop':
-        return "Audio Capture";
+        return "Idea Saver";
       case 'transcribing': return "Transcribing...";
       case 'naming': return "Creating Title...";
       case 'completed': return "Success!";
@@ -411,29 +413,72 @@ export default function Home() {
                 <Card className="w-full bg-card/80 border-border backdrop-blur-sm shadow-lg">
                     <CardHeader>
                         <CardTitle className="text-2xl text-primary">{lastRecording.name}</CardTitle>
-                        <CardDescription>Your note has been successfully saved locally.</CardDescription>
+                        <CardDescription>
+                            Your note has been successfully saved locally.
+                             {!settings.dbIntegrationEnabled && (
+                                <>
+                                    <br/>
+                                    <Link href="/settings" className="underline text-primary hover:text-primary/80">Enable Cloud Sync</Link> to access on all devices.
+                                </>
+                            )}
+                            <br />
+                            Only 1 recording left this month. <Link href="/pricing" className="underline text-primary hover:text-primary/80">Upgrade for unlimited!</Link>
+                        </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                          <ScrollArea className="h-32 rounded-md border p-4 bg-muted/50 text-left">
                             <p className="text-foreground/90 whitespace-pre-wrap">{lastRecording.transcription}</p>
                         </ScrollArea>
-                        <div className="flex flex-col gap-2">
-                            <Button variant="outline" onClick={() => handleShare(lastRecording)}>
-                                <Share2 className="mr-2 h-4 w-4" /> Share
-                            </Button>
+                        <div className="space-y-2">
+                           <div className="grid grid-cols-2 gap-2">
+                              <Button variant="outline" onClick={() => handleShare(lastRecording)}>
+                                  <Share2 /> Share
+                              </Button>
+                              <Button variant="outline" onClick={() => router.push('/history')}>
+                                  <History /> View History
+                              </Button>
+                           </div>
+                           
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <span tabIndex={0} className="inline-block w-full">
+                                            <Button disabled className="w-full">
+                                                <Sparkles /> Summarize with AI
+                                            </Button>
+                                        </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Upgrade to Pro to extract summaries & action items!</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                            
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                         <span tabIndex={0} className="inline-block w-full">
+                                            <Button disabled className="w-full">
+                                                <BrainCircuit /> Expand Note with AI
+                                            </Button>
+                                        </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Upgrade to Pro to unlock AI note expansion!</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+
                             {settings.dbIntegrationEnabled && !settings.autoSendToDB && (
                                 <Button variant="outline" onClick={() => handleSaveToCloud(lastRecording!)}>
-                                    <Cloud className="mr-2 h-4 w-4" /> Save to Cloud
+                                    <Cloud /> Save to Cloud
                                 </Button>
                             )}
-                            <Button variant="outline" onClick={() => router.push('/history')}>
-                                <History className="mr-2 h-4 w-4" /> View History
-                            </Button>
                         </div>
                     </CardContent>
                     <CardFooter>
                         <Button className="w-full" onClick={resetToIdle}>
-                            <PlusCircle className="mr-2 h-4 w-4" /> Record Another
+                            <PlusCircle /> Record Another
                         </Button>
                     </CardFooter>
                 </Card>
@@ -467,10 +512,17 @@ export default function Home() {
                             </Button>
                         )}
                     </div>
-                    <p className="text-foreground/70 mt-4 h-5">
-                        {recordingStatus === 'recording' && "Tap the mic to stop recording"}
-                        {recordingStatus === 'idle' && "Tap the mic to start recording"}
-                    </p>
+                    <div className="flex flex-col items-center justify-center h-10">
+                      <p className="text-foreground/70">
+                          {recordingStatus === 'recording' && "Tap the mic to stop recording"}
+                          {recordingStatus === 'idle' && "Tap the mic to start recording"}
+                      </p>
+                      {(recordingStatus === 'idle' || recordingStatus === 'recording') && (
+                          <p className="text-sm text-muted-foreground mt-2">
+                              Free Plan: 2 recordings left this month. <Link href="/pricing" className="underline text-primary hover:text-primary/80">Upgrade</Link> for unlimited.
+                          </p>
+                      )}
+                    </div>
                 </div>
             )}
         </div>
