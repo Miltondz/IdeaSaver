@@ -1,23 +1,66 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { Mic, Square, Download, Mail, Trash2, Loader2 } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Mic, History, Settings, Download, Mail, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeVoiceNote } from "@/ai/flows/transcribe-voice-note";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
-type RecordingStatus = "idle" | "recording" | "processing" | "finished";
+type RecordingStatus = "idle" | "recording" | "confirm_stop" | "processing" | "finished";
 
 export default function Home() {
   const [recordingStatus, setRecordingStatus] = useState<RecordingStatus>("idle");
   const [transcription, setTranscription] = useState("");
+  const [elapsedTime, setElapsedTime] = useState(0);
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
-  const handleStop = async (stream: MediaStream) => {
+  const formatTime = (totalSeconds: number) => {
+    const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+    const minutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+    const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+    return `${hours}:${minutes}:${seconds}`;
+  };
+
+  useEffect(() => {
+    if (recordingStatus === "recording") {
+      timerRef.current = setInterval(() => {
+        setElapsedTime((prev) => prev + 1);
+      }, 1000);
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [recordingStatus]);
+  
+  const resetToIdle = () => {
+    setTranscription("");
+    setRecordingStatus("idle");
+    setElapsedTime(0);
+  };
+  
+  const onStop = async () => {
     setRecordingStatus("processing");
     const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
     const reader = new FileReader();
@@ -43,14 +86,17 @@ export default function Home() {
           title: "Transcription Error",
           description: "Could not transcribe the audio. Please try again.",
         });
-        setRecordingStatus("idle");
+        resetToIdle();
+      } finally {
+        mediaRecorderRef.current?.stream.getTracks().forEach(track => track.stop());
+        audioChunksRef.current = [];
       }
     };
-    stream.getTracks().forEach(track => track.stop());
-  };
+  }
 
   const startRecording = async () => {
     setTranscription("");
+    setElapsedTime(0);
     setRecordingStatus("recording");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -62,9 +108,10 @@ export default function Home() {
           audioChunksRef.current.push(event.data);
         }
       };
-
-      mediaRecorderRef.current.onstop = () => handleStop(stream);
+      
+      mediaRecorderRef.current.onstop = onStop;
       mediaRecorderRef.current.start();
+
     } catch (error) {
       console.error("Failed to get microphone access:", error);
       toast({
@@ -72,15 +119,25 @@ export default function Home() {
         title: "Microphone Access Denied",
         description: "Please allow microphone access in your browser settings to record audio.",
       });
-      setRecordingStatus("idle");
+      resetToIdle();
     }
   };
 
-  const stopRecording = () => {
+  const requestStopRecording = () => {
     if (mediaRecorderRef.current && recordingStatus === "recording") {
-      mediaRecorderRef.current.stop();
+      setRecordingStatus("confirm_stop");
     }
   };
+
+  const handleConfirmStop = () => {
+      if (mediaRecorderRef.current) {
+          mediaRecorderRef.current.stop();
+      }
+  };
+
+  const resumeRecording = () => {
+      setRecordingStatus("recording");
+  }
 
   const handleSaveToFile = () => {
     if (!transcription) return;
@@ -104,108 +161,92 @@ export default function Home() {
     window.location.href = mailtoLink;
   };
 
-  const handleClear = () => {
-    setTranscription("");
-    setRecordingStatus("idle");
-  };
-
-  const renderRecordButton = () => {
-    if (recordingStatus === "recording") {
-      return (
-        <Button
-          size="lg"
-          className="h-16 w-full max-w-xs text-xl rounded-full shadow-lg transition-transform transform hover:scale-105"
-          variant="destructive"
-          onClick={stopRecording}
-        >
-          <Square className="mr-2 h-6 w-6" /> Stop
-        </Button>
-      );
-    }
-    if (recordingStatus === "processing") {
-      return (
-        <Button
-          size="lg"
-          className="h-16 w-full max-w-xs text-xl rounded-full shadow-lg"
-          variant="secondary"
-          disabled
-        >
-          <Loader2 className="mr-2 h-6 w-6 animate-spin" /> Processing...
-        </Button>
-      );
-    }
-    return (
-      <Button
-        size="lg"
-        className="h-16 w-full max-w-xs text-xl rounded-full shadow-lg transition-transform transform hover:scale-105"
-        variant="default"
-        onClick={startRecording}
-      >
-        <Mic className="mr-2 h-6 w-6" /> Record
-      </Button>
-    );
-  };
-
   return (
-    <main className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4 sm:p-8">
-      <div className="w-full max-w-2xl">
-        <header className="text-center mb-8">
-          <h1 className="text-4xl sm:text-5xl font-bold font-headline text-foreground">VoiceNote Scribbler</h1>
-          <p className="text-muted-foreground mt-2 text-lg">Your ideas, captured and transcribed instantly.</p>
-        </header>
+    <div className="h-screen w-full flex flex-col bg-background text-white font-body overflow-hidden">
+        <main className="flex-1 flex flex-col items-center justify-between text-center p-4 pt-16 pb-32">
+            <div className="h-16 flex items-center justify-center">
+                 {recordingStatus === 'idle' && <h1 className="text-2xl font-light">Each word matters.<br/>Make a note of them</h1>}
+                 {(recordingStatus === 'recording' || recordingStatus === 'confirm_stop') && <h1 className="text-2xl font-light">Audio Capture</h1>}
+                 {recordingStatus === 'finished' && <h1 className="text-2xl font-light">Transcription Ready</h1>}
+                 {recordingStatus === 'processing' && <h1 className="text-2xl font-light">Processing...</h1>}
+            </div>
 
-        <Card className="w-full shadow-xl rounded-2xl">
-          <CardHeader>
-            <CardTitle className="text-2xl font-headline text-center" aria-live="polite">
-              {
-                {
-                  idle: "Ready to Capture",
-                  recording: "Recording in Progress...",
-                  processing: "Analyzing Your Note...",
-                  finished: "Your Note is Ready"
-                }[recordingStatus]
-              }
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center justify-center space-y-6 min-h-[120px]">
-            {renderRecordButton()}
-            {recordingStatus === 'recording' && (
-                <div className="flex items-center space-x-2 text-destructive">
-                    <div className="w-3 h-3 rounded-full bg-destructive animate-pulse"></div>
-                    <span className="font-medium">Live</span>
+            <div className="flex-1 flex flex-col items-center justify-center w-full">
+                {recordingStatus === 'processing' ? (
+                     <div className="flex flex-col items-center justify-center gap-4 text-primary">
+                        <Loader2 className="w-16 h-16 animate-spin"/>
+                        <p className="text-lg">Transcribing your genius...</p>
+                    </div>
+                ) : recordingStatus === 'finished' ? (
+                    <div className="w-full max-w-2xl flex flex-col gap-4 px-4">
+                        <Textarea
+                            value={transcription}
+                            onChange={(e) => setTranscription(e.target.value)}
+                            className="bg-black/20 border-white/20 min-h-[250px] text-base rounded-xl"
+                            aria-label="Transcribed text"
+                        />
+                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full">
+                            <Button onClick={handleSaveToFile} variant="secondary"><Download className="mr-2 h-4 w-4" /> Save</Button>
+                            <Button onClick={handleShareByEmail} variant="secondary"><Mail className="mr-2 h-4 w-4" /> Email</Button>
+                            <Button variant="destructive" onClick={resetToIdle}><Trash2 className="mr-2 h-4 w-4" /> Clear</Button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="flex flex-col items-center justify-center gap-8">
+                        <p className="text-7xl font-mono tracking-tighter text-white/90">{formatTime(elapsedTime)}</p>
+                        <div className="h-24">
+                            {recordingStatus === 'idle' && (
+                                <Button onClick={startRecording} className="w-24 h-24 rounded-full bg-primary/10 border-2 border-primary text-primary shadow-lg hover:bg-primary/20">
+                                    <Mic className="w-10 h-10"/>
+                                </Button>
+                            )}
+                            {(recordingStatus === 'recording' || recordingStatus === 'confirm_stop') && (
+                                <Button onClick={requestStopRecording} className="relative w-24 h-24 rounded-full bg-primary/10 border-2 border-primary text-primary shadow-lg">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary/50 opacity-75"></span>
+                                    <Mic className="w-10 h-10"/>
+                                </Button>
+                            )}
+                        </div>
+                        <p className="text-white/70 mt-4 h-5">
+                            {recordingStatus === 'recording' && "Tap the mic to stop recording"}
+                            {recordingStatus === 'idle' && "Tap the mic to start recording"}
+                        </p>
+                    </div>
+                )}
+            </div>
+        </main>
+
+        <footer className="w-full max-w-md mx-auto fixed bottom-0 left-0 right-0 h-24 bg-black/30 backdrop-blur-lg rounded-t-[32px] flex justify-around items-center">
+            <Button variant="ghost" className="text-white/50 hover:text-white rounded-full flex-col h-auto p-2 gap-1">
+                <History className="w-7 h-7"/>
+                <span className="text-xs">History</span>
+            </Button>
+            <Button variant="ghost" className="rounded-full flex-col h-auto p-2 gap-1">
+                <div className="p-3 bg-primary/20 rounded-full">
+                    <Mic className="w-7 h-7 text-primary"/>
                 </div>
-            )}
-          </CardContent>
-          
-          {(transcription || recordingStatus === 'processing') && (
-            <CardFooter className="flex flex-col gap-4 pt-4">
-              {recordingStatus === 'processing' ? (
-                <div className="w-full text-center p-8 text-muted-foreground">
-                  <p className="animate-pulse">Hold on, we're transcribing your genius thoughts...</p>
-                </div>
-              ) : (
-                <>
-                  <Textarea
-                    placeholder="Your transcribed text will appear here..."
-                    value={transcription}
-                    onChange={(e) => setTranscription(e.target.value)}
-                    className="min-h-[200px] text-base rounded-xl"
-                    aria-label="Transcribed text"
-                  />
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full">
-                    <Button onClick={handleSaveToFile}><Download className="mr-2 h-4 w-4" /> Save File</Button>
-                    <Button onClick={handleShareByEmail}><Mail className="mr-2 h-4 w-4" /> Share Email</Button>
-                    <Button variant="outline" onClick={handleClear}><Trash2 className="mr-2 h-4 w-4" /> Clear</Button>
-                  </div>
-                </>
-              )}
-            </CardFooter>
-          )}
-        </Card>
-        <footer className="text-center mt-8 text-sm text-muted-foreground">
-          <p>Click "Record" to start. Recordings are processed on-device and sent for transcription.</p>
+                <span className="text-xs text-primary">Record</span>
+            </Button>
+            <Button variant="ghost" className="text-white/50 hover:text-white rounded-full flex-col h-auto p-2 gap-1">
+                <Settings className="w-7 h-7"/>
+                <span className="text-xs">Settings</span>
+            </Button>
         </footer>
-      </div>
-    </main>
+        
+        <AlertDialog open={recordingStatus === 'confirm_stop'} onOpenChange={(open) => !open && resumeRecording()}>
+             <AlertDialogContent className="bg-card border-border text-foreground">
+                <AlertDialogHeader>
+                    <AlertDialogTitle>End recording?</AlertDialogTitle>
+                    <AlertDialogDescription className="text-muted-foreground">
+                        Do you want to stop and save your recording? You can also cancel to continue recording.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={resumeRecording}>Continue Recording</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleConfirmStop}>Stop and Save</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    </div>
   );
 }
