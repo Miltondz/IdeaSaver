@@ -76,7 +76,9 @@ export default function HistoryPage() {
       try {
         await navigator.share(shareData);
       } catch (err) {
-        console.error("Share failed:", err);
+        // Using console.log instead of console.error to avoid Next.js error overlay
+        // when the user cancels the share dialog.
+        console.log("Share failed or was cancelled:", err);
         toast({
           variant: "destructive",
           title: "Sharing failed",

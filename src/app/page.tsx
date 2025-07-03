@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeVoiceNote } from "@/ai/flows/transcribe-voice-note";
 import { nameTranscription } from "@/ai/flows/name-transcription-flow";
-import { saveRecording, applyDeletions, getRecordings } from "@/lib/storage";
+import { saveRecording } from "@/lib/storage";
 import type { Recording } from "@/types";
 import {
   AlertDialog,
@@ -41,7 +41,6 @@ export default function Home() {
   const [recordingStatus, setRecordingStatus] = useState<RecordingStatus>("idle");
   const [elapsedTime, setElapsedTime] = useState(0);
   const [lastRecording, setLastRecording] = useState<Recording | null>(null);
-  const [recordingCount, setRecordingCount] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
 
   const router = useRouter();
@@ -51,42 +50,22 @@ export default function Home() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
   
-  useEffect(() => {
-    applyDeletions();
-    getRecordings().then(initialRecordings => {
-      setRecordingCount(initialRecordings.length);
-    });
-
-    const originalLog = console.log;
-    const logContainer = (...args: any[]) => {
-      originalLog(...args);
-      const message = args.map(arg => {
-        if (typeof arg === 'object' && arg !== null) {
-          try {
-            return JSON.stringify(arg, null, 2);
-          } catch (e) {
-            return '[Unserializable Object]';
-          }
+  const log = useCallback((...args: any[]) => {
+    const message = args.map(arg => {
+      if (typeof arg === 'object' && arg !== null) {
+        try {
+          return JSON.stringify(arg, null, 2);
+        } catch (e) {
+          return '[Unserializable Object]';
         }
-        return String(arg);
-      }).join(' ');
-      
-      const timestamp = new Date().toLocaleTimeString();
-      setLogs(prevLogs => [`[${timestamp}] ${message}`, ...prevLogs]);
-    };
-    console.log = logContainer;
-
-    return () => {
-      console.log = originalLog;
-    };
+      }
+      return String(arg);
+    }).join(' ');
+    
+    const timestamp = new Date().toLocaleTimeString();
+    setLogs(prevLogs => [`[${timestamp}] ${message}`, ...prevLogs]);
+    console.log(`[${timestamp}] ${message}`);
   }, []);
-
-  const formatTime = (totalSeconds: number) => {
-    const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
-    const minutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
-    const seconds = (totalSeconds % 60).toString().padStart(2, '0');
-    return `${hours}:${minutes}:${seconds}`;
-  };
 
   const resetToIdle = useCallback(() => {
     setRecordingStatus("idle");
@@ -95,29 +74,29 @@ export default function Home() {
   }, []);
   
   const onStop = useCallback(async () => {
-    console.log("onStop: Process started.");
+    log("onStop: Process started.");
     setRecordingStatus("transcribing");
     const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
     
     try {
         const audioDataUri = await blobToDataUri(audioBlob);
-        console.log("onStop: Audio converted to Data URI.");
+        log("onStop: Audio converted to Data URI.");
 
-        console.log("onStop: Calling transcribeVoiceNote...");
+        log("onStop: Calling transcribeVoiceNote...");
         const transcribeResult = await transcribeVoiceNote({ audioDataUri });
-        console.log("onStop: Transcription received:", transcribeResult);
+        log("onStop: Transcription received:", transcribeResult);
         if (!transcribeResult || !transcribeResult.transcription) {
           throw new Error("Transcription failed to produce output.");
         }
         
         setRecordingStatus("naming");
-        console.log("onStop: Status set to 'naming'.");
+        log("onStop: Status set to 'naming'.");
 
         const { transcription } = transcribeResult;
         
-        console.log("onStop: Calling nameTranscription...");
+        log("onStop: Calling nameTranscription...");
         const nameResult = await nameTranscription({ transcription });
-        console.log("onStop: Name received:", nameResult);
+        log("onStop: Name received:", nameResult);
         if (!nameResult || !nameResult.name) {
             throw new Error("Naming failed to produce output.");
         }
@@ -128,17 +107,16 @@ export default function Home() {
           transcription,
           audioDataUri,
         };
-        console.log("onStop: Calling saveRecording with data:", recordingData);
+        log("onStop: Calling saveRecording with data:", recordingData);
         const newRecording = await saveRecording(recordingData);
-        console.log("onStop: Recording saved to database:", newRecording);
+        log("onStop: Recording saved:", newRecording);
         
-        setRecordingCount(c => c + 1);
         setLastRecording(newRecording);
         setRecordingStatus("completed");
-        console.log("onStop: UI state updated. Process complete.");
+        log("onStop: UI state updated. Process complete.");
 
       } catch (error) {
-        console.error("Processing error:", error);
+        log("Processing error:", error);
         toast({
           variant: "destructive",
           title: "Processing Error",
@@ -146,13 +124,13 @@ export default function Home() {
         });
         resetToIdle();
       } finally {
-        console.log("onStop: Cleaning up media recorder.");
+        log("onStop: Cleaning up media recorder.");
         if (mediaRecorderRef.current?.stream) {
           mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
         }
         audioChunksRef.current = [];
       }
-  }, [resetToIdle, toast]);
+  }, [resetToIdle, toast, log]);
 
   const requestStopRecording = useCallback(() => {
     if (mediaRecorderRef.current && recordingStatus === "recording") {
@@ -187,7 +165,7 @@ export default function Home() {
     setRecordingStatus("recording");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream);
+      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm' });
       audioChunksRef.current = [];
 
       mediaRecorderRef.current.ondataavailable = (event) => {
@@ -200,7 +178,7 @@ export default function Home() {
       mediaRecorderRef.current.start();
 
     } catch (error) {
-      console.error("Failed to get microphone access:", error);
+      log("Failed to get microphone access:", error);
       toast({
         variant: "destructive",
         title: "Microphone Access Denied",
@@ -208,7 +186,7 @@ export default function Home() {
       });
       resetToIdle();
     }
-  }, [onStop, resetToIdle, toast]);
+  }, [onStop, resetToIdle, toast, log]);
 
   const handleConfirmStop = () => {
       if (mediaRecorderRef.current) {
@@ -229,7 +207,9 @@ export default function Home() {
       try {
         await navigator.share(shareData);
       } catch (err) {
-        console.error("Share failed:", err);
+        // Using console.log instead of console.error to avoid Next.js error overlay
+        // when the user cancels the share dialog.
+        console.log("Share failed or was cancelled:", err);
         toast({
           variant: "destructive",
           title: "Sharing failed",
@@ -296,7 +276,7 @@ export default function Home() {
               </div>
             ) : (
                 <div className="flex flex-col items-center justify-center gap-8">
-                    <p className="text-7xl font-mono tracking-tighter text-white/90">{formatTime(elapsedTime)}</p>
+                    <p className="text-7xl font-mono tracking-tighter text-white/90">{new Date(elapsedTime * 1000).toISOString().slice(14, 19)}</p>
                     <div className="h-24">
                         {recordingStatus === 'idle' && (
                             <Button onClick={startRecording} className="w-24 h-24 rounded-full bg-primary/10 border-2 border-primary text-primary shadow-lg hover:bg-primary/20">
