@@ -7,6 +7,7 @@ import { Mic, Loader2, Share2, History, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeVoiceNote } from "@/ai/flows/transcribe-voice-note";
+import { nameTranscription } from "@/ai/flows/name-transcription-flow";
 import { saveRecording, applyDeletions, getRecordings } from "@/lib/storage";
 import type { Recording } from "@/types";
 import {
@@ -87,13 +88,13 @@ export default function Home() {
     return `${hours}:${minutes}:${seconds}`;
   };
 
-  const resetToIdle = () => {
+  const resetToIdle = useCallback(() => {
     setRecordingStatus("idle");
     setElapsedTime(0);
     setLastRecording(null);
-  };
+  }, []);
   
-  const onStop = async () => {
+  const onStop = useCallback(async () => {
     console.log("onStop: Process started.");
     setRecordingStatus("transcribing");
     const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
@@ -114,11 +115,16 @@ export default function Home() {
 
         const { transcription } = transcribeResult;
         
-        const newName = `Recording - ${new Date().toLocaleTimeString()}`;
-        console.log(`onStop: Generated temporary name: "${newName}"`);
+        console.log("onStop: Calling nameTranscription...");
+        const nameResult = await nameTranscription({ transcription });
+        console.log("onStop: Name received:", nameResult);
+        if (!nameResult || !nameResult.name) {
+            throw new Error("Naming failed to produce output.");
+        }
+        const { name } = nameResult;
 
         const recordingData = {
-          name: newName,
+          name,
           transcription,
           audioDataUri,
         };
@@ -146,7 +152,7 @@ export default function Home() {
         }
         audioChunksRef.current = [];
       }
-  };
+  }, [resetToIdle, toast]);
 
   const requestStopRecording = useCallback(() => {
     if (mediaRecorderRef.current && recordingStatus === "recording") {
@@ -176,7 +182,7 @@ export default function Home() {
     };
   }, [recordingStatus, requestStopRecording]);
 
-  const startRecording = async () => {
+  const startRecording = useCallback(async () => {
     setElapsedTime(0);
     setRecordingStatus("recording");
     try {
@@ -202,7 +208,7 @@ export default function Home() {
       });
       resetToIdle();
     }
-  };
+  }, [onStop, resetToIdle, toast]);
 
   const handleConfirmStop = () => {
       if (mediaRecorderRef.current) {
