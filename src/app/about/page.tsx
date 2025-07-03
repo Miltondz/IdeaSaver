@@ -12,7 +12,7 @@ export default function AboutPage() {
         <div className="h-32 bg-gradient-to-r from-primary/10 to-accent/10" />
         <CardHeader className="items-center text-center -mt-16">
           <Avatar className="h-32 w-32 border-4 border-background shadow-md">
-              <AvatarImage src="https://avatars.githubusercontent.com/u/135089?v=4" alt="Milton Diaz" />
+              <AvatarImage src="https://firebasestudio.com/api/files/view/clwkx5v0k0001dc082pazg0s4" alt="Milton Diaz" />
               <AvatarFallback>MD</AvatarFallback>
           </Avatar>
           <div className="pt-4">
