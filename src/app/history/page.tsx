@@ -185,7 +185,13 @@ export default function HistoryPage() {
               <div className="grid gap-4 py-4">
                 <div className="flex flex-col gap-2">
                     <h3 className="font-semibold">Audio</h3>
-                    <audio controls className="w-full" src={selectedRecording.audioDataUri}></audio>
+                    {selectedRecording.audioDataUri ? (
+                      <audio controls className="w-full" src={selectedRecording.audioDataUri}></audio>
+                    ) : (
+                      <div className="text-sm text-muted-foreground p-4 bg-muted/50 rounded-md border">
+                        Audio playback is not available for saved notes.
+                      </div>
+                    )}
                 </div>
                 <div className="flex flex-col gap-2">
                     <h3 className="font-semibold">Transcription</h3>

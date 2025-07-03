@@ -87,13 +87,13 @@ export default function Home() {
     return `${hours}:${minutes}:${seconds}`;
   };
 
-  const resetToIdle = useCallback(() => {
+  const resetToIdle = () => {
     setRecordingStatus("idle");
     setElapsedTime(0);
     setLastRecording(null);
-  }, []);
+  };
   
-  const onStop = useCallback(async () => {
+  const onStop = async () => {
     console.log("onStop: Process started.");
     setRecordingStatus("transcribing");
     const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
@@ -146,7 +146,7 @@ export default function Home() {
         }
         audioChunksRef.current = [];
       }
-  }, [toast, resetToIdle]);
+  };
 
   const requestStopRecording = useCallback(() => {
     if (mediaRecorderRef.current && recordingStatus === "recording") {
@@ -348,5 +348,3 @@ export default function Home() {
     </div>
   );
 }
-
-    

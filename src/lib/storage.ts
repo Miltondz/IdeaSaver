@@ -54,19 +54,27 @@ export async function getRecording(id: string): Promise<Recording | undefined> {
   }
 }
 
-export async function saveRecording(data: Omit<Recording, 'id' | 'date'>): Promise<Recording> {
+export async function saveRecording(data: Omit<Recording, 'id' | 'date'> & { audioDataUri: string }): Promise<Recording> {
   console.log("saveRecording: Function called.");
+  
+  // Firestore has a 1MiB limit per document. The audio data URI can easily exceed this.
+  // We will store the transcription metadata in Firestore, but not the audio data itself.
+  // The full object is returned for immediate use in the UI.
+  const { audioDataUri, ...restOfData } = data;
+
   const newRecordingData = {
-    ...data,
+    ...restOfData,
     date: new Date().toISOString(),
   };
-  console.log("saveRecording: Prepared recording data:", newRecordingData);
+  console.log("saveRecording: Prepared recording data for Firestore (without audio):", newRecordingData);
 
   try {
     console.log("saveRecording: Attempting to add document to Firestore...");
     const docRef = await addDoc(collection(db, RECORDINGS_COLLECTION), newRecordingData);
     console.log("saveRecording: Document added with ID:", docRef.id);
-    const finalRecording = { id: docRef.id, ...newRecordingData };
+    
+    // Return the full recording object, including the in-memory audioDataUri, to the main page
+    const finalRecording = { id: docRef.id, ...newRecordingData, audioDataUri }; 
     console.log("saveRecording: Returning final recording object:", finalRecording);
     return finalRecording;
   } catch (error) {
