@@ -89,8 +89,8 @@ export default function Home() {
 
         const { transcription } = transcribeResult;
         
-        const newName = `Recording #${recordingCount + 1}`;
-        console.log(`onStop: Generated dumb name: "${newName}"`);
+        const newName = `Recording - ${new Date().toLocaleTimeString()}`;
+        console.log(`onStop: Generated temporary name: "${newName}"`);
 
         const recordingData = {
           name: newName,
