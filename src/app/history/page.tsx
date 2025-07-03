@@ -19,6 +19,7 @@ import { expandAsProject } from "@/ai/flows/expand-as-project-flow";
 import { extractTasks } from "@/ai/flows/extract-tasks-flow";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 
 export default function HistoryPage() {
@@ -131,6 +132,7 @@ export default function HistoryPage() {
         const updatedRec = { ...recording, expandedTranscription: result.expandedDocument };
         await updateRecording(updatedRec, user.uid);
         refreshRecordings();
+        setSelectedRecording(updatedRec); // Update the selected recording in the dialog
         setAiResult(result.expandedDocument);
         toast({ title: "Note expanded and saved!" });
       })
@@ -165,6 +167,7 @@ export default function HistoryPage() {
         const updatedRec = { ...recording, summary: result.summary };
         await updateRecording(updatedRec, user.uid);
         refreshRecordings();
+        setSelectedRecording(updatedRec); // Update the selected recording in the dialog
         setAiResult(result.summary);
         toast({ title: "Note summarized and saved!" });
       })
@@ -199,6 +202,7 @@ export default function HistoryPage() {
         const updatedRec = { ...recording, projectPlan: result.projectPlan };
         await updateRecording(updatedRec, user.uid);
         refreshRecordings();
+        setSelectedRecording(updatedRec); // Update the selected recording in the dialog
         setAiResult(result.projectPlan);
         toast({ title: "Project plan generated and saved!" });
       })
@@ -233,6 +237,7 @@ export default function HistoryPage() {
         const updatedRec = { ...recording, actionItems: result.tasks };
         await updateRecording(updatedRec, user.uid);
         refreshRecordings();
+        setSelectedRecording(updatedRec); // Update the selected recording in the dialog
         setAiResult(result.tasks);
         toast({ title: "Action items extracted and saved!" });
       })
@@ -403,7 +408,7 @@ export default function HistoryPage() {
       )}
 
       <Dialog open={!!selectedRecording} onOpenChange={(open) => !open && setSelectedRecording(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
           {selectedRecording && (
             <>
               <DialogHeader>
@@ -412,150 +417,162 @@ export default function HistoryPage() {
                   Recorded {formatDistanceToNow(new Date(selectedRecording.date), { addSuffix: true })}
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="flex flex-col gap-2">
-                    <h3 className="font-semibold">Audio</h3>
-                    {selectedRecording.audioDataUri ? (
-                      <audio controls className="w-full" src={selectedRecording.audioDataUri}></audio>
-                    ) : (
-                      <div className="text-sm text-muted-foreground p-4 bg-muted/50 rounded-md border">
-                        Audio playback is not available for this note.
+              
+              <div className="flex-1 overflow-y-auto pr-6 -mr-6">
+                <div className="space-y-4 py-4">
+                  <div className="flex flex-col gap-2">
+                      <h3 className="font-semibold">Audio</h3>
+                      {selectedRecording.audioDataUri ? (
+                        <audio controls className="w-full" src={selectedRecording.audioDataUri}></audio>
+                      ) : (
+                        <div className="text-sm text-muted-foreground p-4 bg-muted/50 rounded-md border">
+                          Audio playback is not available for this note.
+                        </div>
+                      )}
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                      <h3 className="font-semibold">Transcription</h3>
+                      <div className="relative">
+                          <div className="text-foreground/90 whitespace-pre-wrap bg-muted rounded-md p-4 pr-12 border">
+                            {selectedRecording.transcription}
+                          </div>
+                          <div className="absolute top-2 right-2">
+                              <TooltipProvider>
+                                  <Tooltip>
+                                      <TooltipTrigger asChild>
+                                          <Button
+                                              size="icon"
+                                              variant="ghost"
+                                              className="h-8 w-8 bg-background/50 hover:bg-background"
+                                              onClick={() => handleCopyToClipboard(selectedRecording.transcription, 'details-transcription')}
+                                          >
+                                              {copiedStates['details-transcription'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                          </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent><p>Copy</p></TooltipContent>
+                                  </Tooltip>
+                              </TooltipProvider>
+                          </div>
                       </div>
-                    )}
+                  </div>
+
+                  {(selectedRecording.summary || selectedRecording.expandedTranscription || selectedRecording.projectPlan || selectedRecording.actionItems) && (
+                    <Accordion type="multiple" className="w-full">
+                      {selectedRecording.summary && (
+                        <AccordionItem value="summary">
+                          <AccordionTrigger className="font-semibold">Summary</AccordionTrigger>
+                          <AccordionContent>
+                            <div className="relative">
+                              <p className="text-foreground/90 whitespace-pre-wrap bg-muted/50 rounded-md p-4 pr-12 border">{selectedRecording.summary}</p>
+                              <div className="absolute top-2 right-2">
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className="h-8 w-8 bg-background/50 hover:bg-background"
+                                                onClick={() => handleCopyToClipboard(selectedRecording.summary, 'details-summary')}
+                                            >
+                                                {copiedStates['details-summary'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>Copy</p></TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                              </div>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      )}
+                      {selectedRecording.expandedTranscription && (
+                        <AccordionItem value="expanded">
+                          <AccordionTrigger className="font-semibold">Expanded Note</AccordionTrigger>
+                          <AccordionContent>
+                            <div className="relative">
+                              <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-12" dangerouslySetInnerHTML={{ __html: selectedRecording.expandedTranscription }}></div>
+                              <div className="absolute top-2 right-2">
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className="h-8 w-8 bg-background/50 hover:bg-background"
+                                                onClick={() => handleCopyToClipboard(selectedRecording.expandedTranscription, 'details-expanded')}
+                                            >
+                                                {copiedStates['details-expanded'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>Copy</p></TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                              </div>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      )}
+                      {selectedRecording.projectPlan && (
+                        <AccordionItem value="project">
+                          <AccordionTrigger className="font-semibold">Project Plan</AccordionTrigger>
+                          <AccordionContent>
+                            <div className="relative">
+                              <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-12" dangerouslySetInnerHTML={{ __html: selectedRecording.projectPlan }}></div>
+                              <div className="absolute top-2 right-2">
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className="h-8 w-8 bg-background/50 hover:bg-background"
+                                                onClick={() => handleCopyToClipboard(selectedRecording.projectPlan, 'details-project')}
+                                            >
+                                                {copiedStates['details-project'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>Copy</p></TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                              </div>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      )}
+                      {selectedRecording.actionItems && (
+                        <AccordionItem value="tasks">
+                          <AccordionTrigger className="font-semibold">Action Items</AccordionTrigger>
+                          <AccordionContent>
+                            <div className="relative">
+                              <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-12" dangerouslySetInnerHTML={{ __html: selectedRecording.actionItems }}></div>
+                              <div className="absolute top-2 right-2">
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className="h-8 w-8 bg-background/50 hover:bg-background"
+                                                onClick={() => handleCopyToClipboard(selectedRecording.actionItems, 'details-tasks')}
+                                            >
+                                                {copiedStates['details-tasks'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>Copy</p></TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                              </div>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      )}
+                    </Accordion>
+                  )}
                 </div>
-                 {selectedRecording.summary && (
-                  <div className="flex flex-col gap-2">
-                    <h3 className="font-semibold">Summary</h3>
-                     <div className="relative">
-                        <p className="text-foreground/90 whitespace-pre-wrap bg-muted/50 rounded-md p-4 pr-12">{selectedRecording.summary}</p>
-                        <div className="absolute top-2 right-2">
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            size="icon"
-                                            variant="ghost"
-                                            className="h-8 w-8 bg-background/50 hover:bg-background"
-                                            onClick={() => handleCopyToClipboard(selectedRecording.summary, 'details-summary')}
-                                        >
-                                            {copiedStates['details-summary'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>Copy</p></TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                        </div>
-                    </div>
-                  </div>
-                )}
-                <div className="flex flex-col gap-2">
-                    <h3 className="font-semibold">Transcription</h3>
-                    <div className="relative">
-                        <ScrollArea className="h-40 rounded-md border p-4 bg-muted/50 pr-12">
-                            <p className="text-foreground/90 whitespace-pre-wrap">{selectedRecording.transcription}</p>
-                        </ScrollArea>
-                        <div className="absolute top-2 right-2">
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            size="icon"
-                                            variant="ghost"
-                                            className="h-8 w-8 bg-background/50 hover:bg-background"
-                                            onClick={() => handleCopyToClipboard(selectedRecording.transcription, 'details-transcription')}
-                                        >
-                                            {copiedStates['details-transcription'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>Copy</p></TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                        </div>
-                    </div>
-                </div>
-                {selectedRecording.expandedTranscription && (
-                  <div className="flex flex-col gap-2">
-                    <h3 className="font-semibold">Expanded Note</h3>
-                    <div className="relative">
-                        <ScrollArea className="h-40 rounded-md border p-4 bg-muted/50 pr-12">
-                          <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert" dangerouslySetInnerHTML={{ __html: selectedRecording.expandedTranscription }}></div>
-                        </ScrollArea>
-                        <div className="absolute top-2 right-2">
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            size="icon"
-                                            variant="ghost"
-                                            className="h-8 w-8 bg-background/50 hover:bg-background"
-                                            onClick={() => handleCopyToClipboard(selectedRecording.expandedTranscription, 'details-expanded')}
-                                        >
-                                            {copiedStates['details-expanded'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>Copy</p></TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                        </div>
-                    </div>
-                  </div>
-                )}
-                {selectedRecording.projectPlan && (
-                  <div className="flex flex-col gap-2">
-                    <h3 className="font-semibold">Project Plan</h3>
-                    <div className="relative">
-                        <ScrollArea className="h-40 rounded-md border p-4 bg-muted/50 pr-12">
-                          <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert" dangerouslySetInnerHTML={{ __html: selectedRecording.projectPlan }}></div>
-                        </ScrollArea>
-                        <div className="absolute top-2 right-2">
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            size="icon"
-                                            variant="ghost"
-                                            className="h-8 w-8 bg-background/50 hover:bg-background"
-                                            onClick={() => handleCopyToClipboard(selectedRecording.projectPlan, 'details-project')}
-                                        >
-                                            {copiedStates['details-project'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>Copy</p></TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                        </div>
-                    </div>
-                  </div>
-                )}
-                {selectedRecording.actionItems && (
-                  <div className="flex flex-col gap-2">
-                    <h3 className="font-semibold">Action Items</h3>
-                    <div className="relative">
-                        <ScrollArea className="h-40 rounded-md border p-4 bg-muted/50 pr-12">
-                          <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert" dangerouslySetInnerHTML={{ __html: selectedRecording.actionItems }}></div>
-                        </ScrollArea>
-                        <div className="absolute top-2 right-2">
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            size="icon"
-                                            variant="ghost"
-                                            className="h-8 w-8 bg-background/50 hover:bg-background"
-                                            onClick={() => handleCopyToClipboard(selectedRecording.actionItems, 'details-tasks')}
-                                        >
-                                            {copiedStates['details-tasks'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>Copy</p></TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                        </div>
-                    </div>
-                  </div>
-                )}
               </div>
-               <DialogFooter className="flex-wrap justify-end gap-2 pt-4 border-t">
+
+               <DialogFooter className="flex-wrap justify-end gap-2 pt-4 border-t mt-auto">
                     <Button variant="outline" onClick={() => handleShare(selectedRecording)}>
                         <Share2 className="mr-2 h-4 w-4" /> Share
                     </Button>
