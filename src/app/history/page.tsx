@@ -20,6 +20,7 @@ import { extractTasks } from "@/ai/flows/extract-tasks-flow";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Textarea } from "@/components/ui/textarea";
 
 
 export default function HistoryPage() {
@@ -37,6 +38,10 @@ export default function HistoryPage() {
   const [aiResult, setAiResult] = useState<string | null>(null);
   const [noteForAi, setNoteForAi] = useState<Recording | null>(null);
   const [confirmationAction, setConfirmationAction] = useState<{ action: () => void; title: string; description: string; } | null>(null);
+
+  // State for editing transcription
+  const [editableTranscription, setEditableTranscription] = useState<string>('');
+  const [isSaving, setIsSaving] = useState(false);
 
 
   const refreshRecordings = useCallback(() => {
@@ -60,6 +65,12 @@ export default function HistoryPage() {
     window.addEventListener('storage', handleSettingsChange);
     return () => window.removeEventListener('storage', handleSettingsChange);
   }, [refreshRecordings]);
+
+  useEffect(() => {
+    if (selectedRecording) {
+      setEditableTranscription(selectedRecording.transcription);
+    }
+  }, [selectedRecording]);
   
   const handleDelete = async (id: string) => {
     if (!user) return;
@@ -270,6 +281,36 @@ export default function HistoryPage() {
     });
   };
 
+  const handleSaveTranscription = async () => {
+    if (!selectedRecording || !user) return;
+    if (editableTranscription === selectedRecording.transcription) {
+      toast({ title: 'No changes to save.' });
+      return;
+    }
+
+    setConfirmationAction({
+      action: async () => {
+        setIsSaving(true);
+        try {
+          const updatedRec: Recording = { ...selectedRecording, transcription: editableTranscription };
+          await updateRecording(updatedRec, user.uid);
+          
+          refreshRecordings();
+          setSelectedRecording(updatedRec);
+          
+          toast({ title: 'Transcription updated!' });
+        } catch (error) {
+          console.error('Update Failed:', error);
+          toast({ variant: 'destructive', title: 'Update Failed', description: 'Could not save your changes.' });
+        } finally {
+          setIsSaving(false);
+        }
+      },
+      title: 'Overwrite Transcription?',
+      description: 'This will save your changes and overwrite the previous transcription. Are you sure?',
+    });
+  };
+
   const getAiActionTitle = () => {
     switch (aiAction) {
         case 'expand': return 'Expanded Note';
@@ -431,31 +472,44 @@ export default function HistoryPage() {
                       )}
                   </div>
 
-                  <div className="flex flex-col gap-2">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
                       <h3 className="font-semibold">Transcription</h3>
-                      <div className="relative">
-                          <div className="text-foreground/90 whitespace-pre-wrap bg-muted rounded-md p-4 pr-12 border">
-                            {selectedRecording.transcription}
-                          </div>
-                          <div className="absolute top-2 right-2">
-                              <TooltipProvider>
-                                  <Tooltip>
-                                      <TooltipTrigger asChild>
-                                          <Button
-                                              size="icon"
-                                              variant="ghost"
-                                              className="h-8 w-8 bg-background/50 hover:bg-background"
-                                              onClick={() => handleCopyToClipboard(selectedRecording.transcription, 'details-transcription')}
-                                          >
-                                              {copiedStates['details-transcription'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                                          </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent><p>Copy</p></TooltipContent>
-                                  </Tooltip>
-                              </TooltipProvider>
-                          </div>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleSaveTranscription}
+                          disabled={isSaving || !selectedRecording || editableTranscription === selectedRecording.transcription}
+                        >
+                          {isSaving ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
+                          Save
+                        </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8"
+                                onClick={() => handleCopyToClipboard(editableTranscription, 'details-transcription')}
+                              >
+                                {copiedStates['details-transcription'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent><p>Copy</p></TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
+                    </div>
+                    <Textarea
+                      value={editableTranscription}
+                      onChange={(e) => setEditableTranscription(e.target.value)}
+                      className="h-40 min-h-[160px] bg-muted/50 border-primary/20 focus-visible:ring-primary/50 resize-y"
+                      placeholder="Your transcription appears here..."
+                    />
                   </div>
+
 
                   {(selectedRecording.summary || selectedRecording.expandedTranscription || selectedRecording.projectPlan || selectedRecording.actionItems) && (
                     <Accordion type="multiple" className="w-full">
