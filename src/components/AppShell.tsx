@@ -23,6 +23,10 @@ function Header() {
     const { user } = useAuth();
 
     const handleLogout = async () => {
+      if (!auth) {
+        toast({ variant: 'destructive', title: 'Logout Failed', description: 'Firebase is not configured correctly.' });
+        return;
+      }
       try {
         await signOut(auth);
         toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });

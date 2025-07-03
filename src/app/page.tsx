@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
 import { Lightbulb, Loader2 } from 'lucide-react';
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase';
 
@@ -43,6 +43,9 @@ export default function LoginPage() {
       case 'auth/weak-password':
         message = 'Password should be at least 6 characters.';
         break;
+      case 'auth/invalid-api-key':
+        message = 'Firebase API Key is invalid. Please check your configuration.';
+        break;
       default:
         console.error(error);
     }
@@ -50,6 +53,10 @@ export default function LoginPage() {
   };
 
   const handleSignUp = async () => {
+    if (!auth) {
+        toast({ variant: 'destructive', title: 'Configuration Error', description: 'Firebase is not configured correctly.' });
+        return;
+    }
     setIsLoading(true);
     try {
       await createUserWithEmailAndPassword(auth, email, password);
@@ -63,6 +70,10 @@ export default function LoginPage() {
   };
 
   const handleSignIn = async () => {
+    if (!auth) {
+        toast({ variant: 'destructive', title: 'Configuration Error', description: 'Firebase is not configured correctly.' });
+        return;
+    }
     setIsLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
@@ -75,6 +86,10 @@ export default function LoginPage() {
   };
 
   const handleGoogleSignIn = async () => {
+    if (!auth) {
+        toast({ variant: 'destructive', title: 'Configuration Error', description: 'Firebase is not configured correctly.' });
+        return;
+    }
     setIsLoading(true);
     const provider = new GoogleAuthProvider();
     try {
