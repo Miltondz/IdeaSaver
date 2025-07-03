@@ -75,15 +75,25 @@ export default function HistoryPage() {
       try {
         await navigator.share(shareData);
       } catch (err) {
-        // Silently ignore AbortError, which is triggered when the user cancels the share dialog.
-        if (err instanceof DOMException && err.name === 'AbortError') {
-          return;
+        // Silently ignore AbortError (user canceled) and NotAllowedError (permission denied)
+        if (err instanceof DOMException && (err.name === 'AbortError' || err.name === 'NotAllowedError')) {
+          // If permission was denied, let's offer the fallback which is to copy to clipboard.
+          if (err.name === 'NotAllowedError') {
+              handleCopyToClipboard(recording.transcription);
+              toast({
+                  title: "Sharing Permission Denied",
+                  description: "We couldn't open the share dialog. The note has been copied to your clipboard instead.",
+              });
+          }
+          return; // Exit the function gracefully for both AbortError and NotAllowedError
         }
+        
+        // For any other unexpected errors
         console.error("Share failed:", err);
         toast({
           variant: "destructive",
           title: "Sharing failed",
-          description: "Could not share the note. Please try again.",
+          description: "An unexpected error occurred while trying to share the note.",
         });
       }
     } else {
@@ -91,7 +101,7 @@ export default function HistoryPage() {
         handleCopyToClipboard(recording.transcription);
         toast({
             title: "Sharing not supported",
-            description: "Copied the note to your clipboard instead.",
+            description: "This browser doesn't support sharing. The note has been copied to your clipboard instead.",
         });
     }
   };
