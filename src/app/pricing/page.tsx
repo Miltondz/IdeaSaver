@@ -38,7 +38,7 @@ export default function PricingPage() {
           <CardContent className="space-y-4 flex-1">
             <p className="text-4xl font-bold">$0</p>
             <ul className="space-y-2 text-sm text-muted-foreground">
-                <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span><span className="font-semibold text-foreground">5 Recordings</span> per month (Max 10 minutes per recording)</span></li>
+                <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span><span className="font-semibold text-foreground">Up to 2 Recordings</span> per month (Max 10 minutes per recording)</span></li>
                 <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>AI-powered Transcription</span></li>
                 <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>AI-powered Naming</span></li>
                 <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>Mobile Sharing Ready (Share via any app on your device)</span></li>
@@ -67,13 +67,13 @@ export default function PricingPage() {
             <div>
               {billingCycle === 'monthly' ? (
                 <p className="text-4xl font-bold">
-                  $6
+                  $7
                   <span className="text-lg font-normal text-muted-foreground">/mo</span>
                 </p>
               ) : (
                 <>
                   <p className="text-4xl font-bold">
-                    $5.28
+                    $6.16
                     <span className="text-lg font-normal text-muted-foreground">
                       /mo
                     </span>
@@ -87,6 +87,8 @@ export default function PricingPage() {
                 <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>AI-powered Transcription</span></li>
                 <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>AI-powered Naming</span></li>
                 <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>AI-powered Note Expansion <span className="font-semibold text-foreground">(Crucial upgrade feature)</span></span></li>
+                <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>AI-powered Summarization</span></li>
+                <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>Action Item Extraction</span></li>
                 <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>Cloud Sync (Access notes across all your devices)</span></li>
                 <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>Unlimited Note Storage</span></li>
                 <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>Advanced Search & Organization (Folders, Tags)</span></li>
