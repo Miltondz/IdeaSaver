@@ -71,8 +71,6 @@ export default function Home() {
   const { toast } = useToast();
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const animationFrameIdRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   
   useEffect(() => {
@@ -88,10 +86,6 @@ export default function Home() {
 
     return () => {
         window.removeEventListener('storage', handleSettingsChange);
-        if (animationFrameIdRef.current) cancelAnimationFrame(animationFrameIdRef.current);
-        if (audioContextRef.current && audioContextRef.current.state !== "closed") {
-            audioContextRef.current.close();
-        }
     };
   }, [user]);
   
@@ -111,30 +105,13 @@ export default function Home() {
     setLogs(prevLogs => [`[${timestamp}] ${message}`, ...prevLogs]);
   }, []);
   
-  const cleanupVisualizer = useCallback(() => {
-    if (animationFrameIdRef.current) {
-        cancelAnimationFrame(animationFrameIdRef.current);
-        animationFrameIdRef.current = null;
-    }
-    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-        audioContextRef.current.close();
-        audioContextRef.current = null;
-    }
-    const canvas = canvasRef.current;
-    if (canvas) {
-        const context = canvas.getContext('2d');
-        context?.clearRect(0, 0, canvas.width, canvas.height);
-    }
-  }, []);
-
   const resetToIdle = useCallback(() => {
-    cleanupVisualizer();
     setRecordingStatus("idle");
     setElapsedTime(0);
     setLastRecording(null);
     setRecordedAudio(null);
     setIdleQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
-  }, [cleanupVisualizer]);
+  }, []);
   
   const handleProcessRecording = useCallback(async () => {
     if (!user) {
@@ -204,7 +181,6 @@ export default function Home() {
 
   const onStop = useCallback(async () => {
     log("onStop: Recording stopped, entering review phase.");
-    cleanupVisualizer();
 
     if (audioChunksRef.current.length === 0) {
         log("onStop: No audio chunks recorded. Resetting.");
@@ -219,7 +195,7 @@ export default function Home() {
     setRecordedAudio({ blob: audioBlob, dataUri: audioDataUri });
     setRecordingStatus("reviewing");
     audioChunksRef.current = [];
-  }, [cleanupVisualizer, log, resetToIdle, toast]);
+  }, [log, resetToIdle, toast]);
 
   const requestStopRecording = useCallback(() => {
     if (mediaRecorderRef.current && recordingStatus === "recording") {
@@ -292,7 +268,6 @@ export default function Home() {
     if (!canvas) return;
 
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    audioContextRef.current = audioContext;
     const analyser = audioContext.createAnalyser();
     const source = audioContext.createMediaStreamSource(stream);
     source.connect(analyser);
@@ -307,8 +282,10 @@ export default function Home() {
     const primaryColor = `hsl(${computedStyle.getPropertyValue('--primary')})`;
     const backgroundColor = `hsl(${computedStyle.getPropertyValue('--background')})`;
 
+    let animationFrameId: number;
+
     const draw = () => {
-      animationFrameIdRef.current = requestAnimationFrame(draw);
+      animationFrameId = requestAnimationFrame(draw);
       analyser.getByteTimeDomainData(dataArray);
 
       canvasCtx.fillStyle = backgroundColor;
@@ -338,7 +315,13 @@ export default function Home() {
     draw();
 
     return () => {
+      cancelAnimationFrame(animationFrameId);
       source.disconnect();
+      if (audioContext.state !== 'closed') {
+        audioContext.close();
+      }
+      const context = canvas.getContext('2d');
+      context?.clearRect(0, 0, canvas.width, canvas.height);
     };
   }, [recordingStatus]);
 
