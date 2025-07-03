@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         if (loading) return;
 
-        const settings = getSettings();
+        const settings = getSettings(user?.uid);
         const isAuthPage = pathname === '/';
         const isPricingPage = pathname === '/pricing';
 

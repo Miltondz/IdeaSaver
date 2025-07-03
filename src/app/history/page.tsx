@@ -29,8 +29,8 @@ export default function HistoryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [copiedStates, setCopiedStates] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
-  const [settings, setSettings] = useState<AppSettings>(getSettings());
   const { user } = useAuth();
+  const [settings, setSettings] = useState<AppSettings>(() => getSettings(user?.uid));
   
   // AI Action State
   const [aiAction, setAiAction] = useState<'expand' | 'summarize' | 'expand-as-project' | 'extract-tasks' | null>(null);
@@ -60,11 +60,18 @@ export default function HistoryPage() {
   }, [user, toast]);
 
   useEffect(() => {
-    refreshRecordings();
-    const handleSettingsChange = () => setSettings(getSettings());
+    if (user) {
+      refreshRecordings();
+    }
+    const handleSettingsChange = () => {
+      if (user) {
+        setSettings(getSettings(user.uid));
+      }
+    };
     window.addEventListener('storage', handleSettingsChange);
     return () => window.removeEventListener('storage', handleSettingsChange);
-  }, [refreshRecordings]);
+  }, [user, refreshRecordings]);
+
 
   useEffect(() => {
     if (selectedRecording) {

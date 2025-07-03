@@ -28,6 +28,8 @@ export interface AppSettings {
 
 // --- LocalStorage Helper Functions ---
 
+const getSettingsKey = (userId: string) => `${SETTINGS_KEY}_${userId}`;
+
 const _getRecordingsFromStorage = (userId: string | null): Recording[] => {
   if (typeof window === "undefined" || !userId) return [];
   const data = localStorage.getItem(`${RECORDINGS_KEY}_${userId}`);
@@ -54,39 +56,32 @@ const _saveRecordingsToStorage = (recordings: Recording[], userId: string | null
 
 // --- Public API for Storage ---
 
-export function getSettings(): AppSettings {
-  if (typeof window === "undefined") {
-    return { 
-      isPro: false,
-      planSelected: false,
-      deletionPolicy: "never",
-      aiModel: "gemini-1.5-flash-latest",
-      cloudSyncEnabled: false,
-      autoCloudSync: false,
-    };
-  }
-  const data = localStorage.getItem(SETTINGS_KEY);
+export function getSettings(userId?: string | null): AppSettings {
   const defaults: AppSettings = { 
-      isPro: false,
-      planSelected: false,
-      deletionPolicy: "never",
-      aiModel: "gemini-1.5-flash-latest",
-      cloudSyncEnabled: false,
-      autoCloudSync: false,
+    isPro: false,
+    planSelected: false,
+    deletionPolicy: "never",
+    aiModel: "gemini-1.5-flash-latest",
+    cloudSyncEnabled: false,
+    autoCloudSync: false,
   };
+  if (typeof window === "undefined" || !userId) {
+    return defaults;
+  }
+  const data = localStorage.getItem(getSettingsKey(userId));
   return data ? { ...defaults, ...JSON.parse(data) } : defaults;
 }
 
-export function saveSettings(settings: AppSettings): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+export function saveSettings(settings: AppSettings, userId: string): void {
+  if (typeof window === "undefined" || !userId) return;
+  localStorage.setItem(getSettingsKey(userId), JSON.stringify(settings));
   // Dispatch a storage event to notify other tabs/windows
   window.dispatchEvent(new Event('storage'));
 }
 
 // --- Firestore Functions ---
 export async function saveRecordingToDB(recording: Recording): Promise<void> {
-  const settings = getSettings();
+  const settings = getSettings(recording.userId);
   if (!settings.cloudSyncEnabled || !db) {
     console.log("Cloud Sync is disabled. Skipping Firestore save.");
     return;
@@ -101,8 +96,8 @@ export async function saveRecordingToDB(recording: Recording): Promise<void> {
   }
 }
 
-export async function deleteRecordingFromDB(id: string): Promise<void> {
-  const settings = getSettings();
+export async function deleteRecordingFromDB(id: string, userId: string): Promise<void> {
+  const settings = getSettings(userId);
   if (!settings.cloudSyncEnabled || !db) {
     return;
   }
@@ -117,7 +112,7 @@ export async function deleteRecordingFromDB(id: string): Promise<void> {
 
 // --- Hybrid Functions (Local Storage + Firestore) ---
 export async function getRecordings(userId: string): Promise<Recording[]> {
-  const { cloudSyncEnabled } = getSettings();
+  const { cloudSyncEnabled } = getSettings(userId);
 
   if (cloudSyncEnabled && db) {
     try {
@@ -143,7 +138,7 @@ export async function getRecordings(userId: string): Promise<Recording[]> {
 }
 
 export async function getRecording(id: string, userId: string): Promise<Recording | undefined> {
-  const { cloudSyncEnabled } = getSettings();
+  const { cloudSyncEnabled } = getSettings(userId);
   if (cloudSyncEnabled && db) {
       try {
         const docRef = doc(db, "recordings", id);
@@ -161,7 +156,7 @@ export async function getRecording(id: string, userId: string): Promise<Recordin
 }
 
 export async function saveRecording(data: Omit<Recording, 'id' | 'date' | 'userId'>, userId: string): Promise<Recording> {
-  const settings = getSettings();
+  const settings = getSettings(userId);
   
   const newRecording: Recording = {
     id: new Date().getTime().toString(),
@@ -183,7 +178,7 @@ export async function saveRecording(data: Omit<Recording, 'id' | 'date' | 'userI
 }
 
 export async function updateRecording(recording: Recording, userId: string): Promise<Recording> {
-  const settings = getSettings();
+  const settings = getSettings(userId);
   
   let recordings = _getRecordingsFromStorage(userId);
   const index = recordings.findIndex(r => r.id === recording.id);
@@ -212,7 +207,7 @@ export async function deleteRecording(id: string, userId: string): Promise<void>
   const updatedRecordings = recordings.filter(rec => rec.id !== id);
   _saveRecordingsToStorage(updatedRecordings, userId);
 
-  await deleteRecordingFromDB(id).catch(err => console.error("Could not delete from DB", err));
+  await deleteRecordingFromDB(id, userId).catch(err => console.error("Could not delete from DB", err));
 
   return Promise.resolve();
 }
@@ -220,7 +215,7 @@ export async function deleteRecording(id: string, userId: string): Promise<void>
 export async function applyDeletions(userId: string): Promise<void> {
   if (typeof window === "undefined" || !userId) return;
 
-  const { deletionPolicy, cloudSyncEnabled } = getSettings();
+  const { deletionPolicy, cloudSyncEnabled } = getSettings(userId);
   if (deletionPolicy === "never") {
     return;
   }

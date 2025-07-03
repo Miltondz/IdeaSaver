@@ -70,9 +70,9 @@ export default function Home() {
   const [lastRecording, setLastRecording] = useState<Recording | null>(null);
   const [recordedAudio, setRecordedAudio] = useState<{ blob: Blob; dataUri: string } | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
-  const [settings, setSettings] = useState<AppSettings>(getSettings());
-  const [idleQuote, setIdleQuote] = useState(motivationalQuotes[0]);
   const { user } = useAuth();
+  const [settings, setSettings] = useState<AppSettings>(() => getSettings(user?.uid));
+  const [idleQuote, setIdleQuote] = useState(motivationalQuotes[0]);
   const router = useRouter();
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -105,13 +105,17 @@ export default function Home() {
   useEffect(() => {
     setIdleQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
 
-    const handleSettingsChange = () => setSettings(getSettings());
-    setSettings(getSettings());
-    window.addEventListener('storage', handleSettingsChange);
+    const handleSettingsChange = () => {
+      if (user) {
+        setSettings(getSettings(user.uid));
+      }
+    };
     
     if (user) {
+        setSettings(getSettings(user.uid));
         applyDeletions(user.uid);
     }
+    window.addEventListener('storage', handleSettingsChange);
 
     return () => {
         window.removeEventListener('storage', handleSettingsChange);

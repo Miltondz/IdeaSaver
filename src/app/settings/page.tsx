@@ -24,9 +24,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 type DeletionPolicy = "never" | "7" | "15" | "30";
 
 export default function SettingsPage() {
-  const [settings, setSettings] = useState<AppSettings>(getSettings());
-  const [isMounted, setIsMounted] = useState(false);
   const { user } = useAuth();
+  const [settings, setSettings] = useState<AppSettings>(() => getSettings(user?.uid));
+  const [isMounted, setIsMounted] = useState(false);
   
   const [localRecordings, setLocalRecordings] = useState<Recording[]>([]);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -37,11 +37,16 @@ export default function SettingsPage() {
   useEffect(() => {
     setIsMounted(true);
     const handleSettingsChange = () => {
-        setSettings(getSettings());
+        if (user) {
+            setSettings(getSettings(user.uid));
+        }
     };
+    if (user) {
+        setSettings(getSettings(user.uid));
+    }
     window.addEventListener('storage', handleSettingsChange);
     return () => window.removeEventListener('storage', handleSettingsChange);
-  }, []);
+  }, [user]);
   
   const updateSetting = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     setSettings(prev => ({ ...prev, [key]: value }));
@@ -82,7 +87,8 @@ export default function SettingsPage() {
   };
 
   const handleSave = () => {
-    saveSettings(settings);
+    if (!user) return;
+    saveSettings(settings, user.uid);
     toast({
       title: "Settings Saved",
       description: "Your new settings have been applied.",

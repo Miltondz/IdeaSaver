@@ -9,15 +9,21 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { saveSettings, getSettings } from "@/lib/storage";
+import { useAuth } from "@/hooks/use-auth";
 
 
 export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleSelectPlan = (plan: 'free' | 'pro') => {
-    const settings = getSettings();
+    if (!user) {
+        toast({ variant: "destructive", title: "Error", description: "You must be logged in to select a plan." });
+        return;
+    }
+    const settings = getSettings(user.uid);
     if (plan === 'pro') {
       saveSettings({
         ...settings,
@@ -25,7 +31,7 @@ export default function PricingPage() {
         planSelected: true,
         cloudSyncEnabled: true,
         autoCloudSync: true,
-      });
+      }, user.uid);
       toast({ 
           title: "Pro Trial Activated!",
           description: "Cloud Sync is now enabled. Welcome aboard!",
@@ -38,7 +44,7 @@ export default function PricingPage() {
         planSelected: true,
         cloudSyncEnabled: false,
         autoCloudSync: false,
-      });
+      }, user.uid);
        toast({ 
           title: "Free Plan Selected",
           description: "Welcome to Idea Saver!",
