@@ -1,19 +1,19 @@
-import {
-  collection,
-  query,
-  orderBy,
-  getDocs,
-  getDoc,
-  addDoc,
-  deleteDoc,
-  doc,
-  where,
-  writeBatch,
-} from "firebase/firestore";
-import { db } from "./firebase";
+// import {
+//   collection,
+//   query,
+//   orderBy,
+//   getDocs,
+//   getDoc,
+//   addDoc,
+//   deleteDoc,
+//   doc,
+//   where,
+//   writeBatch,
+// } from "firebase/firestore";
+// import { db } from "./firebase";
 import type { Recording } from "@/types";
 
-const RECORDINGS_COLLECTION = "recordings";
+const RECORDINGS_KEY = "voice-note-recordings";
 const SETTINGS_KEY = "voice-note-settings";
 
 type DeletionPolicy = "never" | "7" | "15" | "30";
@@ -21,79 +21,73 @@ interface AppSettings {
   deletionPolicy: DeletionPolicy;
 }
 
-// Recordings are now in Firestore
-export async function getRecordings(): Promise<Recording[]> {
+// --- LocalStorage Helper Functions ---
+
+const _getRecordingsFromStorage = (): Recording[] => {
   if (typeof window === "undefined") return [];
+  const data = localStorage.getItem(RECORDINGS_KEY);
   try {
-    const recordingsCol = collection(db, RECORDINGS_COLLECTION);
-    const q = query(recordingsCol, orderBy("date", "desc"));
-    const querySnapshot = await getDocs(q);
-    const recordings = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Recording));
-    return recordings;
+    return data ? JSON.parse(data) : [];
   } catch (error) {
-    console.error("Error fetching recordings: ", error);
-    // Returning empty array and letting toast handle user notification
+    console.error("Error parsing recordings from localStorage:", error);
     return [];
   }
+};
+
+const _saveRecordingsToStorage = (recordings: Recording[]): void => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(RECORDINGS_KEY, JSON.stringify(recordings));
+};
+
+
+// --- Public API for Storage ---
+// We keep the async/Promise structure to avoid breaking the components that use these functions.
+
+export async function getRecordings(): Promise<Recording[]> {
+  const recordings = _getRecordingsFromStorage();
+  // Sort by date descending to show newest first
+  recordings.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  return Promise.resolve(recordings);
 }
 
 export async function getRecording(id: string): Promise<Recording | undefined> {
-  if (typeof window === "undefined") return undefined;
-  try {
-    const docRef = doc(db, RECORDINGS_COLLECTION, id);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() } as Recording;
-    } else {
-      console.log("No such document!");
-      return undefined;
-    }
-  } catch (error) {
-    console.error("Error fetching recording: ", error);
-    return undefined;
-  }
+  const recordings = _getRecordingsFromStorage();
+  const recording = recordings.find(rec => rec.id === id);
+  return Promise.resolve(recording);
 }
 
-export async function saveRecording(data: Omit<Recording, 'id' | 'date'> & { audioDataUri: string }): Promise<Recording> {
-  console.log("saveRecording: Function called.");
+export async function saveRecording(data: Omit<Recording, 'id' | 'date'> & { audioDataUri?: string }): Promise<Recording> {
+  console.log("saveRecording (localStorage): Function called.");
+  const recordings = _getRecordingsFromStorage();
   
-  // Firestore has a 1MiB limit per document. The audio data URI can easily exceed this.
-  // We will store the transcription metadata in Firestore, but not the audio data itself.
-  // The full object is returned for immediate use in the UI.
-  const { audioDataUri, ...restOfData } = data;
-
-  const newRecordingData = {
-    ...restOfData,
+  const newRecording: Recording = {
+    id: new Date().getTime().toString(), // Simple unique ID
+    ...data,
     date: new Date().toISOString(),
   };
-  console.log("saveRecording: Prepared recording data for Firestore (without audio):", newRecordingData);
 
-  try {
-    console.log("saveRecording: Attempting to add document to Firestore...");
-    const docRef = await addDoc(collection(db, RECORDINGS_COLLECTION), newRecordingData);
-    console.log("saveRecording: Document added with ID:", docRef.id);
-    
-    // Return the full recording object, including the in-memory audioDataUri, to the main page
-    const finalRecording = { id: docRef.id, ...newRecordingData, audioDataUri }; 
-    console.log("saveRecording: Returning final recording object:", finalRecording);
-    return finalRecording;
-  } catch (error) {
-    console.error("Error adding document: ", error);
-    throw new Error("Failed to save recording to the database.");
-  }
+  const updatedRecordings = [...recordings, newRecording];
+  _saveRecordingsToStorage(updatedRecordings);
+  
+  console.log("saveRecording (localStorage): Recording saved.", newRecording);
+  return Promise.resolve(newRecording);
 }
+
 
 export async function deleteRecording(id: string): Promise<void> {
   try {
-    await deleteDoc(doc(db, RECORDINGS_COLLECTION, id));
+    const recordings = _getRecordingsFromStorage();
+    const updatedRecordings = recordings.filter(rec => rec.id !== id);
+    _saveRecordingsToStorage(updatedRecordings);
+    return Promise.resolve();
   } catch (error) {
-    console.error("Error deleting document: ", error);
-    throw new Error("Failed to delete recording from the database.");
+    console.error("Error deleting recording from localStorage: ", error);
+    throw new Error("Failed to delete recording from localStorage.");
   }
 }
 
 
-// Settings remain in localStorage for now
+// Settings remain in localStorage
 export function getSettings(): AppSettings {
   if (typeof window === "undefined") return { deletionPolicy: "never" };
   const data = localStorage.getItem(SETTINGS_KEY);
@@ -116,25 +110,20 @@ export async function applyDeletions(): Promise<void> {
   const daysToKeep = parseInt(deletionPolicy, 10);
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
-  const cutoffISO = cutoffDate.toISOString();
 
   try {
-    const recordingsCol = collection(db, RECORDINGS_COLLECTION);
-    const q = query(recordingsCol, where("date", "<", cutoffISO));
-    const querySnapshot = await getDocs(q);
-    
-    if (querySnapshot.empty) {
-      return;
-    }
-
-    const batch = writeBatch(db);
-    querySnapshot.forEach(doc => {
-      batch.delete(doc.ref);
+    const recordings = _getRecordingsFromStorage();
+    const filteredRecordings = recordings.filter(rec => {
+      return new Date(rec.date).getTime() >= cutoffDate.getTime();
     });
 
-    await batch.commit();
-    console.log(`Auto-deleted ${querySnapshot.size} old recordings.`);
+    const deletedCount = recordings.length - filteredRecordings.length;
+    if (deletedCount > 0) {
+        _saveRecordingsToStorage(filteredRecordings);
+        console.log(`Auto-deleted ${deletedCount} old recordings.`);
+    }
   } catch (error) {
-    console.error("Error applying deletions: ", error);
+    console.error("Error applying deletions from localStorage: ", error);
   }
+  return Promise.resolve();
 }
