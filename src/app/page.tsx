@@ -2,12 +2,13 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Mic, Loader2 } from "lucide-react";
+import { Mic, Loader2, Share2, History, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeVoiceNote } from "@/ai/flows/transcribe-voice-note";
 import { nameTranscription } from "@/ai/flows/name-transcription-flow";
-import { saveRecording } from "@/lib/storage";
+import { saveRecording, applyDeletions } from "@/lib/storage";
+import type { Recording } from "@/types";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,21 +18,30 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
-type RecordingStatus = "idle" | "recording" | "confirm_stop" | "transcribing" | "naming";
+
+type RecordingStatus = "idle" | "recording" | "confirm_stop" | "transcribing" | "naming" | "completed";
 
 const RECORDING_TIME_LIMIT_SECONDS = 600; // 10 minutes
 
 export default function Home() {
   const [recordingStatus, setRecordingStatus] = useState<RecordingStatus>("idle");
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [lastRecording, setLastRecording] = useState<Recording | null>(null);
+
   const router = useRouter();
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
+  
+  useEffect(() => {
+    applyDeletions();
+  }, []);
 
   const formatTime = (totalSeconds: number) => {
     const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
@@ -43,6 +53,7 @@ export default function Home() {
   const resetToIdle = () => {
     setRecordingStatus("idle");
     setElapsedTime(0);
+    setLastRecording(null);
   };
   
   useEffect(() => {
@@ -90,18 +101,14 @@ export default function Home() {
             throw new Error("Naming failed to produce a title.");
         }
 
-        await saveRecording({
+        const newRecording = await saveRecording({
           name: nameResult.name,
           transcription,
           audioDataUri,
         });
-
-        toast({
-          title: "Note Saved!",
-          description: `Your note "${nameResult.name}" has been saved.`,
-          className: "bg-accent text-accent-foreground border-accent",
-        });
-        router.push("/history");
+        
+        setLastRecording(newRecording);
+        setRecordingStatus("completed");
 
       } catch (error) {
         console.error("Processing error:", error);
@@ -162,6 +169,23 @@ export default function Home() {
       setRecordingStatus("recording");
   }
 
+  const handleShare = async (recording: Recording) => {
+    const shareData = {
+      title: recording.name,
+      text: recording.transcription,
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.error("Share failed:", err);
+      }
+    } else {
+      const emailBody = `Check out this note: "${recording.name}"\n\n${recording.transcription}`;
+      window.location.href = `mailto:?subject=${encodeURIComponent(recording.name)}&body=${encodeURIComponent(emailBody)}`;
+    }
+  };
+
   const getStatusText = () => {
     switch(recordingStatus) {
       case 'idle': return "Each word matters.\nMake a note of them";
@@ -170,6 +194,7 @@ export default function Home() {
         return "Audio Capture";
       case 'transcribing': return "Transcribing...";
       case 'naming': return "Creating Title...";
+      case 'completed': return "Success!";
       default: return "";
     }
   }
@@ -186,6 +211,33 @@ export default function Home() {
                     <Loader2 className="w-16 h-16 animate-spin"/>
                     <p className="text-lg">{recordingStatus === 'transcribing' ? 'Transcribing your genius...' : 'Finding the perfect title...'}</p>
                 </div>
+            ) : recordingStatus === 'completed' && lastRecording ? (
+              <div className="w-full max-w-md mx-auto">
+                <Card className="w-full bg-card/80 border-border backdrop-blur-sm shadow-lg">
+                    <CardHeader>
+                        <CardTitle className="text-2xl text-primary">{lastRecording.name}</CardTitle>
+                        <CardDescription>Your note has been successfully saved.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                         <ScrollArea className="h-32 rounded-md border p-4 bg-muted/50 text-left">
+                            <p className="text-foreground/90 whitespace-pre-wrap">{lastRecording.transcription}</p>
+                        </ScrollArea>
+                        <div className="grid grid-cols-2 gap-2">
+                            <Button variant="outline" onClick={() => handleShare(lastRecording)}>
+                                <Share2 className="mr-2 h-4 w-4" /> Share
+                            </Button>
+                            <Button variant="outline" onClick={() => router.push('/history')}>
+                                <History className="mr-2 h-4 w-4" /> View History
+                            </Button>
+                        </div>
+                    </CardContent>
+                    <CardFooter>
+                        <Button className="w-full" onClick={resetToIdle}>
+                            <PlusCircle className="mr-2 h-4 w-4" /> Record Another
+                        </Button>
+                    </CardFooter>
+                </Card>
+              </div>
             ) : (
                 <div className="flex flex-col items-center justify-center gap-8">
                     <p className="text-7xl font-mono tracking-tighter text-white/90">{formatTime(elapsedTime)}</p>

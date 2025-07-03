@@ -1,6 +1,12 @@
 import type { Recording } from "@/types";
 
 const RECORDINGS_KEY = "voice-note-recordings";
+const SETTINGS_KEY = "voice-note-settings";
+
+type DeletionPolicy = "never" | "7" | "15" | "30";
+interface AppSettings {
+  deletionPolicy: DeletionPolicy;
+}
 
 function getRecordingsFromStorage(): Recording[] {
   if (typeof window === "undefined") return [];
@@ -37,4 +43,40 @@ export function deleteRecording(id: string): void {
   const recordings = getRecordingsFromStorage();
   const filteredRecordings = recordings.filter(r => r.id !== id);
   saveRecordingsToStorage(filteredRecordings);
+}
+
+export function getSettings(): AppSettings {
+  if (typeof window === "undefined") return { deletionPolicy: "never" };
+  const data = localStorage.getItem(SETTINGS_KEY);
+  return data ? JSON.parse(data) : { deletionPolicy: "never" };
+}
+
+export function saveSettings(settings: AppSettings): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
+
+export function applyDeletions(): void {
+  if (typeof window === "undefined") return;
+
+  const { deletionPolicy } = getSettings();
+  if (deletionPolicy === "never") {
+    return;
+  }
+
+  const daysToKeep = parseInt(deletionPolicy, 10);
+  const recordings = getRecordingsFromStorage();
+  const now = new Date();
+  
+  const filteredRecordings = recordings.filter(r => {
+    const recordingDate = new Date(r.date);
+    const cutoffDate = new Date();
+    cutoffDate.setDate(now.getDate() - daysToKeep);
+    return recordingDate >= cutoffDate;
+  });
+
+  if (filteredRecordings.length < recordings.length) {
+      console.log(`Auto-deleted ${recordings.length - filteredRecordings.length} old recordings.`);
+      saveRecordingsToStorage(filteredRecordings);
+  }
 }
