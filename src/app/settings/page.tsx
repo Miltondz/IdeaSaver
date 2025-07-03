@@ -2,14 +2,15 @@
 'use client';
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { getSettings, saveSettings, getLocalRecordings, deleteRecording as deleteRecordingFromStorage } from "@/lib/storage";
-import { Settings, KeyRound, Trash2, Trello, Save, Database, Copy, Archive } from "lucide-react";
+import { getSettings, saveSettings, getLocalRecordings, deleteRecording as deleteRecordingFromStorage, AppSettings } from "@/lib/storage";
+import { Settings, KeyRound, Trash2, Trello, Save, Database, Copy, Archive, Code } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { Recording } from "@/types";
@@ -21,13 +22,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 type DeletionPolicy = "never" | "7" | "15" | "30";
 
 export default function SettingsPage() {
-  const [deletionPolicy, setDeletionPolicy] = useState<DeletionPolicy>("never");
-  const [trelloApiKey, setTrelloApiKey] = useState("");
-  const [trelloToken, setTrelloToken] = useState("");
-  const [aiApiKey, setAiApiKey] = useState("");
-  const [aiModel, setAiModel] = useState("");
-  const [dbIntegrationEnabled, setDbIntegrationEnabled] = useState(false);
-  const [autoSendToDB, setAutoSendToDB] = useState(false);
+  const [settings, setSettings] = useState<AppSettings>(getSettings());
   const [isMounted, setIsMounted] = useState(false);
   
   const [localRecordings, setLocalRecordings] = useState<Recording[]>([]);
@@ -36,17 +31,18 @@ export default function SettingsPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const settings = getSettings();
-    setDeletionPolicy(settings.deletionPolicy);
-    setTrelloApiKey(settings.trelloApiKey || "");
-    setTrelloToken(settings.trelloToken || "");
-    setAiApiKey(settings.aiApiKey || "");
-    setAiModel(settings.aiModel || "gemini-2.0-flash");
-    setDbIntegrationEnabled(settings.dbIntegrationEnabled || false);
-    setAutoSendToDB(settings.autoSendToDB || false);
     setIsMounted(true);
+    const handleSettingsChange = () => {
+        setSettings(getSettings());
+    };
+    window.addEventListener('storage', handleSettingsChange);
+    return () => window.removeEventListener('storage', handleSettingsChange);
   }, []);
   
+  const updateSetting = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+  };
+
   const refreshLocalRecordings = () => {
     const recs = getLocalRecordings();
     setLocalRecordings(recs.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
@@ -69,8 +65,6 @@ export default function SettingsPage() {
   
   const formatBytes = (dataUri: string | undefined): string => {
       if (!dataUri) return 'N/A';
-      // The Base64 encoded string is about 33% larger than the raw data.
-      // (length * 3/4) is a close approximation of the original file size.
       const bytes = (dataUri.length * 3/4);
       if (bytes < 1) return '0 Bytes';
       const k = 1024;
@@ -80,15 +74,7 @@ export default function SettingsPage() {
   };
 
   const handleSave = () => {
-    saveSettings({
-      deletionPolicy,
-      trelloApiKey,
-      trelloToken,
-      aiApiKey,
-      aiModel,
-      dbIntegrationEnabled,
-      autoSendToDB
-    });
+    saveSettings(settings);
     toast({
       title: "Settings Saved",
       description: "Your new settings have been applied.",
@@ -96,7 +82,7 @@ export default function SettingsPage() {
     });
   };
 
-  const handlePaste = async (setter: React.Dispatch<React.SetStateAction<string>>) => {
+  const handlePaste = async (setter: (value: string) => void) => {
     try {
       const text = await navigator.clipboard.readText();
       setter(text);
@@ -126,6 +112,22 @@ export default function SettingsPage() {
 
   return (
     <div className="container mx-auto p-4 pt-8 flex flex-col items-center">
+       <Card className="w-full max-w-2xl mb-8 border-yellow-500/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400">
+            <Code className="h-6 w-6" />
+            Developer Controls
+          </CardTitle>
+          <CardDescription>This panel is for testing purposes only.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <div className="flex items-center space-x-2">
+                <Switch id="is-pro-dev" checked={settings.isPro} onCheckedChange={(checked) => updateSetting('isPro', checked)} />
+                <Label htmlFor="is-pro-dev">Simulate Pro User</Label>
+            </div>
+        </CardContent>
+      </Card>
+      
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -135,42 +137,37 @@ export default function SettingsPage() {
           <CardDescription>Manage your application settings and integrations.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
+            <fieldset disabled={!settings.isPro} className="space-y-4 group">
+                <div className="space-y-2">
+                    <h3 className="text-lg font-medium flex items-center gap-2"><Database className="h-5 w-5" /> Cloud Sync</h3>
+                     {!settings.isPro && (
+                        <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md border border-dashed">
+                           <p className="font-semibold text-foreground/90">Cloud Sync is a Pro feature.</p>
+                           <p>Sync notes across devices and ensure they're always backed up.</p>
+                           <Button size="sm" className="mt-2" asChild><Link href="/pricing">Upgrade to Pro</Link></Button>
+                        </div>
+                    )}
+                    <div className="flex items-center space-x-2 group-disabled:opacity-50">
+                        <Switch id="cloud-sync" checked={settings.cloudSyncEnabled} onCheckedChange={(checked) => updateSetting('cloudSyncEnabled', checked)} />
+                        <Label htmlFor="cloud-sync">Enable Cloud Sync</Label>
+                    </div>
+                    {settings.cloudSyncEnabled && (
+                    <div className="flex items-center space-x-2 pl-4 group-disabled:opacity-50">
+                        <Checkbox id="auto-send" checked={settings.autoCloudSync} onCheckedChange={(checked) => updateSetting('autoCloudSync', !!checked)} />
+                        <Label htmlFor="auto-send">Automatically save new notes to cloud</Label>
+                    </div>
+                    )}
+                </div>
+            </fieldset>
 
             <div className="space-y-4">
-                <h3 className="text-lg font-medium flex items-center gap-2"><Database className="h-5 w-5" /> Database Integration</h3>
-                <div className="flex items-center space-x-2">
-                  <Switch id="db-integration" checked={dbIntegrationEnabled} onCheckedChange={setDbIntegrationEnabled} />
-                  <Label htmlFor="db-integration">Enable Cloud Database (Firebase)</Label>
-                </div>
-                <p className="text-sm text-muted-foreground">Saves your notes to a cloud database, allowing access across devices. Requires Firebase setup.</p>
-                {dbIntegrationEnabled && (
-                  <div className="flex items-center space-x-2 pl-4">
-                    <Checkbox id="auto-send" checked={autoSendToDB} onCheckedChange={(checked) => setAutoSendToDB(!!checked)} />
-                    <Label htmlFor="auto-send">Automatically save new notes to cloud</Label>
-                  </div>
-                )}
-            </div>
-            
-            <div className="space-y-4">
                 <h3 className="text-lg font-medium flex items-center gap-2"><Trash2 className="h-5 w-5" /> Auto-delete Recordings</h3>
-                <p className="text-sm text-muted-foreground">Automatically delete old recordings to save space. This cannot be undone.</p>
-                <RadioGroup value={deletionPolicy} onValueChange={(value) => setDeletionPolicy(value as DeletionPolicy)}>
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="never" id="never" />
-                        <Label htmlFor="never">Never</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="7" id="7" />
-                        <Label htmlFor="7">After 7 days</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="15" id="15" />
-                        <Label htmlFor="15">After 15 days</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="30" id="30" />
-                        <Label htmlFor="30">After 30 days</Label>
-                    </div>
+                <p className="text-sm text-muted-foreground">Automatically delete old local recordings to save space on your device. This cannot be undone.</p>
+                <RadioGroup value={settings.deletionPolicy} onValueChange={(value) => updateSetting('deletionPolicy', value as DeletionPolicy)}>
+                    <div className="flex items-center space-x-2"><RadioGroupItem value="never" id="never" /><Label htmlFor="never">Never</Label></div>
+                    <div className="flex items-center space-x-2"><RadioGroupItem value="7" id="7" /><Label htmlFor="7">After 7 days</Label></div>
+                    <div className="flex items-center space-x-2"><RadioGroupItem value="15" id="15" /><Label htmlFor="15">After 15 days</Label></div>
+                    <div className="flex items-center space-x-2"><RadioGroupItem value="30" id="30" /><Label htmlFor="30">After 30 days</Label></div>
                 </RadioGroup>
             </div>
 
@@ -179,37 +176,44 @@ export default function SettingsPage() {
                 <div className="space-y-2">
                     <Label htmlFor="ai-key">AI Provider API Key</Label>
                     <div className="flex items-center gap-2">
-                      <Input id="ai-key" type="password" placeholder="Enter your provider API Key" value={aiApiKey} onChange={(e) => setAiApiKey(e.target.value)} />
-                      <Button variant="ghost" size="icon" onClick={() => handlePaste(setAiApiKey)}><Copy className="h-4 w-4" /></Button>
+                      <Input id="ai-key" type="password" placeholder="Enter your provider API Key" value={settings.aiApiKey} onChange={(e) => updateSetting('aiApiKey', e.target.value)} />
+                      <Button variant="ghost" size="icon" onClick={() => handlePaste((v) => updateSetting('aiApiKey', v))}><Copy className="h-4 w-4" /></Button>
                     </div>
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="ai-model">AI Model Name</Label>
                     <div className="flex items-center gap-2">
-                      <Input id="ai-model" type="text" placeholder="e.g., openai/gpt-4 or gemini-2.0-flash" value={aiModel} onChange={(e) => setAiModel(e.target.value)} />
-                       <Button variant="ghost" size="icon" onClick={() => handlePaste(setAiModel)}><Copy className="h-4 w-4" /></Button>
+                      <Input id="ai-model" type="text" placeholder="e.g., openai/gpt-4 or gemini-2.0-flash" value={settings.aiModel} onChange={(e) => updateSetting('aiModel', e.target.value)} />
+                       <Button variant="ghost" size="icon" onClick={() => handlePaste((v) => updateSetting('aiModel', v))}><Copy className="h-4 w-4" /></Button>
                     </div>
                     <p className="text-sm text-muted-foreground">Specify the model name for AI features. If no provider is included, 'googleai/' will be used.</p>
                 </div>
             </div>
 
-            <div className="space-y-4">
+            <fieldset disabled={!settings.isPro} className="space-y-4 group">
                  <h3 className="text-lg font-medium flex items-center gap-2"><Trello className="h-5 w-5" /> Trello Integration</h3>
-                 <div className="space-y-2">
+                  {!settings.isPro && (
+                        <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md border border-dashed">
+                           <p className="font-semibold text-foreground/90">Trello Integration is a Pro feature.</p>
+                           <p>Connect ideas directly to your Trello boards for seamless project management.</p>
+                           <Button size="sm" className="mt-2" asChild><Link href="/pricing">Upgrade to Pro</Link></Button>
+                        </div>
+                    )}
+                 <div className="space-y-2 group-disabled:opacity-50">
                     <Label htmlFor="trello-key">Trello API Key</Label>
                      <div className="flex items-center gap-2">
-                      <Input id="trello-key" type="password" placeholder="Enter your Trello API Key" value={trelloApiKey} onChange={(e) => setTrelloApiKey(e.target.value)} />
-                       <Button variant="ghost" size="icon" onClick={() => handlePaste(setTrelloApiKey)}><Copy className="h-4 w-4" /></Button>
+                      <Input id="trello-key" type="password" placeholder="Enter your Trello API Key" value={settings.trelloApiKey} onChange={(e) => updateSetting('trelloApiKey', e.target.value)} />
+                       <Button variant="ghost" size="icon" onClick={() => handlePaste((v) => updateSetting('trelloApiKey', v))}><Copy className="h-4 w-4" /></Button>
                     </div>
                  </div>
-                 <div className="space-y-2">
+                 <div className="space-y-2 group-disabled:opacity-50">
                     <Label htmlFor="trello-token">Trello Token</Label>
                      <div className="flex items-center gap-2">
-                      <Input id="trello-token" type="password" placeholder="Enter your Trello Token" value={trelloToken} onChange={(e) => setTrelloToken(e.target.value)} />
-                       <Button variant="ghost" size="icon" onClick={() => handlePaste(setTrelloToken)}><Copy className="h-4 w-4" /></Button>
+                      <Input id="trello-token" type="password" placeholder="Enter your Trello Token" value={settings.trelloToken} onChange={(e) => updateSetting('trelloToken', e.target.value)} />
+                       <Button variant="ghost" size="icon" onClick={() => handlePaste((v) => updateSetting('trelloToken', v))}><Copy className="h-4 w-4" /></Button>
                     </div>
                  </div>
-            </div>
+            </fieldset>
             
             <div className="flex justify-end">
                 <Button onClick={handleSave}><Save className="mr-2 h-4 w-4" /> Save Settings</Button>

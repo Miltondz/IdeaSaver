@@ -17,13 +17,14 @@ const SETTINGS_KEY = "voice-note-settings";
 
 type DeletionPolicy = "never" | "7" | "15" | "30";
 export interface AppSettings {
+  isPro: boolean;
   deletionPolicy: DeletionPolicy;
   trelloApiKey: string;
   trelloToken: string;
   aiApiKey: string;
   aiModel: string;
-  dbIntegrationEnabled: boolean;
-  autoSendToDB: boolean;
+  cloudSyncEnabled: boolean;
+  autoCloudSync: boolean;
 }
 
 // --- LocalStorage Helper Functions ---
@@ -57,24 +58,26 @@ const _saveRecordingsToStorage = (recordings: Recording[]): void => {
 export function getSettings(): AppSettings {
   if (typeof window === "undefined") {
     return { 
+      isPro: true, // Default to pro for development
       deletionPolicy: "never",
       trelloApiKey: "",
       trelloToken: "",
       aiApiKey: "",
       aiModel: "gemini-2.0-flash",
-      dbIntegrationEnabled: false,
-      autoSendToDB: false,
+      cloudSyncEnabled: false,
+      autoCloudSync: false,
     };
   }
   const data = localStorage.getItem(SETTINGS_KEY);
   const defaults: AppSettings = { 
+      isPro: true, // Default to pro for development
       deletionPolicy: "never",
       trelloApiKey: "",
       trelloToken: "",
       aiApiKey: "",
       aiModel: "gemini-2.0-flash",
-      dbIntegrationEnabled: false,
-      autoSendToDB: false,
+      cloudSyncEnabled: false,
+      autoCloudSync: false,
   };
   return data ? { ...defaults, ...JSON.parse(data) } : defaults;
 }
@@ -82,13 +85,15 @@ export function getSettings(): AppSettings {
 export function saveSettings(settings: AppSettings): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  // Dispatch a storage event to notify other tabs/windows
+  window.dispatchEvent(new Event('storage'));
 }
 
 // --- Firestore Functions ---
 export async function saveRecordingToDB(recording: Recording): Promise<void> {
   const settings = getSettings();
-  if (!settings.dbIntegrationEnabled || !db) {
-    console.log("DB integration is disabled. Skipping Firestore save.");
+  if (!settings.cloudSyncEnabled || !db) {
+    console.log("Cloud Sync is disabled. Skipping Firestore save.");
     return;
   }
   try {
@@ -103,7 +108,7 @@ export async function saveRecordingToDB(recording: Recording): Promise<void> {
 
 export async function deleteRecordingFromDB(id: string): Promise<void> {
   const settings = getSettings();
-  if (!settings.dbIntegrationEnabled || !db) {
+  if (!settings.cloudSyncEnabled || !db) {
     return;
   }
   try {
@@ -117,14 +122,12 @@ export async function deleteRecordingFromDB(id: string): Promise<void> {
 
 // --- Hybrid Functions (Local Storage + Firestore) ---
 export async function getRecordings(): Promise<Recording[]> {
-  const { dbIntegrationEnabled } = getSettings();
+  const { cloudSyncEnabled } = getSettings();
 
-  if (dbIntegrationEnabled && db) {
+  if (cloudSyncEnabled && db) {
     try {
       const q = query(collection(db, "recordings"), orderBy("date", "desc"));
       const querySnapshot = await getDocs(q);
-      // Firestore is the source of truth, so we return its data.
-      // We no longer sync back to local storage on read, to prevent erasing local audio URIs.
       const recordings = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Recording));
       return recordings;
     } catch (error) {
@@ -139,8 +142,8 @@ export async function getRecordings(): Promise<Recording[]> {
 }
 
 export async function getRecording(id: string): Promise<Recording | undefined> {
-  const { dbIntegrationEnabled } = getSettings();
-  if (dbIntegrationEnabled && db) {
+  const { cloudSyncEnabled } = getSettings();
+  if (cloudSyncEnabled && db) {
       try {
         const docRef = doc(db, "recordings", id);
         const docSnap = await getDoc(docRef);
@@ -167,21 +170,17 @@ export async function saveRecording(data: Omit<Recording, 'id' | 'date'>): Promi
 
   const recordings = _getRecordingsFromStorage();
   
-  // When DB integration is off, we must save the full recording locally for playback.
-  // When it's on, we only save metadata locally to avoid exceeding storage limits,
-  // and the full object is saved to the cloud.
-  if (!settings.dbIntegrationEnabled) {
+  if (!settings.cloudSyncEnabled) {
     _saveRecordingsToStorage([...recordings, newRecording]);
   } else {
     const { audioDataUri, ...localData } = newRecording;
     _saveRecordingsToStorage([...recordings, localData]);
   }
   
-  if (settings.dbIntegrationEnabled && settings.autoSendToDB) {
+  if (settings.cloudSyncEnabled && settings.autoCloudSync) {
     await saveRecordingToDB(newRecording);
   }
   
-  // Return the full recording object for immediate use
   return Promise.resolve(newRecording);
 }
 
@@ -193,9 +192,7 @@ export async function updateRecording(recording: Recording): Promise<Recording> 
 
   let recordingToStoreLocally: Recording | Omit<Recording, 'audioDataUri'>;
 
-  // When DB integration is off, we must save the full recording locally for playback.
-  // When it's on, we only save metadata locally to avoid exceeding storage limits.
-  if (!settings.dbIntegrationEnabled) {
+  if (!settings.cloudSyncEnabled) {
       recordingToStoreLocally = recording;
   } else {
       const { audioDataUri, ...localData } = recording;
@@ -209,8 +206,7 @@ export async function updateRecording(recording: Recording): Promise<Recording> 
   }
   _saveRecordingsToStorage(recordings);
 
-  // Update firestore if enabled, passing the full object
-  if (settings.dbIntegrationEnabled && db) {
+  if (settings.cloudSyncEnabled && db) {
     try {
       await saveRecordingToDB(recording);
     } catch (error) {
@@ -218,7 +214,6 @@ export async function updateRecording(recording: Recording): Promise<Recording> 
     }
   }
   
-  // Return the full object for the UI
   return recording;
 }
 
@@ -238,7 +233,7 @@ export async function deleteRecording(id: string): Promise<void> {
 export async function applyDeletions(): Promise<void> {
   if (typeof window === "undefined") return;
 
-  const { deletionPolicy, dbIntegrationEnabled } = getSettings();
+  const { deletionPolicy, cloudSyncEnabled } = getSettings();
   if (deletionPolicy === "never") {
     return;
   }
@@ -247,8 +242,7 @@ export async function applyDeletions(): Promise<void> {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
 
-  // Auto-deletion logic must run on the primary source of truth.
-  if (dbIntegrationEnabled && db) {
+  if (cloudSyncEnabled && db) {
       try {
           const q = query(collection(db, "recordings"));
           const querySnapshot = await getDocs(q);
@@ -267,8 +261,6 @@ export async function applyDeletions(): Promise<void> {
       }
   }
   
-  // Always apply to local storage as well, as it might contain old data
-  // or be the primary storage.
   const localRecordings = _getRecordingsFromStorage();
   const recordingsToKeep = localRecordings.filter(rec => new Date(rec.date).getTime() >= cutoffDate.getTime());
   

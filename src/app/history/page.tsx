@@ -4,11 +4,12 @@
 import { useState, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Trash2, FileText, Share2, BrainCircuit, Send, Loader2, Copy, Check, Save } from "lucide-react";
+import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { getRecordings, deleteRecording as deleteRecordingFromStorage, getSettings, updateRecording } from "@/lib/storage";
+import { getRecordings, deleteRecording as deleteRecordingFromStorage, getSettings, updateRecording, AppSettings } from "@/lib/storage";
 import type { Recording } from "@/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
@@ -25,7 +26,7 @@ export default function HistoryPage() {
   const [noteToExpand, setNoteToExpand] = useState<Recording | null>(null);
   const [copiedStates, setCopiedStates] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
-  const [settings, setSettings] = useState(getSettings());
+  const [settings, setSettings] = useState<AppSettings>(getSettings());
 
   const refreshRecordings = () => {
     getRecordings()
@@ -65,7 +66,7 @@ export default function HistoryPage() {
     }
   };
   
-  const handleShare = async (recording: Recording) => {
+  const handleShare = async (recording: Recording | null) => {
     if (!recording) return;
     const textToShare = recording.expandedTranscription || recording.transcription;
     if (!textToShare) return;
@@ -169,7 +170,14 @@ export default function HistoryPage() {
             <Card className="w-full max-w-sm text-center p-8">
               <CardHeader>
                 <CardTitle>No Recordings Yet</CardTitle>
-                <CardDescription>No recordings yet! Tap 'Record' to capture your first idea.</CardDescription>
+                <CardDescription>
+                  No notes yet! Tap 'Record' to capture your first idea.
+                  {!settings.isPro && (
+                    <>
+                    <br /> and start your <Link href="/pricing" className="underline text-primary">7-day Pro Trial</Link>.
+                    </>
+                  )}
+                </CardDescription>
               </CardHeader>
             </Card>
         </div>
@@ -208,11 +216,11 @@ export default function HistoryPage() {
                             </Tooltip>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExpandClick(rec)}>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExpandClick(rec)} disabled={!settings.isPro}>
                                         <BrainCircuit className="h-4 w-4" />
                                     </Button>
                                 </TooltipTrigger>
-                                <TooltipContent><p>Expand with AI</p></TooltipContent>
+                                <TooltipContent><p>{settings.isPro ? "Expand with AI" : "Upgrade to Pro to expand with AI"}</p></TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
                     </div>
@@ -320,9 +328,18 @@ export default function HistoryPage() {
                     <Button variant="outline" onClick={() => handleShare(selectedRecording)}>
                         <Share2 className="mr-2 h-4 w-4" /> Share
                     </Button>
-                    <Button variant="outline" onClick={() => handleExpandClick(selectedRecording)}>
-                        <BrainCircuit className="mr-2 h-4 w-4" /> Expand Note
-                    </Button>
+                     <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div className="inline-block">
+                               <Button variant="outline" onClick={() => handleExpandClick(selectedRecording)} disabled={!settings.isPro}>
+                                  <BrainCircuit className="mr-2 h-4 w-4" /> Expand Note
+                              </Button>
+                            </div>
+                        </TooltipTrigger>
+                        {!settings.isPro && <TooltipContent><p>Upgrade to Pro to expand with AI</p></TooltipContent>}
+                      </Tooltip>
+                    </TooltipProvider>
               </DialogFooter>
             </>
           )}

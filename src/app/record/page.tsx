@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeVoiceNote } from "@/ai/flows/transcribe-voice-note";
 import { nameTranscription } from "@/ai/flows/name-transcription-flow";
-import { getSettings, saveRecording, saveRecordingToDB, applyDeletions } from "@/lib/storage";
+import { getSettings, saveRecording, saveRecordingToDB, applyDeletions, AppSettings } from "@/lib/storage";
 import type { Recording } from "@/types";
 import {
   AlertDialog,
@@ -68,7 +68,7 @@ export default function Home() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [lastRecording, setLastRecording] = useState<Recording | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
-  const [settings, setSettings] = useState(getSettings());
+  const [settings, setSettings] = useState<AppSettings>(getSettings());
   const [idleQuote, setIdleQuote] = useState(motivationalQuotes[0]);
 
   const router = useRouter();
@@ -200,7 +200,7 @@ export default function Home() {
         }
         audioChunksRef.current = [];
       }
-  }, [resetToIdle, toast, log, settings.aiModel, settings.aiApiKey, cleanupVisualizer]);
+  }, [resetToIdle, toast, log, settings.aiModel, settings.aiApiKey, cleanupVisualizer, settings.isPro]);
 
   const requestStopRecording = useCallback(() => {
     if (mediaRecorderRef.current && recordingStatus === "recording") {
@@ -236,7 +236,7 @@ export default function Home() {
     
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream; // Store for useEffect
+      streamRef.current = stream;
 
       mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm' });
       audioChunksRef.current = [];
@@ -250,7 +250,7 @@ export default function Home() {
       mediaRecorderRef.current.onstop = onStop;
       mediaRecorderRef.current.start();
       
-      setRecordingStatus("recording"); // This will trigger the re-render and the useEffect
+      setRecordingStatus("recording");
     } catch (error) {
       log("Failed to get microphone access:", error);
       toast({
@@ -414,8 +414,8 @@ export default function Home() {
                     <CardHeader>
                         <CardTitle className="text-2xl text-primary">{lastRecording.name}</CardTitle>
                         <CardDescription>
-                            Your note has been successfully saved locally.
-                             {!settings.dbIntegrationEnabled && (
+                            {settings.cloudSyncEnabled ? "Your note has been successfully saved and synced." : "Your note has been successfully saved locally."}
+                             {!settings.cloudSyncEnabled && (
                                 <>
                                     <br/>
                                     <Link href="/settings" className="underline text-primary hover:text-primary/80">Enable Cloud Sync</Link> to access on all devices.
@@ -437,15 +437,33 @@ export default function Home() {
                               </Button>
                            </div>
                            
-                            <Button className="w-full">
-                                <Sparkles /> Summarize with AI
-                            </Button>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="w-full">
+                                    <Button className="w-full" disabled={!settings.isPro}>
+                                        <Sparkles /> Summarize with AI
+                                    </Button>
+                                  </div>
+                                </TooltipTrigger>
+                                {!settings.isPro && <TooltipContent><p>Upgrade to Pro to use AI summarization.</p></TooltipContent>}
+                              </Tooltip>
+                            </TooltipProvider>
                             
-                            <Button className="w-full" onClick={() => router.push('/history')}>
-                                <BrainCircuit /> Expand Note with AI
-                            </Button>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                   <div className="w-full">
+                                    <Button className="w-full" onClick={() => router.push('/history')} disabled={!settings.isPro}>
+                                        <BrainCircuit /> Expand Note with AI
+                                    </Button>
+                                  </div>
+                                </TooltipTrigger>
+                                {!settings.isPro && <TooltipContent><p>Upgrade to Pro to use AI note expansion.</p></TooltipContent>}
+                              </Tooltip>
+                            </TooltipProvider>
 
-                            {settings.dbIntegrationEnabled && !settings.autoSendToDB && (
+                            {settings.cloudSyncEnabled && !settings.autoCloudSync && (
                                 <Button variant="outline" onClick={() => handleSaveToCloud(lastRecording!)}>
                                     <Cloud /> Save to Cloud
                                 </Button>
