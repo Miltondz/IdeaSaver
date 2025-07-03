@@ -131,9 +131,13 @@ export async function getRecordings(userId: string): Promise<Recording[]> {
 
   if (cloudSyncEnabled && db) {
     try {
-      const q = query(collection(db, "recordings"), where("userId", "==", userId), orderBy("date", "desc"));
+      const q = query(collection(db, "recordings"), where("userId", "==", userId));
       const querySnapshot = await getDocs(q);
       const recordings = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Recording));
+
+      // Sort recordings by date descending on the client side
+      recordings.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
       // Sync local storage with what's in the cloud
       _saveRecordingsToStorage(recordings, userId);
       return recordings;
