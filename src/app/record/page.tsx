@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Mic, Loader2, Share2, History, PlusCircle, Cloud } from "lucide-react";
+import { Mic, Loader2, Share2, History, PlusCircle, Cloud, Terminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeVoiceNote } from "@/ai/flows/transcribe-voice-note";
@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 
 type RecordingStatus = "idle" | "recording" | "confirm_stop" | "transcribing" | "naming" | "completed";
@@ -50,12 +51,22 @@ export default function Home() {
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
+
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const animationFrameIdRef = useRef<number | null>(null);
   
   useEffect(() => {
     const handleSettingsChange = () => setSettings(getSettings());
     setSettings(getSettings());
-    window.addEventListener('storage', handleSettingsChange); // Listen for changes from other tabs
-    return () => window.removeEventListener('storage', handleSettingsChange);
+    window.addEventListener('storage', handleSettingsChange);
+    return () => {
+        window.removeEventListener('storage', handleSettingsChange);
+        if (animationFrameIdRef.current) cancelAnimationFrame(animationFrameIdRef.current);
+        if (audioContextRef.current && audioContextRef.current.state !== "closed") {
+            audioContextRef.current.close();
+        }
+    };
   }, []);
   
   const log = useCallback((...args: any[]) => {
@@ -73,15 +84,33 @@ export default function Home() {
     const timestamp = new Date().toLocaleTimeString();
     setLogs(prevLogs => [`[${timestamp}] ${message}`, ...prevLogs]);
   }, []);
+  
+  const cleanupVisualizer = useCallback(() => {
+    if (animationFrameIdRef.current) {
+        cancelAnimationFrame(animationFrameIdRef.current);
+        animationFrameIdRef.current = null;
+    }
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
+    }
+    const canvas = canvasRef.current;
+    if (canvas) {
+        const context = canvas.getContext('2d');
+        context?.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }, []);
 
   const resetToIdle = useCallback(() => {
+    cleanupVisualizer();
     setRecordingStatus("idle");
     setElapsedTime(0);
     setLastRecording(null);
-  }, []);
+  }, [cleanupVisualizer]);
   
   const onStop = useCallback(async () => {
     log("onStop: Process started.");
+    cleanupVisualizer();
     setRecordingStatus("transcribing");
     const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
     
@@ -137,7 +166,7 @@ export default function Home() {
         }
         audioChunksRef.current = [];
       }
-  }, [resetToIdle, toast, log, settings.aiModel, settings.aiApiKey]);
+  }, [resetToIdle, toast, log, settings.aiModel, settings.aiApiKey, cleanupVisualizer]);
 
   const requestStopRecording = useCallback(() => {
     if (mediaRecorderRef.current && recordingStatus === "recording") {
@@ -170,9 +199,10 @@ export default function Home() {
   const startRecording = useCallback(async () => {
     setLogs([]);
     setElapsedTime(0);
-    setRecordingStatus("recording");
+    
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setRecordingStatus("recording");
       mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm' });
       audioChunksRef.current = [];
 
@@ -184,6 +214,56 @@ export default function Home() {
       
       mediaRecorderRef.current.onstop = onStop;
       mediaRecorderRef.current.start();
+      
+      // Setup visualizer
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      audioContextRef.current = audioContext;
+      const analyser = audioContext.createAnalyser();
+      const source = audioContext.createMediaStreamSource(stream);
+      source.connect(analyser);
+
+      analyser.fftSize = 2048;
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      const canvasCtx = canvas.getContext('2d');
+      if (!canvasCtx) return;
+
+      const computedStyle = getComputedStyle(document.documentElement);
+      const primaryColor = `hsl(${computedStyle.getPropertyValue('--primary')})`;
+      const backgroundColor = `hsl(${computedStyle.getPropertyValue('--background')})`;
+
+      const draw = () => {
+        animationFrameIdRef.current = requestAnimationFrame(draw);
+        analyser.getByteTimeDomainData(dataArray);
+
+        canvasCtx.fillStyle = backgroundColor;
+        canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+        canvasCtx.lineWidth = 2;
+        canvasCtx.strokeStyle = primaryColor;
+        canvasCtx.beginPath();
+
+        const sliceWidth = canvas.width * 1.0 / bufferLength;
+        let x = 0;
+
+        for (let i = 0; i < bufferLength; i++) {
+          const v = dataArray[i] / 128.0;
+          const y = v * canvas.height / 2;
+          if (i === 0) {
+            canvasCtx.moveTo(x, y);
+          } else {
+            canvasCtx.lineTo(x, y);
+          }
+          x += sliceWidth;
+        }
+
+        canvasCtx.lineTo(canvas.width, canvas.height / 2);
+        canvasCtx.stroke();
+      };
+
+      draw();
 
     } catch (error) {
       log("Failed to get microphone access:", error);
@@ -302,7 +382,20 @@ export default function Home() {
               </div>
             ) : (
                 <div className="flex flex-col items-center justify-center gap-8">
-                    <p className="text-7xl font-mono tracking-tighter text-foreground/90">{new Date(elapsedTime * 1000).toISOString().slice(14, 19)}</p>
+                     <div className="h-28 w-full max-w-sm flex items-center justify-center">
+                        {recordingStatus === 'recording' ? (
+                            <canvas ref={canvasRef} width="300" height="100" />
+                        ) : (
+                             <p className="text-7xl font-mono tracking-tighter text-foreground/90">
+                                {new Date(elapsedTime * 1000).toISOString().slice(14, 19)}
+                             </p>
+                        )}
+                    </div>
+                    {recordingStatus === 'recording' && (
+                         <p className="text-2xl font-mono tracking-tighter text-foreground/70 -mt-4">
+                            {new Date(elapsedTime * 1000).toISOString().slice(14, 19)}
+                         </p>
+                    )}
                     <div className="h-24">
                         {recordingStatus === 'idle' && (
                             <Button onClick={startRecording} className="w-24 h-24 rounded-full bg-primary/10 border-2 border-primary text-primary shadow-lg hover:bg-primary/20">
@@ -324,13 +417,21 @@ export default function Home() {
             )}
         </div>
         
-        <div className="w-full max-w-2xl px-4 pb-4">
-            <Card className="bg-card/80 border-border backdrop-blur-sm text-left">
-                <CardHeader>
-                    <CardTitle className="text-base font-medium">Console Logs</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <ScrollArea className="h-32 w-full rounded-md border p-2 bg-muted/50">
+        <div className="fixed bottom-4 right-4 z-50">
+            <Sheet>
+                <SheetTrigger asChild>
+                    <Button variant="outline" size="icon" className="rounded-full shadow-lg">
+                        <Terminal className="h-5 w-5" />
+                    </Button>
+                </SheetTrigger>
+                <SheetContent>
+                    <SheetHeader>
+                        <SheetTitle>Console Logs</SheetTitle>
+                        <SheetDescription>
+                            Live output from the recording and transcription process.
+                        </SheetDescription>
+                    </SheetHeader>
+                    <ScrollArea className="h-[calc(100%-4rem)] w-full rounded-md border p-2 bg-muted/50 mt-4">
                         <pre className="p-2 text-xs font-mono whitespace-pre-wrap break-words">
                             {logs.length > 0 ? (
                                 logs.join('\n')
@@ -339,8 +440,8 @@ export default function Home() {
                             )}
                         </pre>
                     </ScrollArea>
-                </CardContent>
-            </Card>
+                </SheetContent>
+            </Sheet>
         </div>
 
         <AlertDialog open={recordingStatus === 'confirm_stop'} onOpenChange={(open) => !open && resumeRecording()}>
