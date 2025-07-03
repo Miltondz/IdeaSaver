@@ -3,9 +3,9 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /recordings/{recordingId} {
-      // Allow user to read, create, update, and delete their own recordings.
-      // The `userId` field in the document must match the authenticated user's UID.
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow read, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update: if request.auth != null && request.auth.uid == request.resource.data.userId;
     }
   }
 }
