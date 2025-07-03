@@ -23,7 +23,7 @@ export default function HistoryPage() {
   const [isExpanding, setIsExpanding] = useState(false);
   const [expandedNote, setExpandedNote] = useState<string | null>(null);
   const [noteToExpand, setNoteToExpand] = useState<Recording | null>(null);
-  const [isCopied, setIsCopied] = useState(false);
+  const [copiedStates, setCopiedStates] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
   const [settings, setSettings] = useState(getSettings());
 
@@ -81,7 +81,7 @@ export default function HistoryPage() {
       } catch (err) {
         if (err instanceof DOMException && (err.name === 'AbortError' || err.name === 'NotAllowedError')) {
           if (err.name === 'NotAllowedError') {
-              handleCopyToClipboard(textToShare);
+              handleCopyToClipboard(textToShare, 'share-fallback');
               toast({
                   title: "Sharing Permission Denied",
                   description: "We couldn't open the share dialog. The note has been copied to your clipboard instead.",
@@ -98,7 +98,7 @@ export default function HistoryPage() {
         });
       }
     } else {
-        handleCopyToClipboard(textToShare);
+        handleCopyToClipboard(textToShare, 'share-fallback');
         toast({
             title: "Sharing not supported",
             description: "This browser doesn't support sharing. The note has been copied to your clipboard instead.",
@@ -125,11 +125,12 @@ export default function HistoryPage() {
       });
   };
 
-  const handleCopyToClipboard = (text: string) => {
+  const handleCopyToClipboard = (text: string | null, id: string) => {
+    if (!text) return;
     navigator.clipboard.writeText(text).then(() => {
-        setIsCopied(true);
+        setCopiedStates(prev => ({...prev, [id]: true}));
         toast({ title: "Copied to clipboard!", className: "bg-accent text-accent-foreground border-accent" });
-        setTimeout(() => setIsCopied(false), 2000);
+        setTimeout(() => setCopiedStates(prev => ({...prev, [id]: false})), 2000);
     });
   };
 
@@ -264,16 +265,54 @@ export default function HistoryPage() {
                 </div>
                 <div className="flex flex-col gap-2">
                     <h3 className="font-semibold">Transcription</h3>
-                    <ScrollArea className="h-40 rounded-md border p-4 bg-muted/50">
-                        <p className="text-foreground/90 whitespace-pre-wrap">{selectedRecording.transcription}</p>
-                    </ScrollArea>
+                    <div className="relative">
+                        <ScrollArea className="h-40 rounded-md border p-4 bg-muted/50 pr-12">
+                            <p className="text-foreground/90 whitespace-pre-wrap">{selectedRecording.transcription}</p>
+                        </ScrollArea>
+                        <div className="absolute top-2 right-2">
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            className="h-8 w-8 bg-background/50 hover:bg-background"
+                                            onClick={() => handleCopyToClipboard(selectedRecording.transcription, 'details-transcription')}
+                                        >
+                                            {copiedStates['details-transcription'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent><p>Copy</p></TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </div>
+                    </div>
                 </div>
                 {selectedRecording.expandedTranscription && (
                   <div className="flex flex-col gap-2">
                     <h3 className="font-semibold">Expanded Note</h3>
-                    <ScrollArea className="h-40 rounded-md border p-4 bg-muted/50">
-                      <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert" dangerouslySetInnerHTML={{ __html: selectedRecording.expandedTranscription }}></div>
-                    </ScrollArea>
+                    <div className="relative">
+                        <ScrollArea className="h-40 rounded-md border p-4 bg-muted/50 pr-12">
+                          <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert" dangerouslySetInnerHTML={{ __html: selectedRecording.expandedTranscription }}></div>
+                        </ScrollArea>
+                        <div className="absolute top-2 right-2">
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            className="h-8 w-8 bg-background/50 hover:bg-background"
+                                            onClick={() => handleCopyToClipboard(selectedRecording.expandedTranscription, 'details-expanded')}
+                                        >
+                                            {copiedStates['details-expanded'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent><p>Copy</p></TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -306,7 +345,7 @@ export default function HistoryPage() {
                     </div>
                 ) : expandedNote && (
                     <div className="relative h-full">
-                        <ScrollArea className="h-full rounded-md border p-4 bg-muted/50">
+                        <ScrollArea className="h-full rounded-md border p-4 bg-muted/50 pr-12">
                             <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert" dangerouslySetInnerHTML={{ __html: expandedNote }}></div>
                         </ScrollArea>
                          <div className="absolute top-2 right-2">
@@ -317,9 +356,9 @@ export default function HistoryPage() {
                                         size="icon"
                                         variant="ghost"
                                         className="h-8 w-8 bg-background/50 hover:bg-background"
-                                        onClick={() => handleCopyToClipboard(expandedNote)}
+                                        onClick={() => handleCopyToClipboard(expandedNote, 'expand-dialog')}
                                     >
-                                        {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                        {copiedStates['expand-dialog'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                                     </Button>
                                     </TooltipTrigger>
                                     <TooltipContent><p>Copy</p></TooltipContent>
