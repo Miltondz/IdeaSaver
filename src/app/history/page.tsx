@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Trash2, FileText, Share2, BrainCircuit, Send, Loader2, Copy, Check, Save, Sparkles } from "lucide-react";
+import { Trash2, FileText, Share2, BrainCircuit, Send, Loader2, Copy, Check, Save, Sparkles, FolderKanban, ListTodo } from "lucide-react";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +15,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { expandNote } from "@/ai/flows/expand-note-flow";
 import { summarizeNote } from "@/ai/flows/summarize-note-flow";
+import { expandAsProject } from "@/ai/flows/expand-as-project-flow";
+import { extractTasks } from "@/ai/flows/extract-tasks-flow";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -29,7 +31,7 @@ export default function HistoryPage() {
   const { user } = useAuth();
   
   // AI Action State
-  const [aiAction, setAiAction] = useState<'expand' | 'summarize' | null>(null);
+  const [aiAction, setAiAction] = useState<'expand' | 'summarize' | 'expand-as-project' | 'extract-tasks' | null>(null);
   const [isProcessingAi, setIsProcessingAi] = useState(false);
   const [aiResult, setAiResult] = useState<string | null>(null);
   const [noteForAi, setNoteForAi] = useState<Recording | null>(null);
@@ -186,6 +188,73 @@ export default function HistoryPage() {
     }
   };
 
+  const proceedWithExpandAsProject = (recording: Recording) => {
+    if (!user) return;
+    setNoteForAi(recording);
+    setAiAction('expand-as-project');
+    setAiResult(null);
+    setIsProcessingAi(true);
+    expandAsProject({ transcription: recording.transcription, aiModel: settings.aiModel })
+      .then(async (result) => {
+        const updatedRec = { ...recording, projectPlan: result.projectPlan };
+        await updateRecording(updatedRec, user.uid);
+        refreshRecordings();
+        setAiResult(result.projectPlan);
+        toast({ title: "Project plan generated and saved!" });
+      })
+      .catch(err => {
+        console.error("Project plan generation failed:", err);
+        toast({ variant: "destructive", title: "Project Plan Failed", description: "Could not generate a project plan." });
+        setNoteForAi(null);
+      })
+      .finally(() => setIsProcessingAi(false));
+  };
+
+  const handleExpandAsProjectClick = (recording: Recording) => {
+    if (recording.projectPlan) {
+        setConfirmationAction({
+            action: () => proceedWithExpandAsProject(recording),
+            title: "Overwrite Project Plan?",
+            description: "A project plan for this note already exists. Generating a new one will overwrite the existing one. Are you sure you want to continue?",
+        });
+    } else {
+        proceedWithExpandAsProject(recording);
+    }
+  };
+  
+  const proceedWithExtractTasks = (recording: Recording) => {
+    if (!user) return;
+    setNoteForAi(recording);
+    setAiAction('extract-tasks');
+    setAiResult(null);
+    setIsProcessingAi(true);
+    extractTasks({ transcription: recording.transcription, aiModel: settings.aiModel })
+      .then(async (result) => {
+        const updatedRec = { ...recording, actionItems: result.tasks };
+        await updateRecording(updatedRec, user.uid);
+        refreshRecordings();
+        setAiResult(result.tasks);
+        toast({ title: "Action items extracted and saved!" });
+      })
+      .catch(err => {
+        console.error("Task extraction failed:", err);
+        toast({ variant: "destructive", title: "Task Extraction Failed", description: "Could not extract action items." });
+        setNoteForAi(null);
+      })
+      .finally(() => setIsProcessingAi(false));
+  };
+
+  const handleExtractTasksClick = (recording: Recording) => {
+    if (recording.actionItems) {
+        setConfirmationAction({
+            action: () => proceedWithExtractTasks(recording),
+            title: "Overwrite Action Items?",
+            description: "An action item list for this note already exists. Generating a new one will overwrite it. Are you sure you want to continue?",
+        });
+    } else {
+        proceedWithExtractTasks(recording);
+    }
+  };
 
   const handleCopyToClipboard = (text: string | null, id: string) => {
     if (!text) return;
@@ -195,6 +264,20 @@ export default function HistoryPage() {
         setTimeout(() => setCopiedStates(prev => ({...prev, [id]: false})), 2000);
     });
   };
+
+  const getAiActionTitle = () => {
+    switch (aiAction) {
+        case 'expand': return 'Expanded Note';
+        case 'summarize': return 'Summarized Note';
+        case 'expand-as-project': return 'Project Plan';
+        case 'extract-tasks': return 'Action Items';
+        default: return 'AI Result';
+    }
+  }
+  
+  const getAiActionDescription = () => {
+      return `This is an AI-generated ${aiAction?.replace(/-/g, ' ')} of your original note. The result has been automatically saved.`;
+  }
   
   if (isLoading) {
     return (
@@ -241,7 +324,7 @@ export default function HistoryPage() {
                   <p className="text-muted-foreground line-clamp-3">{rec.summary || rec.transcription}</p>
                 </CardContent>
                 <CardFooter className="flex justify-between items-center">
-                    <div className="flex gap-1">
+                    <div className="flex gap-1 flex-wrap">
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
@@ -274,6 +357,22 @@ export default function HistoryPage() {
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent><p>{settings.isPro ? "Expand with AI" : "Upgrade to Pro to expand"}</p></TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExpandAsProjectClick(rec)} disabled={!settings.isPro}>
+                                        <FolderKanban className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>{settings.isPro ? "Expand as Project" : "Upgrade to Pro"}</p></TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExtractTasksClick(rec)} disabled={!settings.isPro}>
+                                        <ListTodo className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>{settings.isPro ? "Extract Tasks" : "Upgrade to Pro"}</p></TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
                     </div>
@@ -401,6 +500,60 @@ export default function HistoryPage() {
                     </div>
                   </div>
                 )}
+                {selectedRecording.projectPlan && (
+                  <div className="flex flex-col gap-2">
+                    <h3 className="font-semibold">Project Plan</h3>
+                    <div className="relative">
+                        <ScrollArea className="h-40 rounded-md border p-4 bg-muted/50 pr-12">
+                          <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert" dangerouslySetInnerHTML={{ __html: selectedRecording.projectPlan }}></div>
+                        </ScrollArea>
+                        <div className="absolute top-2 right-2">
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            className="h-8 w-8 bg-background/50 hover:bg-background"
+                                            onClick={() => handleCopyToClipboard(selectedRecording.projectPlan, 'details-project')}
+                                        >
+                                            {copiedStates['details-project'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent><p>Copy</p></TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </div>
+                    </div>
+                  </div>
+                )}
+                {selectedRecording.actionItems && (
+                  <div className="flex flex-col gap-2">
+                    <h3 className="font-semibold">Action Items</h3>
+                    <div className="relative">
+                        <ScrollArea className="h-40 rounded-md border p-4 bg-muted/50 pr-12">
+                          <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert" dangerouslySetInnerHTML={{ __html: selectedRecording.actionItems }}></div>
+                        </ScrollArea>
+                        <div className="absolute top-2 right-2">
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            className="h-8 w-8 bg-background/50 hover:bg-background"
+                                            onClick={() => handleCopyToClipboard(selectedRecording.actionItems, 'details-tasks')}
+                                        >
+                                            {copiedStates['details-tasks'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent><p>Copy</p></TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </div>
+                    </div>
+                  </div>
+                )}
               </div>
                <DialogFooter className="flex-wrap justify-end gap-2 pt-4 border-t">
                     <Button variant="outline" onClick={() => handleShare(selectedRecording)}>
@@ -430,6 +583,30 @@ export default function HistoryPage() {
                         {!settings.isPro && <TooltipContent><p>Upgrade to Pro to expand with AI</p></TooltipContent>}
                       </Tooltip>
                     </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div className="inline-block">
+                               <Button variant="outline" onClick={() => handleExpandAsProjectClick(selectedRecording!)} disabled={!settings.isPro}>
+                                  <FolderKanban className="mr-2 h-4 w-4" /> As Project
+                              </Button>
+                            </div>
+                        </TooltipTrigger>
+                        {!settings.isPro && <TooltipContent><p>Upgrade to Pro</p></TooltipContent>}
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div className="inline-block">
+                               <Button variant="outline" onClick={() => handleExtractTasksClick(selectedRecording!)} disabled={!settings.isPro}>
+                                  <ListTodo className="mr-2 h-4 w-4" /> Get Tasks
+                              </Button>
+                            </div>
+                        </TooltipTrigger>
+                        {!settings.isPro && <TooltipContent><p>Upgrade to Pro</p></TooltipContent>}
+                      </Tooltip>
+                    </TooltipProvider>
               </DialogFooter>
             </>
           )}
@@ -440,17 +617,17 @@ export default function HistoryPage() {
         <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
             <DialogHeader>
                 <DialogTitle>
-                    {aiAction === 'expand' ? 'Expanded Note' : 'Summarized Note'}: {noteForAi?.name}
+                    {getAiActionTitle()}: {noteForAi?.name}
                 </DialogTitle>
                 <DialogDescription>
-                    This is an AI-generated {aiAction} of your original note. The result has been automatically saved.
+                    {getAiActionDescription()}
                 </DialogDescription>
             </DialogHeader>
             <div className="py-4 flex-1 min-h-0">
                 {isProcessingAi ? (
                     <div className="flex items-center justify-center h-full">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        <p className="ml-4">{aiAction === 'expand' ? 'Expanding' : 'Summarizing'} your idea...</p>
+                        <p className="ml-4">{getAiActionTitle()}...</p>
                     </div>
                 ) : aiResult && (
                     <div className="relative h-full">

@@ -4,13 +4,15 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Mic, Loader2, Share2, History, PlusCircle, Cloud, Terminal, Sparkles, BrainCircuit, Trash2, Play, Send, Pause, Save, Copy, Check } from "lucide-react";
+import { Mic, Loader2, Share2, History, PlusCircle, Cloud, Terminal, Sparkles, BrainCircuit, Trash2, Play, Send, Pause, Save, Copy, Check, FolderKanban, ListTodo } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeVoiceNote } from "@/ai/flows/transcribe-voice-note";
 import { nameTranscription } from "@/ai/flows/name-transcription-flow";
 import { expandNote } from "@/ai/flows/expand-note-flow";
 import { summarizeNote } from "@/ai/flows/summarize-note-flow";
+import { expandAsProject } from "@/ai/flows/expand-as-project-flow";
+import { extractTasks } from "@/ai/flows/extract-tasks-flow";
 import { getSettings, saveRecording, saveRecordingToDB, applyDeletions, AppSettings, deleteRecording, updateRecording } from "@/lib/storage";
 import type { Recording } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,7 +26,7 @@ import { Slider } from "@/components/ui/slider";
 
 
 type RecordingStatus = "idle" | "recording" | "reviewing" | "transcribing" | "naming" | "completed";
-type AiAction = "expand" | "summarize";
+type AiAction = "expand" | "summarize" | "expand-as-project" | "extract-tasks";
 
 const RECORDING_TIME_LIMIT_SECONDS = 600; // 10 minutes
 
@@ -545,6 +547,77 @@ export default function Home() {
     }
   };
   
+  const proceedWithExpandAsProject = (recording: Recording) => {
+    if (!user) return;
+    setNoteForAi(recording);
+    setAiAction('expand-as-project');
+    setAiResult(null);
+    setIsProcessingAi(true);
+
+    expandAsProject({ transcription: recording.transcription, aiModel: settings.aiModel })
+        .then(async (result) => {
+            const updatedRec: Recording = { ...recording, projectPlan: result.projectPlan };
+            const savedRecording = await updateRecording(updatedRec, user.uid);
+            setLastRecording(savedRecording);
+            setAiResult(result.projectPlan);
+            toast({ title: "Project plan generated and saved!" });
+        })
+        .catch(err => {
+            log("Project plan generation failed:", err);
+            toast({ variant: "destructive", title: "Project Plan Failed", description: "Could not generate a project plan." });
+            setNoteForAi(null);
+        })
+        .finally(() => setIsProcessingAi(false));
+  };
+
+  const handleExpandAsProjectClick = (recording: Recording) => {
+      if (recording.projectPlan) {
+        setConfirmationAction({
+            action: () => proceedWithExpandAsProject(recording),
+            title: "Overwrite Project Plan?",
+            description: "A project plan for this note already exists. Generating a new version will overwrite the existing one. Are you sure you want to continue?",
+        });
+      } else {
+          proceedWithExpandAsProject(recording);
+      }
+  };
+
+  const proceedWithExtractTasks = (recording: Recording) => {
+    if (!user) return;
+    setNoteForAi(recording);
+    setAiAction('extract-tasks');
+    setAiResult(null);
+    setIsProcessingAi(true);
+
+    extractTasks({ transcription: recording.transcription, aiModel: settings.aiModel })
+        .then(async (result) => {
+            const updatedRec: Recording = { ...recording, actionItems: result.tasks };
+            const savedRecording = await updateRecording(updatedRec, user.uid);
+            setLastRecording(savedRecording);
+            setAiResult(result.tasks);
+            toast({ title: "Action items extracted and saved!" });
+        })
+        .catch(err => {
+            log("Task extraction failed:", err);
+            toast({ variant: "destructive", title: "Task Extraction Failed", description: "Could not extract action items." });
+            setNoteForAi(null);
+        })
+        .finally(() => setIsProcessingAi(false));
+  };
+  
+  const handleExtractTasksClick = (recording: Recording) => {
+    if (recording.actionItems) {
+        setConfirmationAction({
+            action: () => proceedWithExtractTasks(recording),
+            title: "Overwrite Action Items?",
+            description: "An action item list for this note already exists. Generating a new one will overwrite the existing list. Are you sure you want to continue?",
+        });
+    } else {
+        proceedWithExtractTasks(recording);
+    }
+  };
+
+
   const handleCopyToClipboard = (text: string | null, id: string) => {
     if (!text) return;
     navigator.clipboard.writeText(text).then(() => {
@@ -553,6 +626,20 @@ export default function Home() {
         setTimeout(() => setCopiedStates(prev => ({...prev, [id]: false})), 2000);
     });
   };
+
+  const getAiActionTitle = () => {
+    switch (aiAction) {
+        case 'expand': return 'Expanded Note';
+        case 'summarize': return 'Summarized Note';
+        case 'expand-as-project': return 'Project Plan';
+        case 'extract-tasks': return 'Action Items';
+        default: return 'AI Result';
+    }
+  }
+  
+  const getAiActionDescription = () => {
+      return `This is an AI-generated ${aiAction?.replace(/-/g, ' ')} of your original note. The result has been automatically saved.`;
+  }
 
   return (
     <div className="flex h-full flex-col items-center justify-between p-4 text-center">
@@ -618,6 +705,32 @@ export default function Home() {
                                   </div>
                                 </TooltipTrigger>
                                 {!settings.isPro && <TooltipContent><p>Upgrade to Pro to use AI note expansion.</p></TooltipContent>}
+                              </Tooltip>
+                            </TooltipProvider>
+
+                             <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                   <div className="w-full">
+                                    <Button className="w-full" onClick={() => lastRecording && handleExpandAsProjectClick(lastRecording)} disabled={!settings.isPro}>
+                                        <FolderKanban /> Expand as Project
+                                    </Button>
+                                  </div>
+                                </TooltipTrigger>
+                                {!settings.isPro && <TooltipContent><p>Upgrade to Pro to generate project plans.</p></TooltipContent>}
+                              </Tooltip>
+                            </TooltipProvider>
+
+                             <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                   <div className="w-full">
+                                    <Button className="w-full" onClick={() => lastRecording && handleExtractTasksClick(lastRecording)} disabled={!settings.isPro}>
+                                        <ListTodo /> Extract Tasks
+                                    </Button>
+                                  </div>
+                                </TooltipTrigger>
+                                {!settings.isPro && <TooltipContent><p>Upgrade to Pro to extract action items.</p></TooltipContent>}
                               </Tooltip>
                             </TooltipProvider>
 
@@ -726,17 +839,17 @@ export default function Home() {
             <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
                 <DialogHeader>
                     <DialogTitle>
-                        {aiAction === 'expand' ? 'Expanded Note' : 'Summarized Note'}: {noteForAi?.name}
+                        {getAiActionTitle()}: {noteForAi?.name}
                     </DialogTitle>
                     <DialogDescription>
-                       This is an AI-generated {aiAction} of your original note. The result has been automatically saved.
+                       {getAiActionDescription()}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="py-4 flex-1 min-h-0">
                     {isProcessingAi ? (
                         <div className="flex items-center justify-center h-full">
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                            <p className="ml-4">{aiAction === 'expand' ? 'Expanding' : 'Summarizing'} your idea...</p>
+                            <p className="ml-4">{getAiActionTitle()}...</p>
                         </div>
                     ) : aiResult && (
                         <div className="relative h-full">

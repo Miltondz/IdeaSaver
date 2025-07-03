@@ -8,4 +8,6 @@ export interface Recording {
   date: string; // ISO string
   expandedTranscription?: string;
   summary?: string;
+  projectPlan?: string;
+  actionItems?: string;
 }
