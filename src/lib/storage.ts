@@ -78,7 +78,7 @@ export function saveSettings(settings: AppSettings): void {
 }
 
 // --- Firestore Functions ---
-export async function saveRecordingToDB(recording: Omit<Recording, 'audioDataUri'>): Promise<void> {
+export async function saveRecordingToDB(recording: Recording): Promise<void> {
   const settings = getSettings();
   if (!settings.dbIntegrationEnabled || !db) {
     console.log("DB integration is disabled. Skipping Firestore save.");
@@ -86,7 +86,7 @@ export async function saveRecordingToDB(recording: Omit<Recording, 'audioDataUri
   }
   try {
     const docRef = doc(db, "recordings", recording.id);
-    await setDoc(docRef, recording);
+    await setDoc(docRef, recording, { merge: true });
     console.log("Recording saved to Firestore with ID: ", recording.id);
   } catch (error) {
     console.error("Error adding document to Firestore: ", error);
@@ -117,7 +117,7 @@ export async function getRecordings(): Promise<Recording[]> {
       const q = query(collection(db, "recordings"), orderBy("date", "desc"));
       const querySnapshot = await getDocs(q);
       const recordings = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Recording));
-      // Firestore is the source of truth, but we keep local as a cache/fallback
+      // Firestore is the source of truth, but we keep local as a cache/fallback of metadata
       _saveRecordingsToStorage(recordings.map(({audioDataUri, ...rest}) => rest)); // Don't save audio data URI to local storage
       return recordings;
     } catch (error) {
@@ -165,7 +165,7 @@ export async function saveRecording(data: Omit<Recording, 'id' | 'date'>): Promi
   _saveRecordingsToStorage(updatedRecordings);
   
   if (settings.dbIntegrationEnabled && settings.autoSendToDB) {
-    await saveRecordingToDB(localData);
+    await saveRecordingToDB(newRecording);
   }
   
   // Return the full recording object including the data URI for immediate use
@@ -175,24 +175,22 @@ export async function saveRecording(data: Omit<Recording, 'id' | 'date'>): Promi
 export async function updateRecording(recording: Recording): Promise<Recording> {
   const settings = getSettings();
   
-  // Exclude audio data from local and DB storage
-  const { audioDataUri, ...dataToSave } = recording;
+  // Only save metadata to local storage
+  const { audioDataUri, ...localData } = recording;
   
-  // Always update local storage
   let recordings = _getRecordingsFromStorage();
   const index = recordings.findIndex(r => r.id === recording.id);
   if (index !== -1) {
-    recordings[index] = dataToSave;
+    recordings[index] = localData;
   } else {
-    recordings.push(dataToSave);
+    recordings.push(localData);
   }
   _saveRecordingsToStorage(recordings);
 
-  // Update firestore if enabled
+  // Update firestore if enabled, passing the full object
   if (settings.dbIntegrationEnabled && db) {
     try {
-      const docRef = doc(db, "recordings", dataToSave.id);
-      await setDoc(docRef, dataToSave, { merge: true });
+      await saveRecordingToDB(recording);
     } catch (error) {
       console.error("Error updating document in Firestore: ", error);
     }

@@ -150,8 +150,7 @@ export default function HistoryPage() {
 
   const handleSaveToCloud = async (recording: Recording) => {
     try {
-      const { audioDataUri, ...dataToSave } = recording;
-      await saveRecordingToDB(dataToSave);
+      await saveRecordingToDB(recording);
       toast({ title: "Saved to Cloud!", description: "Your note has been saved to the database." });
     } catch (error) {
       toast({ variant: "destructive", title: "Save Failed", description: "Could not save to the database." });
