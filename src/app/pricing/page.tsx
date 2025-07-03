@@ -29,24 +29,29 @@ export default function PricingPage() {
         </Tabs>
       </div>
 
-
-      <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto mb-16">
+      <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
         <Card className="flex flex-col">
           <CardHeader>
-            <CardTitle>Free Trial</CardTitle>
-            <CardDescription>For getting started and trying out our features.</CardDescription>
+            <CardTitle>Free Plan</CardTitle>
+            <CardDescription>Capture your key thoughts and experience the magic of AI.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 flex-1">
             <p className="text-4xl font-bold">$0</p>
             <ul className="space-y-2 text-sm text-muted-foreground">
-                <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span><span className="font-semibold text-foreground">10 Recordings</span> limit (7-day trial)</span></li>
+                <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span><span className="font-semibold text-foreground">5 Recordings</span> per month (Max 10 minutes per recording)</span></li>
                 <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>AI-powered Transcription</span></li>
                 <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>AI-powered Naming</span></li>
+                <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>Mobile Sharing Ready (Share via any app on your device)</span></li>
+                <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>Basic Note Editing (Edit your text manually)</span></li>
+                <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>Save up to 20 Notes permanently</span></li>
+                <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>Basic Search within notes</span></li>
+                <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>Dark Mode</span></li>
+                <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>Email Support</span></li>
             </ul>
           </CardContent>
           <CardFooter>
             <Button variant="outline" className="w-full" asChild>
-                <Link href="/record">Start Free Trial</Link>
+                <Link href="/record">Start for Free</Link>
             </Button>
           </CardFooter>
         </Card>
@@ -56,72 +61,46 @@ export default function PricingPage() {
                 <CardTitle>Pro Plan</CardTitle>
                 <Badge>Most Popular</Badge>
             </div>
-            <CardDescription>For power users who need more.</CardDescription>
+            <CardDescription>Unlock unlimited potential for your ideas with advanced AI.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 flex-1">
-            <p className="text-4xl font-bold">
-              {billingCycle === "monthly" ? "$6" : "$65"}
-              <span className="text-lg font-normal text-muted-foreground">
-                {billingCycle === "monthly" ? "/mo" : "/yr"}
-              </span>
-            </p>
+            <div>
+              {billingCycle === 'monthly' ? (
+                <p className="text-4xl font-bold">
+                  $6
+                  <span className="text-lg font-normal text-muted-foreground">/mo</span>
+                </p>
+              ) : (
+                <>
+                  <p className="text-4xl font-bold">
+                    $5.28
+                    <span className="text-lg font-normal text-muted-foreground">
+                      /mo
+                    </span>
+                  </p>
+                  <p className="text-xs text-muted-foreground -mt-1">Billed yearly</p>
+                </>
+              )}
+            </div>
             <ul className="space-y-2 text-sm text-muted-foreground">
-                <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span><span className="font-semibold text-foreground">Unlimited</span> Recordings</span></li>
+                <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span><span className="font-semibold text-foreground">Unlimited</span> Recordings (Max 10 minutes per recording)</span></li>
                 <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>AI-powered Transcription</span></li>
                 <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>AI-powered Naming</span></li>
-                <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>AI-powered Note Expansion</span></li>
-                <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>Trello Integration</span></li>
-                 <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>Cloud Sync</span></li>
+                <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>AI-powered Note Expansion <span className="font-semibold text-foreground">(Crucial upgrade feature)</span></span></li>
+                <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>Cloud Sync (Access notes across all your devices)</span></li>
+                <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>Unlimited Note Storage</span></li>
+                <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>Advanced Search & Organization (Folders, Tags)</span></li>
+                <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>Trello Integration (and more coming!)</span></li>
+                <li className="flex items-start gap-2"><CheckCircle2 className="text-primary w-4 h-4 mt-1 shrink-0"/> <span>Priority Customer Support</span></li>
             </ul>
           </CardContent>
           <CardFooter>
              <Button className="w-full">
-                Choose Plan
+                Choose Plan (PayPal)
              </Button>
           </CardFooter>
         </Card>
-        <Card className="flex flex-col">
-          <CardHeader>
-             <CardTitle>Pay as you go</CardTitle>
-            <CardDescription>Top up with one-time credit purchases.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 flex-1">
-             <p className="text-4xl font-bold">Credits</p>
-             <p className="text-sm text-muted-foreground">Purchase credits for transcription and AI features without a subscription.</p>
-          </CardContent>
-          <CardFooter>
-            <Button variant="outline" className="w-full">
-                Buy Credits
-            </Button>
-          </CardFooter>
-        </Card>
       </div>
-
-       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-        {[{credits:1, price: 1.99, description: "To top off your balance"}, 
-          {credits:10, price:16.99, off:"15%", description: "6 mins of human | 40 mins of AI"}, 
-          {credits:30, price: 47.99, off:"20%", description: "20 mins of human | 120 mins of AI"}, 
-          {credits:100, price:149.99, off:"25%", description: "60 mins of human | 400 mins of AI"}
-         ].map(p => (
-            <Card key={p.credits} className="flex flex-col">
-                <CardHeader>
-                    <div className="flex justify-between items-start">
-                        <CardTitle className="text-lg">{p.credits} Credit{p.credits > 1 ? 's' : ''}</CardTitle>
-                        {p.off && <Badge variant="secondary" className="bg-primary/10 text-primary">{p.off} OFF</Badge>}
-                    </div>
-                </CardHeader>
-                <CardContent className="flex-1">
-                    <p className="text-2xl font-bold">${p.price}</p>
-                    <CardDescription className="text-xs mt-1">
-                        {p.description}
-                    </CardDescription>
-                </CardContent>
-                <CardFooter>
-                     <Button variant="outline" className="w-full">Buy Now (PayPal)</Button>
-                </CardFooter>
-            </Card>
-        ))}
-       </div>
     </div>
   );
 }
