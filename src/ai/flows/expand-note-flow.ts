@@ -30,7 +30,7 @@ const prompt = ai.definePrompt({
   name: 'expandNotePrompt',
   input: {schema: ExpandNoteInputSchema},
   output: {schema: ExpandNoteOutputSchema},
-  prompt: `You are an expert writer. It is critical that you write your response in the same language as the original transcription provided below. Do not translate it to English.
+  prompt: `You are an expert writer. Your most important task is to write your response in the SAME LANGUAGE as the original transcription provided below. Do not translate it to English.
 
 Your task is to take the following raw transcription of a voice note and expand it into a well-structured and detailed document. Elaborate on the key ideas, provide additional context or examples where appropriate, and organize the content logically with paragraphs and markdown headings.
 

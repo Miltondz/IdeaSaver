@@ -30,7 +30,7 @@ const prompt = ai.definePrompt({
   name: 'summarizeNotePrompt',
   input: {schema: SummarizeNoteInputSchema},
   output: {schema: SummarizeNoteOutputSchema},
-  prompt: `You are an expert at summarizing text. It is critical that you write your response in the same language as the original transcription provided below. Do not translate it to English.
+  prompt: `You are an expert at summarizing text. Your most important task is to write your response in the SAME LANGUAGE as the original transcription provided below. Do not translate it to English.
 
 Your task is to take the following raw transcription of a voice note and create a concise summary. The summary should be about 1-2 sentences long, capturing the main point of the note.
 
