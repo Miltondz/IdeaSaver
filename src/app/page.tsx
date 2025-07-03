@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -40,6 +41,7 @@ export default function Home() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [lastRecording, setLastRecording] = useState<Recording | null>(null);
   const [recordingCount, setRecordingCount] = useState(0);
+  const [logs, setLogs] = useState<string[]>([]);
 
   const router = useRouter();
 
@@ -53,6 +55,29 @@ export default function Home() {
     getRecordings().then(initialRecordings => {
       setRecordingCount(initialRecordings.length);
     });
+
+    const originalLog = console.log;
+    const logContainer = (...args: any[]) => {
+      originalLog(...args);
+      const message = args.map(arg => {
+        if (typeof arg === 'object' && arg !== null) {
+          try {
+            return JSON.stringify(arg, null, 2);
+          } catch (e) {
+            return '[Unserializable Object]';
+          }
+        }
+        return String(arg);
+      }).join(' ');
+      
+      const timestamp = new Date().toLocaleTimeString();
+      setLogs(prevLogs => [`[${timestamp}] ${message}`, ...prevLogs]);
+    };
+    console.log = logContainer;
+
+    return () => {
+      console.log = originalLog;
+    };
   }, []);
 
   const formatTime = (totalSeconds: number) => {
@@ -62,13 +87,13 @@ export default function Home() {
     return `${hours}:${minutes}:${seconds}`;
   };
 
-  const resetToIdle = () => {
+  const resetToIdle = useCallback(() => {
     setRecordingStatus("idle");
     setElapsedTime(0);
     setLastRecording(null);
-  };
+  }, []);
   
-  const onStop = async () => {
+  const onStop = useCallback(async () => {
     console.log("onStop: Process started.");
     setRecordingStatus("transcribing");
     const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
@@ -116,10 +141,12 @@ export default function Home() {
         resetToIdle();
       } finally {
         console.log("onStop: Cleaning up media recorder.");
-        mediaRecorderRef.current?.stream.getTracks().forEach(track => track.stop());
+        if (mediaRecorderRef.current?.stream) {
+          mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+        }
         audioChunksRef.current = [];
       }
-  };
+  }, [toast, resetToIdle]);
 
   const requestStopRecording = useCallback(() => {
     if (mediaRecorderRef.current && recordingStatus === "recording") {
@@ -138,11 +165,9 @@ export default function Home() {
           return newTime;
         });
       }, 1000);
-    } else {
-      if (timerRef.current) {
+    } else if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
-      }
     }
     return () => {
       if (timerRef.current) {
@@ -287,11 +312,30 @@ export default function Home() {
             )}
         </div>
         
+        <div className="w-full max-w-2xl px-4 pb-4">
+            <Card className="bg-card/80 border-border backdrop-blur-sm text-left">
+                <CardHeader>
+                    <CardTitle className="text-base font-medium">Console Logs</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <ScrollArea className="h-32 w-full rounded-md border p-2 bg-muted/50">
+                        <pre className="p-2 text-xs font-mono whitespace-pre-wrap break-words">
+                            {logs.length > 0 ? (
+                                logs.join('\n')
+                            ) : (
+                                "No logs yet. Start a recording to see output."
+                            )}
+                        </pre>
+                    </ScrollArea>
+                </CardContent>
+            </Card>
+        </div>
+
         <AlertDialog open={recordingStatus === 'confirm_stop'} onOpenChange={(open) => !open && resumeRecording()}>
              <AlertDialogContent className="bg-card border-border text-foreground">
                 <AlertDialogHeader>
                     <AlertDialogTitle>End recording?</AlertDialogTitle>
-                    <AlertDialogDescription className="text-muted-foreground">
+                    <AlertDialogDescription>
                         Do you want to stop and save your recording? You can also cancel to continue recording.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
@@ -304,3 +348,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
