@@ -341,4 +341,20 @@ export const es = {
   privacy_title: 'Política de Privacidad',
   back_to_home: 'Volver al Inicio',
   last_updated: 'Última actualización: {date}',
+
+  // Feedback Component
+  feedback_dialog_title: 'Enviar Comentarios',
+  feedback_dialog_desc: '¿Tienes una sugerencia o encontraste un error? ¡Háznoslo saber!',
+  feedback_type_label: 'Tipo de Comentario',
+  feedback_type_bug: 'Reportar Error',
+  feedback_type_suggestion: 'Sugerencia',
+  feedback_type_other: 'Otro',
+  feedback_message_label: 'Tu Mensaje',
+  feedback_message_placeholder: 'Por favor, describe tus comentarios en detalle...',
+  feedback_submit_button: 'Enviar Comentarios',
+  feedback_email_subject: 'Comentarios para Idea Saver ({type})',
+  feedback_thank_you_title: '¡Gracias!',
+  feedback_thank_you_desc: 'Tus comentarios han sido enviados. Agradecemos tu ayuda para mejorar.',
+  feedback_message_required_title: 'Mensaje Requerido',
+  feedback_message_required_desc: 'Por favor, escribe un mensaje antes de enviar.',
 };

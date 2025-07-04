@@ -341,4 +341,20 @@ export const en = {
   privacy_title: 'Privacy Policy',
   back_to_home: 'Back to Home',
   last_updated: 'Last updated: {date}',
+
+  // Feedback Component
+  feedback_dialog_title: 'Send Feedback',
+  feedback_dialog_desc: 'Have a suggestion or found a bug? Let us know!',
+  feedback_type_label: 'Type of Feedback',
+  feedback_type_bug: 'Bug Report',
+  feedback_type_suggestion: 'Suggestion',
+  feedback_type_other: 'Other',
+  feedback_message_label: 'Your Message',
+  feedback_message_placeholder: 'Please describe your feedback in detail...',
+  feedback_submit_button: 'Send Feedback',
+  feedback_email_subject: 'Feedback for Idea Saver ({type})',
+  feedback_thank_you_title: 'Thank You!',
+  feedback_thank_you_desc: 'Your feedback has been sent. We appreciate you helping us improve.',
+  feedback_message_required_title: 'Message Required',
+  feedback_message_required_desc: 'Please write a message before sending.',
 };
