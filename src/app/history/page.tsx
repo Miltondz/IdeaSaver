@@ -42,6 +42,7 @@ export default function HistoryPage() {
   const { user } = useAuth();
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const { t, language } = useLanguage();
+  const [canShareFiles, setCanShareFiles] = useState(false);
   
   // AI Action State
   const [aiAction, setAiAction] = useState<'expand' | 'summarize' | 'expand-as-project' | 'extract-tasks' | null>(null);
@@ -55,6 +56,14 @@ export default function HistoryPage() {
   // State for editing transcription
   const [editableTranscription, setEditableTranscription] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    // Check for file sharing capabilities
+    const dummyFile = new File([""], "dummy.txt", { type: "text/plain" });
+    if (navigator.canShare && navigator.canShare({ files: [dummyFile] })) {
+        setCanShareFiles(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -147,37 +156,70 @@ export default function HistoryPage() {
     });
   };
 
-  const shareContent = async (shareData: { title: string, text: string }) => {
+  const shareContent = async (shareData: ShareData) => {
     if (navigator.share && typeof navigator.share === 'function') {
-      try {
-        await navigator.share(shareData);
-      } catch (err) {
-         if (err instanceof DOMException && (err.name === 'AbortError' || err.name === 'NotAllowedError')) {
-          if (err.name === 'NotAllowedError') {
-              handleCopyToClipboard(shareData.text, 'share-fallback');
-              toast({
-                  title: t('record_share_denied'),
-                  description: t('record_share_not_supported'),
-              });
+      // Check if we can share the data
+      if (navigator.canShare && navigator.canShare(shareData)) {
+        try {
+          await navigator.share(shareData);
+          return;
+        } catch (err) {
+           if (err instanceof DOMException && (err.name === 'AbortError' || err.name === 'NotAllowedError')) {
+            if (err.name === 'NotAllowedError' && shareData.text) {
+                handleCopyToClipboard(shareData.text, 'share-fallback');
+                toast({
+                    title: t('record_share_denied_title'),
+                    description: t('record_share_denied_desc'),
+                });
+            }
+            return;
           }
+          console.error("Share failed:", err);
+          toast({
+            variant: "destructive",
+            title: t('record_share_fail_title'),
+            description: t('record_share_fail_desc'),
+          });
           return;
         }
-        
-        console.error("Share failed:", err);
-        toast({
-          variant: "destructive",
-          title: "Sharing failed",
-          description: "An unexpected error occurred while trying to share the note.",
-        });
       }
-    } else {
+    }
+
+    // Fallback for browsers that don't support sharing, or can't share the specific data type
+    if (shareData.text) {
         handleCopyToClipboard(shareData.text, 'share-fallback');
         toast({
-            title: "Sharing not supported",
-            description: "This browser doesn't support sharing. The note has been copied to your clipboard instead.",
+            title: t('record_share_unsupported_title'),
+            description: t('record_share_unsupported_desc'),
+        });
+    } else {
+        toast({
+            variant: "destructive",
+            title: t('record_share_unsupported_file_title'),
+            description: t('record_share_unsupported_file_desc'),
         });
     }
   };
+  
+  const handleShareAudio = async (recording: Recording) => {
+    if (!recording.audioDataUri) return;
+    try {
+        const blob = await (await fetch(recording.audioDataUri)).blob();
+        const file = new File([blob], `${recording.name}.webm`, { type: 'audio/webm' });
+        await shareContent({
+            title: recording.name,
+            files: [file]
+        });
+    } catch (error) {
+        console.error("Error preparing audio file for sharing:", error);
+        toast({
+            variant: "destructive",
+            title: t('record_share_audio_fail_title'),
+            description: t('record_share_audio_fail_desc'),
+        });
+    }
+  };
+
 
   const handleSimpleShare = async (recording: Recording | null) => {
     if (!recording) return;
@@ -591,7 +633,21 @@ export default function HistoryPage() {
               <div className="flex-1 overflow-y-auto pr-6 -mr-6">
                 <div className="space-y-4 py-4">
                   <div className="flex flex-col gap-2">
-                      <h3 className="font-semibold">Audio</h3>
+                      <div className="flex items-center justify-between">
+                          <h3 className="font-semibold">Audio</h3>
+                          {selectedRecording.audioDataUri && canShareFiles && (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleShareAudio(selectedRecording)}>
+                                            <Share2 className="h-4 w-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent><p>{t('history_share_audio_tooltip')}</p></TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                          )}
+                      </div>
                       {selectedRecording.audioDataUri ? (
                         <audio controls className="w-full" src={selectedRecording.audioDataUri}></audio>
                       ) : (

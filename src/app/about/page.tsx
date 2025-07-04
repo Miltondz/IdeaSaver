@@ -2,7 +2,7 @@
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Linkedin, ExternalLink } from "lucide-react";
+import { Linkedin, ExternalLink, Mail } from "lucide-react";
 import Link from "next/link";
 import { useLanguage } from "@/hooks/use-language";
 
@@ -20,7 +20,7 @@ export default function AboutPage() {
             {t('about_description')}
           </p>
         </CardContent>
-        <CardFooter className="flex-col sm:flex-row justify-center items-center gap-4 bg-muted/30 p-4 border-t">
+        <CardFooter className="flex-col sm:flex-row justify-center items-center gap-4 bg-muted/30 p-4 border-t flex-wrap">
            <Button asChild variant="outline" className="w-full sm:w-auto">
                 <Link href="https://www.linkedin.com/in/miltondz/" target="_blank" rel="noopener noreferrer">
                     <Linkedin /> {t('about_linkedin')}
@@ -30,6 +30,11 @@ export default function AboutPage() {
                 <Link href="https://canvasdesk.me" target="_blank" rel="noopener noreferrer">
                     <ExternalLink /> {t('about_canvasdesk')}
                 </Link>
+            </Button>
+            <Button asChild variant="outline" className="w-full sm:w-auto">
+                <a href="mailto:theideasaver@gmail.com">
+                    <Mail /> {t('about_contact_email')}
+                </a>
             </Button>
         </CardFooter>
       </Card>

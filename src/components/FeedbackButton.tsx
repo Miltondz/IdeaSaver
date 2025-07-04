@@ -37,7 +37,7 @@ export function FeedbackButton() {
     // Using mailto: as a simple and effective initial implementation
     const subject = encodeURIComponent(t('feedback_email_subject', { type: t(`feedback_type_${feedbackType}`) }));
     const body = encodeURIComponent(message);
-    window.location.href = `mailto:feedback@ideasaver.site?subject=${subject}&body=${body}`;
+    window.location.href = `mailto:theideasaver@gmail.com?subject=${subject}&body=${body}`;
 
     setTimeout(() => {
         setIsSubmitting(false);
