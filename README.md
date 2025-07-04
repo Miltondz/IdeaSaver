@@ -141,7 +141,7 @@ This is a critical but often missed step. Firebase Authentication uses Google Cl
         *   **User support email:** (Select your email address)
         *   **Developer contact information:** (Enter your email address at the bottom)
     *   Click **Save and Continue** through the "Scopes" and "Test users" steps. You don't need to add anything here for now.
-    *   Finally, go back to the dashboard and click **"Publish App"** to move it from "Testing" to "Production". While in testing, only registered test users can sign in. Publishing makes it available to any Google user.
+    *   Finally, go back to the dashboard and click **"Publish App"** to move it from "Testing" to "Production". While in testing, only registered test users can sign in. Publishing makes it available to any Google user. **This is the most common final step that is missed.** If your app is in "Testing", the sign-in will fail.
 
 #### Step 4: Final Checks
 
