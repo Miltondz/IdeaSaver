@@ -25,6 +25,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Textarea } from "@/components/ui/textarea";
 import { marked } from 'marked';
 import DOMPurify from 'isomorphic-dompurify';
+import { useLanguage } from "@/hooks/use-language";
 
 
 const createMarkup = (markdownText: string | null | undefined) => {
@@ -40,6 +41,7 @@ export default function HistoryPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [settings, setSettings] = useState<AppSettings | null>(null);
+  const { t, language } = useLanguage();
   
   // AI Action State
   const [aiAction, setAiAction] = useState<'expand' | 'summarize' | 'expand-as-project' | 'extract-tasks' | null>(null);
@@ -81,7 +83,7 @@ export default function HistoryPage() {
         return;
     }
     if (settings.aiCredits < 1) {
-        toast({ variant: "destructive", title: "No AI Credits", description: "You're out of AI credits. Upgrade to Pro for unlimited use." });
+        toast({ variant: "destructive", title: t('ai_no_credits_error_title'), description: t('ai_no_credits_error') });
         return;
     }
     setCreditConfirmation({ action });
@@ -123,14 +125,14 @@ export default function HistoryPage() {
       refreshRecordings();
       setSelectedRecording(null);
       toast({
-        title: "Recording Deleted",
-        description: "The recording has been permanently deleted.",
+        title: t('history_deleted_toast_title'),
+        description: t('history_deleted_toast'),
       });
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Deletion Failed",
-        description: "Could not delete the recording. Please try again.",
+        title: t('history_delete_failed_toast_title'),
+        description: t('history_delete_failed_toast'),
       });
     }
   };
@@ -140,7 +142,7 @@ export default function HistoryPage() {
     const cleanText = text.replace(/<[^>]*>?/gm, '');
     navigator.clipboard.writeText(cleanText).then(() => {
         setCopiedStates(prev => ({...prev, [id]: true}));
-        toast({ title: "Copied to clipboard!", className: "bg-accent text-accent-foreground border-accent" });
+        toast({ title: t('ai_copied_toast'), className: "bg-accent text-accent-foreground border-accent" });
         setTimeout(() => setCopiedStates(prev => ({...prev, [id]: false})), 2000);
     });
   };
@@ -154,8 +156,8 @@ export default function HistoryPage() {
           if (err.name === 'NotAllowedError') {
               handleCopyToClipboard(shareData.text, 'share-fallback');
               toast({
-                  title: "Sharing Permission Denied",
-                  description: "We couldn't open the share dialog. The note has been copied to your clipboard instead.",
+                  title: t('record_share_denied'),
+                  description: t('record_share_not_supported'),
               });
           }
           return;
@@ -188,11 +190,11 @@ export default function HistoryPage() {
     if (!recording) return;
 
     const sections = [
-        { title: 'Transcription', content: editableTranscription },
-        { title: 'Summary', content: recording.summary },
-        { title: 'Expanded Note', content: recording.expandedTranscription },
-        { title: 'Project Plan', content: recording.projectPlan },
-        { title: 'Action Items', content: recording.actionItems },
+        { title: t('history_transcription_heading'), content: editableTranscription },
+        { title: t('history_summary_heading'), content: recording.summary },
+        { title: t('history_expanded_note_heading'), content: recording.expandedTranscription },
+        { title: t('history_project_plan_heading'), content: recording.projectPlan },
+        { title: t('history_action_items_heading'), content: recording.actionItems },
     ];
 
     const textToShare = sections
@@ -203,8 +205,8 @@ export default function HistoryPage() {
     if (!textToShare) {
       toast({
         variant: "destructive",
-        title: "Nothing to share",
-        description: "This note has no content to share.",
+        title: t('history_nothing_to_share_title'),
+        description: t('history_nothing_to_share'),
       });
       return;
     }
@@ -236,10 +238,10 @@ export default function HistoryPage() {
         refreshRecordings();
         setSelectedRecording(updatedRec);
         setEditableTranscription(updatedRec.transcription);
-        toast({ title: "Note transcribed and saved!" });
+        toast({ title: t('ai_transcribe_success') });
     } catch (err) {
         console.error("Transcription from history failed:", err);
-        toast({ variant: "destructive", title: "Transcription Failed", description: "Could not transcribe the note." });
+        toast({ variant: "destructive", title: t('ai_transcribe_fail_title'), description: t('ai_transcribe_fail') });
     } finally {
         setIsTranscribing(false);
     }
@@ -264,11 +266,11 @@ export default function HistoryPage() {
         refreshRecordings();
         setSelectedRecording(updatedRec); // Update the selected recording in the dialog
         setAiResult(result.expandedDocument);
-        toast({ title: "Note expanded and saved!" });
+        toast({ title: t('ai_expand_success') });
       })
       .catch(err => {
         console.error("Expansion failed:", err);
-        toast({ variant: "destructive", title: "Expansion Failed", description: "Could not expand the note." });
+        toast({ variant: "destructive", title: t('ai_expand_fail_title'), description: t('ai_expand_fail') });
         setNoteForAi(null);
       })
       .finally(() => setIsProcessingAi(false));
@@ -278,8 +280,8 @@ export default function HistoryPage() {
     if (recording.expandedTranscription) {
         setConfirmationAction({
             action: () => handleAiActionClick(() => proceedWithExpand(recording)),
-            title: "Overwrite Expanded Note?",
-            description: "An expanded version of this note already exists. Generating a new version will overwrite the existing one. Are you sure you want to continue?",
+            title: t('ai_overwrite_title', { feature: t('history_expanded_note_heading')}),
+            description: t('ai_overwrite_desc'),
         });
     } else {
         handleAiActionClick(() => proceedWithExpand(recording));
@@ -301,11 +303,11 @@ export default function HistoryPage() {
         refreshRecordings();
         setSelectedRecording(updatedRec); // Update the selected recording in the dialog
         setAiResult(result.summary);
-        toast({ title: "Note summarized and saved!" });
+        toast({ title: t('ai_summarize_success') });
       })
       .catch(err => {
         console.error("Summarization failed:", err);
-        toast({ variant: "destructive", title: "Summarization Failed", description: "Could not summarize the note." });
+        toast({ variant: "destructive", title: t('ai_summarize_fail_title'), description: t('ai_summarize_fail') });
         setNoteForAi(null);
       })
       .finally(() => setIsProcessingAi(false));
@@ -315,8 +317,8 @@ export default function HistoryPage() {
     if (recording.summary) {
         setConfirmationAction({
             action: () => handleAiActionClick(() => proceedWithSummarize(recording)),
-            title: "Overwrite Summary?",
-            description: "This note already has a summary. Generating a new one will overwrite the existing summary. Are you sure you want to continue?",
+            title: t('ai_overwrite_title', { feature: t('history_summary_heading')}),
+            description: t('ai_overwrite_desc'),
         });
     } else {
         handleAiActionClick(() => proceedWithSummarize(recording));
@@ -338,11 +340,11 @@ export default function HistoryPage() {
         refreshRecordings();
         setSelectedRecording(updatedRec); // Update the selected recording in the dialog
         setAiResult(result.projectPlan);
-        toast({ title: "Project plan generated and saved!" });
+        toast({ title: t('ai_project_plan_success') });
       })
       .catch(err => {
         console.error("Project plan generation failed:", err);
-        toast({ variant: "destructive", title: "Project Plan Failed", description: "Could not generate a project plan." });
+        toast({ variant: "destructive", title: t('ai_project_plan_fail_title'), description: t('ai_project_plan_fail') });
         setNoteForAi(null);
       })
       .finally(() => setIsProcessingAi(false));
@@ -352,8 +354,8 @@ export default function HistoryPage() {
     if (recording.projectPlan) {
         setConfirmationAction({
             action: () => handleAiActionClick(() => proceedWithExpandAsProject(recording)),
-            title: "Overwrite Project Plan?",
-            description: "A project plan for this note already exists. Generating a new one will overwrite the existing one. Are you sure you want to continue?",
+            title: t('ai_overwrite_title', { feature: t('history_project_plan_heading')}),
+            description: t('ai_overwrite_desc'),
         });
     } else {
         handleAiActionClick(() => proceedWithExpandAsProject(recording));
@@ -375,11 +377,11 @@ export default function HistoryPage() {
         refreshRecordings();
         setSelectedRecording(updatedRec); // Update the selected recording in the dialog
         setAiResult(result.tasks);
-        toast({ title: "Action items extracted and saved!" });
+        toast({ title: t('ai_extract_tasks_success') });
       })
       .catch(err => {
         console.error("Task extraction failed:", err);
-        toast({ variant: "destructive", title: "Task Extraction Failed", description: "Could not extract action items." });
+        toast({ variant: "destructive", title: t('ai_extract_tasks_fail_title'), description: t('ai_extract_tasks_fail') });
         setNoteForAi(null);
       })
       .finally(() => setIsProcessingAi(false));
@@ -389,8 +391,8 @@ export default function HistoryPage() {
     if (recording.actionItems) {
         setConfirmationAction({
             action: () => handleAiActionClick(() => proceedWithExtractTasks(recording)),
-            title: "Overwrite Action Items?",
-            description: "An action item list for this note already exists. Generating a new one will overwrite it. Are you sure you want to continue?",
+            title: t('ai_overwrite_title', { feature: t('history_action_items_heading')}),
+            description: t('ai_overwrite_desc'),
         });
     } else {
         handleAiActionClick(() => proceedWithExtractTasks(recording));
@@ -400,7 +402,7 @@ export default function HistoryPage() {
   const handleSaveTranscription = async () => {
     if (!selectedRecording || !user) return;
     if (editableTranscription === selectedRecording.transcription) {
-      toast({ title: 'No changes to save.' });
+      toast({ title: t('record_no_changes_to_save') });
       return;
     }
 
@@ -414,31 +416,33 @@ export default function HistoryPage() {
           refreshRecordings();
           setSelectedRecording(updatedRec);
           
-          toast({ title: 'Transcription updated!' });
+          toast({ title: t('ai_update_success') });
         } catch (error) {
           console.error('Update Failed:', error);
-          toast({ variant: 'destructive', title: 'Update Failed', description: 'Could not save your changes.' });
+          toast({ variant: 'destructive', title: t('ai_update_fail_title'), description: t('ai_update_fail') });
         } finally {
           setIsSaving(false);
         }
       },
-      title: 'Overwrite Transcription?',
-      description: 'This will save your changes and overwrite the previous transcription. Are you sure?',
+      title: t('ai_overwrite_title', { feature: t('history_transcription_heading')}),
+      description: t('ai_overwrite_desc'),
     });
   };
 
   const getAiActionTitle = () => {
     switch (aiAction) {
-        case 'expand': return 'Expanded Note';
-        case 'summarize': return 'Summarized Note';
-        case 'expand-as-project': return 'Project Plan';
-        case 'extract-tasks': return 'Action Items';
-        default: return 'AI Result';
+        case 'expand': return t('ai_node_expanded_title');
+        case 'summarize': return t('ai_node_summarized_title');
+        case 'expand-as-project': return t('ai_node_project_plan_title');
+        case 'extract-tasks': return t('ai_node_action_items_title');
+        default: return t('ai_result_title');
     }
   }
   
   const getAiActionDescription = () => {
-      return `This is an AI-generated ${aiAction?.replace(/-/g, ' ')} of your original note. The result has been automatically saved.`;
+      const actionKey = `ai_action_${aiAction?.replace(/-/g, '_')}`;
+      const actionText = t(actionKey as any, {});
+      return t('ai_result_dialog_desc', { action: actionText });
   }
   
   if (isLoading || !settings) {
@@ -446,7 +450,7 @@ export default function HistoryPage() {
         <div className="flex justify-center items-center h-full p-4">
             <div className="flex items-center text-muted-foreground">
                 <Loader2 className="h-6 w-6 animate-spin" />
-                <p className="ml-3">Loading history...</p>
+                <p className="ml-3">{t('history_loading')}</p>
             </div>
         </div>
     );
@@ -454,17 +458,17 @@ export default function HistoryPage() {
 
   return (
     <div className="container mx-auto p-4 pt-8 flex h-full flex-col">
-      <h1 className="text-3xl font-bold mb-6 text-center">Recording History</h1>
+      <h1 className="text-3xl font-bold mb-6 text-center">{t('history_page_title')}</h1>
       {recordings.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
             <Card className="w-full max-w-sm text-center p-8">
               <CardHeader>
-                <CardTitle>No Recordings Yet</CardTitle>
+                <CardTitle>{t('history_no_recordings')}</CardTitle>
                 <CardDescription>
-                  No notes yet! Tap 'Record' to capture your first idea.
+                  {t('history_no_recordings_desc')}
                   {!settings.isPro && (
                     <>
-                    <br /> and start your <Link href="/pricing" className="underline text-primary">7-day Pro Trial</Link>.
+                    <br /> {t('login_and')} <Link href="/pricing" className="underline text-primary">{t('history_no_recordings_pro_trial')}</Link>.
                     </>
                   )}
                 </CardDescription>
@@ -479,14 +483,14 @@ export default function HistoryPage() {
                 <CardHeader>
                   <CardTitle className="truncate">{rec.name}</CardTitle>
                   <CardDescription>
-                    {formatDistanceToNow(new Date(rec.date), { addSuffix: true })}
+                    {t('history_recorded_ago', { timeAgo: formatDistanceToNow(new Date(rec.date), { addSuffix: true }) })}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex-1">
                   {rec.transcription ? (
                     <p className="text-muted-foreground line-clamp-3">{rec.summary || rec.transcription}</p>
                   ) : (
-                    <p className="text-muted-foreground italic">Audio note, not yet transcribed.</p>
+                    <p className="text-muted-foreground italic">{t('history_audio_note_placeholder')}</p>
                   )}
                 </CardContent>
                 <CardFooter className="flex justify-between items-center">
@@ -498,7 +502,7 @@ export default function HistoryPage() {
                                     <FileText className="h-4 w-4" />
                                 </Button>
                                 </TooltipTrigger>
-                                <TooltipContent><p>View Details</p></TooltipContent>
+                                <TooltipContent><p>{t('history_view_details_tooltip')}</p></TooltipContent>
                             </Tooltip>
                              {rec.transcription && (
                                 <>
@@ -508,7 +512,7 @@ export default function HistoryPage() {
                                             <Share2 className="h-4 w-4" />
                                         </Button>
                                         </TooltipTrigger>
-                                        <TooltipContent><p>Share Note</p></TooltipContent>
+                                        <TooltipContent><p>{t('history_share_note_tooltip')}</p></TooltipContent>
                                     </Tooltip>
                                      <Tooltip>
                                         <TooltipTrigger asChild>
@@ -516,7 +520,7 @@ export default function HistoryPage() {
                                                 <Sparkles className="h-4 w-4" />
                                             </Button>
                                         </TooltipTrigger>
-                                        <TooltipContent><p>{settings.isPro ? "Summarize with AI" : `Summarize with AI (${settings.aiCredits} credits left)`}</p></TooltipContent>
+                                        <TooltipContent><p>{settings.isPro ? t('history_summarize_tooltip') : t('history_summarize_tooltip_credits', { credits: settings.aiCredits })}</p></TooltipContent>
                                     </Tooltip>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
@@ -524,7 +528,7 @@ export default function HistoryPage() {
                                                 <BrainCircuit className="h-4 w-4" />
                                             </Button>
                                         </TooltipTrigger>
-                                        <TooltipContent><p>{settings.isPro ? "Expand with AI" : `Expand with AI (${settings.aiCredits} credits left)`}</p></TooltipContent>
+                                        <TooltipContent><p>{settings.isPro ? t('history_expand_tooltip') : t('history_expand_tooltip_credits', { credits: settings.aiCredits })}</p></TooltipContent>
                                     </Tooltip>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
@@ -532,7 +536,7 @@ export default function HistoryPage() {
                                                 <FolderKanban className="h-4 w-4" />
                                             </Button>
                                         </TooltipTrigger>
-                                        <TooltipContent><p>{settings.isPro ? "Expand as Project" : `Expand as Project (${settings.aiCredits} credits left)`}</p></TooltipContent>
+                                        <TooltipContent><p>{settings.isPro ? t('history_project_plan_tooltip') : t('history_project_plan_tooltip_credits', { credits: settings.aiCredits })}</p></TooltipContent>
                                     </Tooltip>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
@@ -540,7 +544,7 @@ export default function HistoryPage() {
                                                 <ListTodo className="h-4 w-4" />
                                             </Button>
                                         </TooltipTrigger>
-                                        <TooltipContent><p>{settings.isPro ? "Extract Tasks" : `Extract Tasks (${settings.aiCredits} credits left)`}</p></TooltipContent>
+                                        <TooltipContent><p>{settings.isPro ? t('history_extract_tasks_tooltip') : t('history_extract_tasks_tooltip_credits', { credits: settings.aiCredits })}</p></TooltipContent>
                                     </Tooltip>
                                 </>
                             )}
@@ -554,14 +558,14 @@ export default function HistoryPage() {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                         <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogTitle>{t('history_delete_dialog_title')}</AlertDialogTitle>
                             <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete this recording and its transcription.
+                            {t('history_delete_dialog_desc')}
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDelete(rec.id)}>Delete</AlertDialogAction>
+                            <AlertDialogCancel>{t('history_cancel_button')}</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(rec.id)}>{t('history_delete_button')}</AlertDialogAction>
                         </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
@@ -579,7 +583,7 @@ export default function HistoryPage() {
               <DialogHeader>
                 <DialogTitle>{selectedRecording.name}</DialogTitle>
                 <DialogDescription>
-                  Recorded {formatDistanceToNow(new Date(selectedRecording.date), { addSuffix: true })}
+                  {t('history_recorded_ago', { timeAgo: formatDistanceToNow(new Date(selectedRecording.date), { addSuffix: true }) })}
                 </DialogDescription>
               </DialogHeader>
               
@@ -591,7 +595,7 @@ export default function HistoryPage() {
                         <audio controls className="w-full" src={selectedRecording.audioDataUri}></audio>
                       ) : (
                         <div className="text-sm text-muted-foreground p-4 bg-muted/50 rounded-md border">
-                          Audio playback is only available on the device where it was recorded.
+                          {t('history_audio_playback_unavailable')}
                         </div>
                       )}
                   </div>
@@ -600,7 +604,7 @@ export default function HistoryPage() {
                     <>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <h3 className="font-semibold">Transcription</h3>
+                          <h3 className="font-semibold">{t('history_transcription_heading')}</h3>
                           <div className="flex items-center gap-1">
                             <Button
                               variant="outline"
@@ -609,7 +613,7 @@ export default function HistoryPage() {
                               disabled={isSaving || !selectedRecording || editableTranscription === selectedRecording.transcription}
                             >
                               {isSaving ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
-                              Save
+                              {t('record_save_button')}
                             </Button>
                             <TooltipProvider>
                               <Tooltip>
@@ -618,7 +622,7 @@ export default function HistoryPage() {
                                       <Share2 className="h-4 w-4" />
                                     </Button>
                                 </TooltipTrigger>
-                                <TooltipContent><p>Share Transcription</p></TooltipContent>
+                                <TooltipContent><p>{t('history_share_note_tooltip')}</p></TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                             <TooltipProvider>
@@ -651,7 +655,7 @@ export default function HistoryPage() {
                         <Accordion type="multiple" className="w-full">
                           {selectedRecording.summary && (
                             <AccordionItem value="summary">
-                              <AccordionTrigger className="font-semibold">Summary</AccordionTrigger>
+                              <AccordionTrigger className="font-semibold">{t('history_summary_heading')}</AccordionTrigger>
                               <AccordionContent>
                                 <div className="relative">
                                   <p className="text-foreground/90 whitespace-pre-wrap bg-muted/50 rounded-md p-4 pr-24 border">{selectedRecording.summary}</p>
@@ -659,11 +663,11 @@ export default function HistoryPage() {
                                     <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
-                                              <Button size="icon" variant="ghost" className="h-8 w-8 bg-background/50 hover:bg-background" onClick={() => handleShareSection(`${selectedRecording.name} - Summary`, selectedRecording.summary)}>
+                                              <Button size="icon" variant="ghost" className="h-8 w-8 bg-background/50 hover:bg-background" onClick={() => handleShareSection(`${selectedRecording.name} - ${t('history_summary_heading')}`, selectedRecording.summary)}>
                                                   <Share2 className="h-4 w-4" />
                                               </Button>
                                             </TooltipTrigger>
-                                            <TooltipContent><p>Share Summary</p></TooltipContent>
+                                            <TooltipContent><p>{t('history_share_note_tooltip')}</p></TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
                                     <TooltipProvider>
@@ -688,7 +692,7 @@ export default function HistoryPage() {
                           )}
                           {selectedRecording.expandedTranscription && (
                             <AccordionItem value="expanded">
-                              <AccordionTrigger className="font-semibold">Expanded Note</AccordionTrigger>
+                              <AccordionTrigger className="font-semibold">{t('history_expanded_note_heading')}</AccordionTrigger>
                               <AccordionContent>
                                 <div className="relative">
                                   <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-24" dangerouslySetInnerHTML={createMarkup(selectedRecording.expandedTranscription)}></div>
@@ -696,11 +700,11 @@ export default function HistoryPage() {
                                     <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
-                                              <Button size="icon" variant="ghost" className="h-8 w-8 bg-background/50 hover:bg-background" onClick={() => handleShareSection(`${selectedRecording.name} - Expanded Note`, selectedRecording.expandedTranscription)}>
+                                              <Button size="icon" variant="ghost" className="h-8 w-8 bg-background/50 hover:bg-background" onClick={() => handleShareSection(`${selectedRecording.name} - ${t('history_expanded_note_heading')}`, selectedRecording.expandedTranscription)}>
                                                   <Share2 className="h-4 w-4" />
                                               </Button>
                                             </TooltipTrigger>
-                                            <TooltipContent><p>Share Expanded Note</p></TooltipContent>
+                                            <TooltipContent><p>{t('history_share_note_tooltip')}</p></TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
                                     <TooltipProvider>
@@ -725,7 +729,7 @@ export default function HistoryPage() {
                           )}
                           {selectedRecording.projectPlan && (
                             <AccordionItem value="project">
-                              <AccordionTrigger className="font-semibold">Project Plan</AccordionTrigger>
+                              <AccordionTrigger className="font-semibold">{t('history_project_plan_heading')}</AccordionTrigger>
                               <AccordionContent>
                                 <div className="relative">
                                   <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-24" dangerouslySetInnerHTML={createMarkup(selectedRecording.projectPlan)}></div>
@@ -733,11 +737,11 @@ export default function HistoryPage() {
                                     <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
-                                              <Button size="icon" variant="ghost" className="h-8 w-8 bg-background/50 hover:bg-background" onClick={() => handleShareSection(`${selectedRecording.name} - Project Plan`, selectedRecording.projectPlan)}>
+                                              <Button size="icon" variant="ghost" className="h-8 w-8 bg-background/50 hover:bg-background" onClick={() => handleShareSection(`${selectedRecording.name} - ${t('history_project_plan_heading')}`, selectedRecording.projectPlan)}>
                                                   <Share2 className="h-4 w-4" />
                                               </Button>
                                             </TooltipTrigger>
-                                            <TooltipContent><p>Share Project Plan</p></TooltipContent>
+                                            <TooltipContent><p>{t('history_share_note_tooltip')}</p></TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
                                     <TooltipProvider>
@@ -762,7 +766,7 @@ export default function HistoryPage() {
                           )}
                           {selectedRecording.actionItems && (
                             <AccordionItem value="tasks">
-                              <AccordionTrigger className="font-semibold">Action Items</AccordionTrigger>
+                              <AccordionTrigger className="font-semibold">{t('history_action_items_heading')}</AccordionTrigger>
                               <AccordionContent>
                                 <div className="relative">
                                   <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-24" dangerouslySetInnerHTML={createMarkup(selectedRecording.actionItems)}></div>
@@ -770,11 +774,11 @@ export default function HistoryPage() {
                                     <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
-                                              <Button size="icon" variant="ghost" className="h-8 w-8 bg-background/50 hover:bg-background" onClick={() => handleShareSection(`${selectedRecording.name} - Action Items`, selectedRecording.actionItems)}>
+                                              <Button size="icon" variant="ghost" className="h-8 w-8 bg-background/50 hover:bg-background" onClick={() => handleShareSection(`${selectedRecording.name} - ${t('history_action_items_heading')}`, selectedRecording.actionItems)}>
                                                   <Share2 className="h-4 w-4" />
                                               </Button>
                                             </TooltipTrigger>
-                                            <TooltipContent><p>Share Action Items</p></TooltipContent>
+                                            <TooltipContent><p>{t('history_share_note_tooltip')}</p></TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
                                     <TooltipProvider>
@@ -803,13 +807,13 @@ export default function HistoryPage() {
                   ) : (
                      <Card className="my-4 text-center">
                         <CardHeader>
-                            <CardTitle>Ready to Transcribe</CardTitle>
-                            <CardDescription>This is an audio-only note. Use an AI credit to get the transcription and unlock more actions.</CardDescription>
+                            <CardTitle>{t('history_ready_to_transcribe')}</CardTitle>
+                            <CardDescription>{t('history_ready_to_transcribe_desc')}</CardDescription>
                         </CardHeader>
                         <CardFooter className="justify-center">
                             <Button onClick={() => handleTranscribeFromHistory(selectedRecording)} disabled={isTranscribing || (!settings.isPro && settings.aiCredits < 1)}>
                                 {isTranscribing ? <Loader2 className="animate-spin mr-2" /> : <Sparkles className="mr-2" />}
-                                Transcribe with AI {!settings.isPro && ` (1 Credit)`}
+                                {settings.isPro ? t('history_transcribe_with_ai') : t('history_transcribe_with_credit')}
                             </Button>
                         </CardFooter>
                     </Card>
@@ -821,14 +825,14 @@ export default function HistoryPage() {
                   {selectedRecording.transcription && (
                     <>
                       <Button variant="outline" onClick={() => handleShareAll(selectedRecording)}>
-                          <Share2 className="mr-2 h-4 w-4" /> Share All
+                          <Share2 className="mr-2 h-4 w-4" /> {t('history_share_all_button')}
                       </Button>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
                               <div className="inline-block">
                                 <Button variant="outline" onClick={() => handleSummarizeClick(selectedRecording!)} disabled={!settings.isPro && settings.aiCredits < 1}>
-                                    <Sparkles className="mr-2 h-4 w-4" /> Summarize
+                                    <Sparkles className="mr-2 h-4 w-4" /> {t('record_summarize_button')}
                                 </Button>
                               </div>
                           </TooltipTrigger>
@@ -840,7 +844,7 @@ export default function HistoryPage() {
                           <TooltipTrigger asChild>
                               <div className="inline-block">
                                 <Button variant="outline" onClick={() => handleExpandClick(selectedRecording!)} disabled={!settings.isPro && settings.aiCredits < 1}>
-                                    <BrainCircuit className="mr-2 h-4 w-4" /> Expand Note
+                                    <BrainCircuit className="mr-2 h-4 w-4" /> {t('record_expand_button')}
                                 </Button>
                               </div>
                           </TooltipTrigger>
@@ -852,7 +856,7 @@ export default function HistoryPage() {
                           <TooltipTrigger asChild>
                               <div className="inline-block">
                                 <Button variant="outline" onClick={() => handleExpandAsProjectClick(selectedRecording!)} disabled={!settings.isPro && settings.aiCredits < 1}>
-                                    <FolderKanban className="mr-2 h-4 w-4" /> As Project
+                                    <FolderKanban className="mr-2 h-4 w-4" /> {t('record_project_plan_button')}
                                 </Button>
                               </div>
                           </TooltipTrigger>
@@ -864,7 +868,7 @@ export default function HistoryPage() {
                           <TooltipTrigger asChild>
                               <div className="inline-block">
                                 <Button variant="outline" onClick={() => handleExtractTasksClick(selectedRecording!)} disabled={!settings.isPro && settings.aiCredits < 1}>
-                                    <ListTodo className="mr-2 h-4 w-4" /> Get Tasks
+                                    <ListTodo className="mr-2 h-4 w-4" /> {t('record_get_tasks_button')}
                                 </Button>
                               </div>
                           </TooltipTrigger>
@@ -893,7 +897,7 @@ export default function HistoryPage() {
                 {isProcessingAi ? (
                     <div className="flex items-center justify-center h-full">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        <p className="ml-4">{getAiActionTitle()}...</p>
+                        <p className="ml-4">{t('ai_processing_title', { action: getAiActionTitle() })}</p>
                     </div>
                 ) : aiResult && (
                     <div className="relative h-full">
@@ -922,7 +926,7 @@ export default function HistoryPage() {
             </div>
             {aiResult && !isProcessingAi && (
                 <DialogFooter className="pt-4 border-t">
-                    <Button variant="outline" onClick={() => setNoteForAi(null)}>Close</Button>
+                    <Button variant="outline" onClick={() => setNoteForAi(null)}>{t('ai_close_button')}</Button>
                 </DialogFooter>
             )}
         </DialogContent>
@@ -937,12 +941,12 @@ export default function HistoryPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('history_cancel_button')}</AlertDialogCancel>
             <AlertDialogAction onClick={() => {
                 confirmationAction?.action();
                 setConfirmationAction(null);
             }}>
-                Overwrite
+                {t('ai_overwrite_button')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -951,18 +955,18 @@ export default function HistoryPage() {
     <AlertDialog open={!!creditConfirmation} onOpenChange={(open) => !open && setCreditConfirmation(null)}>
         <AlertDialogContent>
             <AlertDialogHeader>
-            <AlertDialogTitle>Confirm AI Action</AlertDialogTitle>
+            <AlertDialogTitle>{t('ai_confirmation_title')}</AlertDialogTitle>
             <AlertDialogDescription>
-                This action will cost 1 AI credit. You have {settings.aiCredits} credit{settings.aiCredits !== 1 ? 's' : ''} remaining. Do you want to proceed?
+                {t('ai_confirmation_desc', { credits: settings.aiCredits, plural: settings.aiCredits !== 1 ? 's' : '' })}
             </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('history_cancel_button')}</AlertDialogCancel>
             <AlertDialogAction onClick={() => {
                 creditConfirmation?.action();
                 setCreditConfirmation(null);
             }}>
-                Proceed
+                {t('ai_confirmation_button')}
             </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>

@@ -14,6 +14,8 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthP
 import { useToast } from '@/hooks/use-toast';
 import { auth, firebaseConfigError } from '@/lib/firebase';
 import { saveSettings } from '@/lib/storage';
+import { useLanguage } from '@/hooks/use-language';
+import { LanguageToggle } from '@/components/language-toggle';
 
 const GoogleIcon = () => <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="w-4 h-4"><title>Google</title><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.1-1.02 1.02-2.6 1.98-4.66 1.98-3.57 0-6.47-2.9-6.47-6.47s2.9-6.47 6.47-6.47c1.98 0 3.06.83 3.79 1.48l2.84-2.76C18.99 1.83 16.14 0 12.48 0 5.61 0 0 5.61 0 12.48s5.61 12.48 12.48 12.48c7.1 0 12.23-4.88 12.23-12.48 0-.79-.08-1.54-.22-2.28H12.48z"/></svg>;
 
@@ -24,6 +26,8 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useLanguage();
+  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'Not Set';
 
   if (firebaseConfigError) {
     return (
@@ -40,7 +44,7 @@ export default function LoginPage() {
                   <h3 className="font-semibold mb-2">How to Fix:</h3>
                   <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
                       <li>Go to the <a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer" className="underline text-primary">Firebase Console</a>.</li>
-                      <li>Select your project (<span className="font-mono bg-muted px-1 py-0.5 rounded">{process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '...'}</span>).</li>
+                      <li>Select your project (<span className="font-mono bg-muted px-1 py-0.5 rounded">{projectId}</span>).</li>
                       <li>Click the gear icon for <strong>Project settings</strong>.</li>
                       <li>Under the <strong>General</strong> tab, scroll down to <strong>Your apps</strong>.</li>
                       <li>If you don't have a web app, click the Web icon ( <strong>&lt;/&gt;</strong> ) to create one.</li>
@@ -58,55 +62,55 @@ export default function LoginPage() {
     let message = "An unexpected error occurred.";
     switch (error.code) {
       case 'auth/invalid-email':
-        message = 'Please enter a valid email address.';
+        message = t('auth_invalid_email');
         break;
       case 'auth/user-not-found':
       case 'auth/invalid-credential':
-        message = 'No account found with that email and password combination.';
+        message = t('auth_user_not_found');
         break;
       case 'auth/wrong-password':
-        message = 'Incorrect password. Please try again.';
+        message = t('auth_wrong_password');
         break;
       case 'auth/email-already-in-use':
-        message = 'An account already exists with this email address.';
+        message = t('auth_email_in_use');
         break;
       case 'auth/weak-password':
-        message = 'Password should be at least 6 characters.';
+        message = t('auth_weak_password');
         break;
       case 'auth/invalid-api-key':
-        message = `Your Firebase API Key is invalid. The app is configured with Project ID: '${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'Not Set'}'. Please check the API Key in your .env file matches the one from that project in the Firebase Console.`;
+        message = t('auth_invalid_api_key', { projectId });
         break;
       case 'auth/popup-blocked':
-        message = 'Your browser blocked the sign-in popup. Please allow popups for this site.';
+        message = t('auth_popup_blocked');
         break;
       case 'auth/popup-closed-by-user':
-        message = 'The sign-in window was closed. Please try again.';
+        message = t('auth_popup_closed');
         break;
       case 'auth/unauthorized-domain':
-        message = `This domain isn't authorized for your app (Project ID: '${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'Not Set'}'). The most likely cause is an unconfigured OAuth Consent Screen in Google Cloud. Go to your Google Cloud Console 'Credentials' page, click 'Configure Consent Screen', fill out the form, and publish it. See the README for a full guide.`;
+        message = t('auth_unauthorized_domain', { projectId });
         break;
       case 'auth/account-exists-with-different-credential':
-        message = 'An account already exists with this email, but with a different sign-in method (e.g., password). Try signing in with that method.';
+        message = t('auth_account_exists');
         break;
       default:
         console.error(error);
     }
-    toast({ variant: 'destructive', title: 'Authentication Failed', description: message });
+    toast({ variant: 'destructive', title: t('auth_fail_title'), description: message });
   };
 
   const handleSignUp = async () => {
     if (!email || !password) {
-      toast({ variant: 'destructive', title: 'Missing Information', description: 'Please enter both an email and a password.' });
+      toast({ variant: 'destructive', title: t('auth_fail_title'), description: t('auth_missing_info') });
       return;
     }
     if (!auth) {
-        toast({ variant: 'destructive', title: 'Configuration Error', description: 'Firebase is not configured correctly.' });
+        toast({ variant: 'destructive', title: t('auth_config_error'), description: 'Firebase is not configured correctly.' });
         return;
     }
     setIsLoading(true);
     try {
       await createUserWithEmailAndPassword(auth, email, password);
-      toast({ title: 'Account Created!', description: "Welcome! Please select a plan to continue." });
+      toast({ title: t('account_created_title'), description: t('account_created_desc') });
       router.push('/pricing');
     } catch (error) {
       handleAuthError(error);
@@ -117,11 +121,11 @@ export default function LoginPage() {
 
   const handleSignIn = async () => {
     if (!email || !password) {
-      toast({ variant: 'destructive', title: 'Missing Information', description: 'Please enter both an email and a password.' });
+      toast({ variant: 'destructive', title: t('auth_fail_title'), description: t('auth_missing_info') });
       return;
     }
     if (!auth) {
-        toast({ variant: 'destructive', title: 'Configuration Error', description: 'Firebase is not configured correctly.' });
+        toast({ variant: 'destructive', title: t('auth_config_error'), description: 'Firebase is not configured correctly.' });
         return;
     }
     setIsLoading(true);
@@ -137,7 +141,7 @@ export default function LoginPage() {
 
   const handleGoogleSignIn = async () => {
     if (!auth) {
-        toast({ variant: 'destructive', title: 'Configuration Error', description: 'Firebase is not configured correctly.' });
+        toast({ variant: 'destructive', title: t('auth_config_error'), description: 'Firebase is not configured correctly.' });
         return;
     }
     setIsLoading(true);
@@ -146,7 +150,7 @@ export default function LoginPage() {
       const result = await signInWithPopup(auth, provider);
       const additionalInfo = getAdditionalUserInfo(result);
       if (additionalInfo?.isNewUser) {
-        toast({ title: 'Account Created!', description: "Welcome! Please select a plan to continue." });
+        toast({ title: t('account_created_title'), description: t('account_created_desc') });
         router.push('/pricing');
       } else {
         router.push('/record');
@@ -159,47 +163,50 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative">
+      <div className="absolute top-4 right-4">
+        <LanguageToggle />
+      </div>
       <div className="mb-8 flex flex-col items-center text-center">
         <div className="bg-primary/10 border border-primary/20 rounded-full p-4 mb-4">
             <Lightbulb className="h-12 w-12 text-primary" />
         </div>
-        <h1 className="text-3xl font-bold">Idea Saver</h1>
-        <p className="text-muted-foreground mt-1">Quickly capture and transcribe your ideas.</p>
+        <h1 className="text-3xl font-bold">{t('login_header')}</h1>
+        <p className="text-muted-foreground mt-1">{t('login_subheader')}</p>
       </div>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-sm">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="signin" disabled={isLoading}>Sign In</TabsTrigger>
-          <TabsTrigger value="signup" disabled={isLoading}>Sign Up</TabsTrigger>
+          <TabsTrigger value="signin" disabled={isLoading}>{t('login_signin_tab')}</TabsTrigger>
+          <TabsTrigger value="signup" disabled={isLoading}>{t('login_signup_tab')}</TabsTrigger>
         </TabsList>
         <TabsContent value="signin">
           <Card>
             <CardHeader>
-              <CardTitle>Welcome Back</CardTitle>
+              <CardTitle>{t('login_signin_title')}</CardTitle>
               <CardDescription>
-                Sign in to access your notes and recordings.
+                {t('login_signin_desc')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email-in">Email</Label>
+                <Label htmlFor="email-in">{t('login_email_label')}</Label>
                 <Input id="email-in" type="email" placeholder="m@example.com" value={email} onChange={e => setEmail(e.target.value)} disabled={isLoading} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password-in">Password</Label>
+                <Label htmlFor="password-in">{t('login_password_label')}</Label>
                 <Input id="password-in" type="password" value={password} onChange={e => setPassword(e.target.value)} disabled={isLoading} />
               </div>
               <Button onClick={handleSignIn} className="w-full" disabled={isLoading}>
-                {isLoading ? <Loader2 className="animate-spin" /> : 'Sign In'}
+                {isLoading ? <Loader2 className="animate-spin" /> : t('login_signin_button')}
               </Button>
             </CardContent>
             <CardFooter className="flex-col items-center justify-center text-center text-sm gap-2 pt-4">
                 <Link href="/forgot-password" className="text-sm text-muted-foreground underline hover:text-foreground">
-                    Forgot Password?
+                    {t('login_forgot_password_link')}
                 </Link>
                 <div className="text-muted-foreground">
-                    Don't have an account?{' '}
-                    <button onClick={() => setActiveTab('signup')} className="font-semibold underline text-primary hover:text-primary/80" disabled={isLoading}>Sign Up</button>
+                    {t('login_no_account')}{' '}
+                    <button onClick={() => setActiveTab('signup')} className="font-semibold underline text-primary hover:text-primary/80" disabled={isLoading}>{t('login_signup_link')}</button>
                 </div>
             </CardFooter>
           </Card>
@@ -207,33 +214,33 @@ export default function LoginPage() {
         <TabsContent value="signup">
           <Card>
             <CardHeader>
-              <CardTitle>Unleash Your Ideas</CardTitle>
+              <CardTitle>{t('login_signup_title')}</CardTitle>
               <CardDescription>
-                First, create your account. Then, select a plan on the next screen to get started.
+                {t('login_signup_desc')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                <div className="space-y-2">
-                <Label htmlFor="email-up">Email</Label>
+                <Label htmlFor="email-up">{t('login_email_label')}</Label>
                 <Input id="email-up" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} disabled={isLoading} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password-up">Password</Label>
+                <Label htmlFor="password-up">{t('login_password_label')}</Label>
                 <Input id="password-up" type="password" value={password} onChange={e => setPassword(e.target.value)} disabled={isLoading} />
               </div>
                <Button onClick={handleSignUp} className="w-full" disabled={isLoading}>
-                {isLoading ? <Loader2 className="animate-spin" /> : 'Create Account'}
+                {isLoading ? <Loader2 className="animate-spin" /> : t('login_create_account_button')}
               </Button>
             </CardContent>
             <CardFooter className="flex-col items-center justify-center text-center text-sm gap-2 pt-4">
                  <div className="text-muted-foreground px-4">
-                    By signing up, you agree to our{' '}
-                    <Link href="/terms" className="underline hover:text-foreground">Terms of Service</Link> and{' '}
-                    <Link href="/privacy" className="underline hover:text-foreground">Privacy Policy</Link>.
+                    {t('login_terms_prefix')}{' '}
+                    <Link href="/terms" className="underline hover:text-foreground">{t('login_terms_link')}</Link> {t('login_and')}{' '}
+                    <Link href="/privacy" className="underline hover:text-foreground">{t('login_privacy_link')}</Link>.
                  </div>
                  <div className="text-muted-foreground">
-                    Already have an account?{' '}
-                    <button onClick={() => setActiveTab('signin')} className="font-semibold underline text-primary hover:text-primary/80" disabled={isLoading}>Sign In</button>
+                    {t('login_already_account')}{' '}
+                    <button onClick={() => setActiveTab('signin')} className="font-semibold underline text-primary hover:text-primary/80" disabled={isLoading}>{t('login_signin_link')}</button>
                 </div>
             </CardFooter>
           </Card>
@@ -246,7 +253,7 @@ export default function LoginPage() {
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-background px-2 text-muted-foreground">
-                Or continue with
+                {t('login_or_continue_with')}
               </span>
             </div>
           </div>

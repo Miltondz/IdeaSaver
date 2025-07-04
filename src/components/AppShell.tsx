@@ -14,6 +14,8 @@ import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
+import { useLanguage } from '@/hooks/use-language';
+import { LanguageToggle } from './language-toggle';
 
 function Header() {
     const pathname = usePathname();
@@ -21,26 +23,27 @@ function Header() {
     const { toast } = useToast();
     const [open, setOpen] = React.useState(false);
     const { user } = useAuth();
+    const { t } = useLanguage();
 
     const handleLogout = async () => {
       if (!auth) {
-        toast({ variant: 'destructive', title: 'Logout Failed', description: 'Firebase is not configured correctly.' });
+        toast({ variant: 'destructive', title: t('logout_fail_title'), description: t('auth_config_error') });
         return;
       }
       try {
         await signOut(auth);
-        toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
+        toast({ title: t('logout_success_title'), description: t('logout_success_desc') });
         router.push('/');
       } catch (error) {
-        toast({ variant: 'destructive', title: 'Logout Failed', description: 'Could not log you out. Please try again.' });
+        toast({ variant: 'destructive', title: t('logout_fail_title'), description: t('logout_fail_desc') });
       }
     };
 
     const navItems = [
-        { href: '/record', label: 'Record' },
-        { href: '/history', label: 'History' },
-        { href: '/settings', label: 'Settings' },
-        { href: '/about', label: 'About' },
+        { href: '/record', label: t('nav_record') },
+        { href: '/history', label: t('nav_history') },
+        { href: '/settings', label: t('nav_settings') },
+        { href: '/about', label: t('nav_about') },
     ];
     
     if (!user) return null;
@@ -51,7 +54,7 @@ function Header() {
                 <div className="mr-auto flex items-center">
                     <Link href="/record" className="mr-6 flex items-center space-x-2">
                         <Lightbulb className="h-6 w-6"/>
-                        <span className="font-bold hidden sm:inline-block">Idea Saver</span>
+                        <span className="font-bold hidden sm:inline-block">{t('appName')}</span>
                     </Link>
                     {/* Desktop Nav */}
                     <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
@@ -71,9 +74,10 @@ function Header() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                     <LanguageToggle />
                      <ThemeToggle />
                      <div className="hidden md:flex">
-                        <Button variant="ghost" onClick={handleLogout}>Logout <LogOut className="ml-2 h-4 w-4"/></Button>
+                        <Button variant="ghost" onClick={handleLogout}>{t('logout')} <LogOut className="ml-2 h-4 w-4"/></Button>
                      </div>
                      {/* Mobile Nav */}
                      <div className="md:hidden">
@@ -103,7 +107,7 @@ function Header() {
                                       <Separator className="my-2" />
                                       <Button variant="outline" className="w-full" onClick={() => { handleLogout(); setOpen(false); }}>
                                         <LogOut className="mr-2 h-4 w-4"/>
-                                        Logout
+                                        {t('logout')}
                                       </Button>
                                   </nav>
                                 </div>
@@ -120,6 +124,7 @@ function Header() {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, loading } = useAuth();
+  const { t } = useLanguage();
 
   const noShellRoutes = ['/', '/pricing', '/forgot-password', '/terms', '/privacy'];
   

@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { AppShell } from '@/components/AppShell';
 import { ThemeProvider } from '@/components/theme-provider';
 import { AuthProvider } from '@/hooks/use-auth';
+import { LanguageProvider } from '@/hooks/use-language';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://ideasaver.site'),
@@ -29,17 +30,19 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-background text-foreground">
         <AuthProvider>
-          <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem
-              disableTransitionOnChange
-          >
-              <AppShell>
-                {children}
-              </AppShell>
-              <Toaster />
-          </ThemeProvider>
+          <LanguageProvider>
+            <ThemeProvider
+                attribute="class"
+                defaultTheme="system"
+                enableSystem
+                disableTransitionOnChange
+            >
+                <AppShell>
+                  {children}
+                </AppShell>
+                <Toaster />
+            </ThemeProvider>
+          </LanguageProvider>
         </AuthProvider>
       </body>
     </html>
