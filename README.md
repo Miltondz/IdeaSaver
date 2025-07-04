@@ -139,8 +139,11 @@ This is a critical but often missed step. Firebase Authentication uses Google Cl
     *   On the next screen, you **must** fill in the required fields:
         *   **App name:** (e.g., "Idea Saver")
         *   **User support email:** (Select your email address)
+        *   **App logo:** Optional, but recommended.
+        *   **Authorized domains:** Add the domain where your app is hosted (e.g., `ideasaver.site`).
         *   **Developer contact information:** (Enter your email address at the bottom)
-    *   Click **Save and Continue** through the "Scopes" and "Test users" steps. You don't need to add anything here for now.
+    *   Click **Save and Continue**. The next pages are "Scopes" and "Test Users". You can skip these and continue clicking "Save and Continue". You do not need to add any scopes or test users.
+    *   On the final "Summary" page, you might be asked for "Información adicional" (Additional Information) for verification purposes. **You can leave this section blank.** This app only requests basic profile information and does not require Google's formal verification process.
     *   Finally, go back to the dashboard and click **"Publish App"** to move it from "Testing" to "Production". While in testing, only registered test users can sign in. Publishing makes it available to any Google user. **This is the most common final step that is missed.** If your app is in "Testing", the sign-in will fail unless you've added your account as a test user.
 
 #### Step 4: Final Checks
