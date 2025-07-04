@@ -3,19 +3,38 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Lightbulb, History, Settings, LogOut, Menu, UserCircle } from 'lucide-react';
+import { Lightbulb, History, Settings, LogOut, Menu, UserCircle, Sparkles, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Separator } from './ui/separator';
-import { ThemeToggle } from './theme-toggle';
+import { useTheme } from 'next-themes';
 import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { useLanguage } from '@/hooks/use-language';
 import { LanguageToggle } from './language-toggle';
+import { getSettings, type AppSettings } from '@/lib/storage';
+import { Badge } from './ui/badge';
+
+function ThemeToggle() {
+  const { theme, setTheme } = useTheme()
+
+  const toggleTheme = () => {
+    setTheme(theme === "dark" ? "light" : "dark")
+  }
+
+  return (
+    <Button variant="ghost" size="icon" onClick={toggleTheme}>
+      <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+      <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+      <span className="sr-only">Toggle theme</span>
+    </Button>
+  )
+}
+
 
 function Header() {
     const pathname = usePathname();
@@ -24,6 +43,22 @@ function Header() {
     const [open, setOpen] = React.useState(false);
     const { user } = useAuth();
     const { t } = useLanguage();
+    const [settings, setSettings] = useState<AppSettings | null>(null);
+
+    useEffect(() => {
+        if (user) {
+            getSettings(user.uid).then(setSettings);
+        }
+        
+        const handleSettingsChange = async () => {
+          if (user) {
+            setSettings(await getSettings(user.uid));
+          }
+        };
+        
+        window.addEventListener('storage', handleSettingsChange);
+        return () => window.removeEventListener('storage', handleSettingsChange);
+    }, [user]);
 
     const handleLogout = async () => {
       if (!auth) {
@@ -74,6 +109,12 @@ function Header() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                     {settings && !settings.isPro && (
+                        <Badge variant="outline" className="border-primary/50 text-primary font-semibold">
+                            <Sparkles className="mr-2 h-3 w-3" />
+                            {t('header_credit_display', { credits: settings.aiCredits })}
+                        </Badge>
+                     )}
                      <LanguageToggle />
                      <ThemeToggle />
                      <div className="hidden md:flex">
@@ -90,7 +131,15 @@ function Header() {
                             </SheetTrigger>
                             <SheetContent side="right" className="w-[300px] sm:w-[400px]">
                                 <div className="p-4">
-                                  <nav className="flex flex-col gap-4 mt-4">
+                                  <div className="flex justify-end mb-4">
+                                      {settings && !settings.isPro && (
+                                          <Badge variant="outline" className="border-primary/50 text-primary font-semibold">
+                                              <Sparkles className="mr-2 h-3 w-3" />
+                                              {t('header_credit_display', { credits: settings.aiCredits })}
+                                          </Badge>
+                                      )}
+                                  </div>
+                                  <nav className="flex flex-col gap-4">
                                       {navItems.map((item) => (
                                           <Link
                                               key={item.href}

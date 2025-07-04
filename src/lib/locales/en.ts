@@ -11,6 +11,7 @@ export const en = {
   logout_success_desc: 'You have been successfully logged out.',
   logout_fail_title: 'Logout Failed',
   logout_fail_desc: 'Could not log you out. Please try again.',
+  header_credit_display: '{credits} Credits Left',
   
   // Login Page
   login_header: 'Idea Saver',
@@ -207,11 +208,11 @@ export const en = {
   ai_no_credits_error: "You're out of AI credits. Upgrade to Pro for unlimited use.",
   ai_no_credits_error_title: 'No AI Credits',
   ai_result_dialog_desc: "This is an AI-generated {action} of your original note. The result has been automatically saved.",
-  ai_action_expand: 'expansion',
-  ai_action_summarize: 'summary',
+  'ai_action_expand': 'expansion',
+  'ai_action_summarize': 'summary',
   'ai_action_expand-as-project': 'project plan',
   'ai_action_extract-tasks': 'task list',
-  ai_action_transcribe: 'transcription',
+  'ai_action_transcribe': 'transcription',
   ai_node_expanded_title: 'Expanded Note',
   ai_node_summarized_title: 'Summarized Note',
   ai_node_project_plan_title: 'Project Plan',
