@@ -1,5 +1,95 @@
-# Firebase Studio
+# Idea Saver - AI-Powered Voice Notes
 
-This is a NextJS starter in Firebase Studio.
+Idea Saver is a modern Progressive Web App (PWA) designed to instantly capture your thoughts and ideas through voice notes. It leverages the power of generative AI to not only transcribe your recordings but also to organize, summarize, and expand upon them, turning fleeting thoughts into actionable plans.
 
-To get started, take a look at src/app/page.tsx.
+This application is built with a professional tech stack, featuring user authentication, free and pro tiers, and seamless cloud synchronization of your notes.
+
+## Key Features
+
+- **Voice Recording & Playback:** High-quality audio recording directly in the browser with a custom audio player for review.
+- **AI-Powered Transcription:** Fast and accurate multilingual transcription of your voice notes.
+- **AI-Powered Note Titling:** Automatically generate a concise, relevant title for each note.
+- **Editable Transcriptions:** Manually refine and correct transcriptions to ensure perfect accuracy.
+- **Shareable Notes:** Share individual note sections (like a summary or task list) or the entire bundle of generated content as a single text file.
+- **Secure Authentication:** User accounts handled securely by Firebase Authentication, with support for email/password and Google Sign-In.
+- **Free & Pro Tiers:** Provides a feature-rich free tier and unlocks advanced AI capabilities with a Pro subscription.
+- **PWA (Progressive Web App):** Installable on any device (desktop or mobile) for an app-like experience and offline capabilities.
+- **Light/Dark Mode:** A sleek, modern interface that adapts to your system's theme preference.
+
+### Pro Features
+- **AI Summarization:** Get a one-sentence summary of your note.
+- **AI Note Expansion:** Elaborate on your brief ideas, turning them into well-structured text.
+- **AI Project Plan Generation:** Transform a voice note into a formal project plan with goals, milestones, and risks.
+- **AI Task Extraction:** Automatically pull out a markdown-formatted to-do list from your transcription.
+- **Cloud Sync:** Securely save and sync all your notes and AI-generated content across devices using Firestore.
+
+## Tech Stack
+
+- **Framework:** Next.js (App Router)
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS with shadcn/ui components
+- **Authentication:** Firebase Authentication
+- **Database:** Firebase Firestore (for Pro users with Cloud Sync)
+- **Local Storage:** Browser's `localStorage` for offline access and non-Pro users.
+- **AI:** Google AI via Genkit
+
+## Getting Started
+
+Follow these instructions to set up and run the project locally.
+
+### 1. Prerequisites
+
+- Node.js (v18 or later)
+- npm or yarn
+
+### 2. Firebase Project Setup
+
+Before you begin, you need a Firebase project.
+
+1. Go to the [Firebase Console](https://console.firebase.google.com/).
+2. Click **Add project** and follow the on-screen instructions.
+3. Once your project is created, navigate to **Project settings** (the gear icon).
+4. Under the **General** tab, scroll down to **Your apps**.
+5. Click the Web icon (`</>`) to create a new web app.
+6. Give it a nickname and register the app.
+7. After registering, Firebase will provide you with a `firebaseConfig` object. You will need these values for the next step.
+8. From the sidebar, go to **Build > Authentication** and enable the **Email/Password** and **Google** sign-in providers.
+9. Go to **Build > Firestore Database** and create a database. Start in **test mode** for easy setup.
+
+### 3. Environment Variables
+
+Create a file named `.env` in the root of the project and add your Firebase configuration details.
+
+```env
+# Get these from your Firebase project settings
+NEXT_PUBLIC_FIREBASE_API_KEY=AIza...
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
+NEXT_PUBLIC_FIREBASE_APP_ID=1:...:web:...
+
+# This is your Google Cloud API key for Genkit AI features
+# Enable the "Vertex AI API" in your Google Cloud Console for the associated project
+GOOGLE_API_KEY=AIza...
+```
+
+### 4. Installation and Running
+
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   cd <repository-name>
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Run the development server:**
+   ```bash
+   npm run dev
+   ```
+
+The application will be available at `http://localhost:9002`.

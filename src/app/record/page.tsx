@@ -25,6 +25,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { marked } from 'marked';
+import DOMPurify from 'isomorphic-dompurify';
 
 
 type RecordingStatus = "idle" | "recording" | "reviewing" | "transcribing" | "naming" | "completed";
@@ -54,6 +56,10 @@ const motivationalQuotes = [
   "Experience notes like never before.",
 ];
 
+const createMarkup = (markdownText: string | null | undefined) => {
+    if (!markdownText) return { __html: '' };
+    return { __html: DOMPurify.sanitize(marked(markdownText) as string) };
+};
 
 function blobToDataUri(blob: Blob): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -925,7 +931,7 @@ export default function Home() {
                     ) : aiResult && (
                         <div className="relative h-full">
                             <ScrollArea className="h-full rounded-md border p-4 bg-muted/50 pr-12">
-                                <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert" dangerouslySetInnerHTML={{ __html: aiResult }}></div>
+                                <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert" dangerouslySetInnerHTML={createMarkup(aiResult)}></div>
                             </ScrollArea>
                              <div className="absolute top-2 right-2">
                                  <TooltipProvider>

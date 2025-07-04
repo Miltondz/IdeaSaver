@@ -21,7 +21,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useAuth } from "@/hooks/use-auth";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Textarea } from "@/components/ui/textarea";
+import { marked } from 'marked';
+import DOMPurify from 'isomorphic-dompurify';
 
+
+const createMarkup = (markdownText: string | null | undefined) => {
+    if (!markdownText) return { __html: '' };
+    return { __html: DOMPurify.sanitize(marked(markdownText) as string) };
+};
 
 export default function HistoryPage() {
   const [recordings, setRecordings] = useState<Recording[]>([]);
@@ -604,7 +611,7 @@ export default function HistoryPage() {
                           <AccordionTrigger className="font-semibold">Expanded Note</AccordionTrigger>
                           <AccordionContent>
                             <div className="relative">
-                              <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-24" dangerouslySetInnerHTML={{ __html: selectedRecording.expandedTranscription }}></div>
+                              <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-24" dangerouslySetInnerHTML={createMarkup(selectedRecording.expandedTranscription)}></div>
                               <div className="absolute top-2 right-2 flex items-center">
                                 <TooltipProvider>
                                     <Tooltip>
@@ -641,7 +648,7 @@ export default function HistoryPage() {
                           <AccordionTrigger className="font-semibold">Project Plan</AccordionTrigger>
                           <AccordionContent>
                             <div className="relative">
-                              <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-24" dangerouslySetInnerHTML={{ __html: selectedRecording.projectPlan }}></div>
+                              <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-24" dangerouslySetInnerHTML={createMarkup(selectedRecording.projectPlan)}></div>
                               <div className="absolute top-2 right-2 flex items-center">
                                  <TooltipProvider>
                                     <Tooltip>
@@ -678,7 +685,7 @@ export default function HistoryPage() {
                           <AccordionTrigger className="font-semibold">Action Items</AccordionTrigger>
                           <AccordionContent>
                             <div className="relative">
-                              <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-24" dangerouslySetInnerHTML={{ __html: selectedRecording.actionItems }}></div>
+                              <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-24" dangerouslySetInnerHTML={createMarkup(selectedRecording.actionItems)}></div>
                               <div className="absolute top-2 right-2 flex items-center">
                                  <TooltipProvider>
                                     <Tooltip>
@@ -792,7 +799,7 @@ export default function HistoryPage() {
                 ) : aiResult && (
                     <div className="relative h-full">
                         <ScrollArea className="h-full rounded-md border p-4 bg-muted/50 pr-12">
-                            <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert" dangerouslySetInnerHTML={{ __html: aiResult }}></div>
+                            <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert" dangerouslySetInnerHTML={createMarkup(aiResult)}></div>
                         </ScrollArea>
                          <div className="absolute top-2 right-2">
                              <TooltipProvider>
