@@ -76,6 +76,18 @@ export default function LoginPage() {
       case 'auth/invalid-api-key':
         message = 'Firebase API Key is invalid. Please check your configuration.';
         break;
+      case 'auth/popup-blocked':
+        message = 'Your browser blocked the sign-in popup. Please allow popups for this site.';
+        break;
+      case 'auth/popup-closed-by-user':
+        message = 'The sign-in window was closed. Please try again.';
+        break;
+      case 'auth/unauthorized-domain':
+        message = 'This domain is not authorized for Google Sign-In. Please check your Firebase console settings.';
+        break;
+      case 'auth/account-exists-with-different-credential':
+        message = 'An account already exists with this email, but with a different sign-in method (e.g., password). Try signing in with that method.';
+        break;
       default:
         console.error(error);
     }
