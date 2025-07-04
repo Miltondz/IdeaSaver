@@ -104,7 +104,7 @@ This section covers common issues you might encounter during setup and developme
 
 This is the most common setup issue. The error message "This domain is not authorized..." means that there's a mismatch between the domain you're running the app on (`localhost` for local development) and the settings in your Firebase/Google Cloud project.
 
-Based on the error toast in the app, you can confirm the `Project ID` and `Auth Domain` your app is trying to use. Ensure these values **exactly match** what you see in your Firebase Console.
+The error message in the app will tell you the exact **Project ID** it's trying to connect to. Make sure you are configuring the correct project in the Firebase Console.
 
 Follow these steps carefully to resolve it:
 
@@ -113,13 +113,13 @@ Follow these steps carefully to resolve it:
 This is the most direct cause. You must tell Firebase which domains are allowed to make authentication requests.
 
 1.  Go to the [Firebase Console](https://console.firebase.google.com/).
-2.  Select your project (e.g., `ideasaver-6560d`).
+2.  Select your project (e.g., `your-project-id`).
 3.  Navigate to **Build > Authentication** from the left-hand menu.
 4.  Go to the **Settings** tab.
 5.  Under the **Authorized domains** section, click **Add domain**.
 6.  Add `localhost` for local development.
 7.  If you have deployed your app, add your live domain as well (e.g., `your-app.web.app`).
-8.  **Important:** Make sure your project's auto-generated auth domain (like `ideasaver-6560d.firebaseapp.com`) is also in this list. It usually is by default.
+8.  **Important:** Make sure your project's auto-generated auth domain (like `your-project-id.firebaseapp.com`) is also in this list. It usually is by default.
 
 #### Step 2: Ensure Google Sign-In Provider is Enabled
 
@@ -132,7 +132,7 @@ This is the most direct cause. You must tell Firebase which domains are allowed 
 This is a critical but often missed step. Firebase Authentication uses Google Cloud behind the scenes.
 
 1.  Go to the [Google Cloud Console API & Services Credentials page](https://console.cloud.google.com/apis/credentials).
-2.  Make sure you have selected the correct Google Cloud project at the top of the page. It should be the same project as your Firebase project (e.g., `ideasaver-6560d`).
+2.  Make sure you have selected the correct Google Cloud project at the top of the page. It should be the same project as your Firebase project (e.g., `your-project-id`).
 3.  Click on the **OAuth consent screen** tab on the left.
 4.  If it's not configured, you'll need to set it up:
     *   Choose a **User Type**. For development, **External** is fine. Click **Create**.

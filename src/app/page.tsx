@@ -74,7 +74,7 @@ export default function LoginPage() {
         message = 'Password should be at least 6 characters.';
         break;
       case 'auth/invalid-api-key':
-        message = `Firebase API Key is invalid. Please check your .env configuration. The app is using Project ID: '${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'Not Set'}'.`;
+        message = `Your Firebase API Key is invalid. The app is configured with Project ID: '${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'Not Set'}'. Please check the API Key in your .env file matches the one from that project in the Firebase Console.`;
         break;
       case 'auth/popup-blocked':
         message = 'Your browser blocked the sign-in popup. Please allow popups for this site.';
@@ -83,7 +83,7 @@ export default function LoginPage() {
         message = 'The sign-in window was closed. Please try again.';
         break;
       case 'auth/unauthorized-domain':
-        message = `This domain is not authorized. Please add it to your Firebase project's authorized domains. The app is currently configured with Project ID: '${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'Not Set'}' and Auth Domain: '${process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'Not Set'}'.`;
+        message = `This domain isn't authorized. Your app is trying to connect to Project ID: '${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'Not Set'}'. Go to the Firebase Console for that specific project and add 'localhost' to the 'Authorized domains' list.`;
         break;
       case 'auth/account-exists-with-different-credential':
         message = 'An account already exists with this email, but with a different sign-in method (e.g., password). Try signing in with that method.';
