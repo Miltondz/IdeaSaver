@@ -134,14 +134,14 @@ This is a critical but often missed step. Firebase Authentication uses Google Cl
 1.  Go to the [Google Cloud Console API & Services Credentials page](https://console.cloud.google.com/apis/credentials).
 2.  Make sure you have selected the correct Google Cloud project at the top of the page. It should be the same project as your Firebase project (e.g., `your-project-id`).
 3.  Click on the **OAuth consent screen** tab on the left.
-4.  If it's not configured, you'll need to set it up:
+4.  If it's not configured, you'll see a button to **"Configure Consent Screen"**. Click it.
     *   Choose a **User Type**. For development, **External** is fine. Click **Create**.
     *   On the next screen, you **must** fill in the required fields:
         *   **App name:** (e.g., "Idea Saver")
         *   **User support email:** (Select your email address)
         *   **Developer contact information:** (Enter your email address at the bottom)
     *   Click **Save and Continue** through the "Scopes" and "Test users" steps. You don't need to add anything here for now.
-    *   Finally, go back to the dashboard and click **"Publish App"** to move it from "Testing" to "Production". While in testing, only registered test users can sign in. Publishing makes it available to any Google user. **This is the most common final step that is missed.** If your app is in "Testing", the sign-in will fail.
+    *   Finally, go back to the dashboard and click **"Publish App"** to move it from "Testing" to "Production". While in testing, only registered test users can sign in. Publishing makes it available to any Google user. **This is the most common final step that is missed.** If your app is in "Testing", the sign-in will fail unless you've added your account as a test user.
 
 #### Step 4: Final Checks
 
