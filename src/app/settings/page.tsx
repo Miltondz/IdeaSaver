@@ -210,11 +210,11 @@ export default function SettingsPage() {
                         <Switch id="cloud-sync" checked={settings.cloudSyncEnabled} onCheckedChange={(checked) => updateSetting('cloudSyncEnabled', checked)} disabled={!settings.isPro}/>
                         <Label htmlFor="cloud-sync">{t('settings_enable_cloud_sync')}</Label>
                     </div>
-                    {settings.cloudSyncEnabled && (
-                    <div className="flex items-center space-x-2 pl-4" style={{ opacity: !settings.isPro ? 0.5 : 1 }}>
-                        <Checkbox id="auto-send" checked={settings.autoCloudSync} onCheckedChange={(checked) => updateSetting('autoCloudSync', !!checked)} disabled={!settings.isPro} />
-                        <Label htmlFor="auto-send">{t('settings_auto_save_cloud')}</Label>
-                    </div>
+                    {settings.cloudSyncEnabled && settings.isPro && (
+                      <div className="flex items-center space-x-2 pl-4">
+                          <Checkbox id="auto-send" checked={settings.autoCloudSync} onCheckedChange={(checked) => updateSetting('autoCloudSync', !!checked)} />
+                          <Label htmlFor="auto-send">{t('settings_auto_save_cloud')}</Label>
+                      </div>
                     )}
                 </div>
             </fieldset>
