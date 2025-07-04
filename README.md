@@ -98,8 +98,52 @@ The application will be available at `http://localhost:9002`.
 
 ## Troubleshooting
 
-### Google Sign-In Fails: "domain not authorized"
-If you see an error message like "This domain is not authorized for Google Sign-In", it means you haven't authorized the domain you're running the app from.
+This section covers common issues you might encounter during setup and development.
 
-- **For local development:** Go to your Firebase Console → Authentication → Settings → Authorized domains and add `localhost`.
-- **For a deployed app:** You must add your live domain (e.g., `your-app-name.web.app` or `your-custom-domain.com`) to the same list.
+### Google Sign-In Fails with "auth/unauthorized-domain"
+
+This is the most common setup issue. The error message "This domain is not authorized..." means that there's a mismatch between the domain you're running the app on (`localhost` for local development) and the settings in your Firebase/Google Cloud project.
+
+Based on the error toast in the app, you can confirm the `Project ID` and `Auth Domain` your app is trying to use. Ensure these values **exactly match** what you see in your Firebase Console.
+
+Follow these steps carefully to resolve it:
+
+#### Step 1: Check Authorized Domains in Firebase
+
+This is the most direct cause. You must tell Firebase which domains are allowed to make authentication requests.
+
+1.  Go to the [Firebase Console](https://console.firebase.google.com/).
+2.  Select your project (e.g., `ideasaver-6560d`).
+3.  Navigate to **Build > Authentication** from the left-hand menu.
+4.  Go to the **Settings** tab.
+5.  Under the **Authorized domains** section, click **Add domain**.
+6.  Add `localhost` for local development.
+7.  If you have deployed your app, add your live domain as well (e.g., `your-app.web.app`).
+8.  **Important:** Make sure your project's auto-generated auth domain (like `ideasaver-6560d.firebaseapp.com`) is also in this list. It usually is by default.
+
+#### Step 2: Ensure Google Sign-In Provider is Enabled
+
+1.  In the same **Authentication** section, go to the **Sign-in method** tab.
+2.  Find **Google** in the list of providers.
+3.  Make sure it is **Enabled**. If it's disabled, click on it, enable the toggle, and provide a project support email. Click **Save**.
+
+#### Step 3: Configure the OAuth Consent Screen (Very Common Issue)
+
+This is a critical but often missed step. Firebase Authentication uses Google Cloud behind the scenes.
+
+1.  Go to the [Google Cloud Console API & Services Credentials page](https://console.cloud.google.com/apis/credentials).
+2.  Make sure you have selected the correct Google Cloud project at the top of the page. It should be the same project as your Firebase project (e.g., `ideasaver-6560d`).
+3.  Click on the **OAuth consent screen** tab on the left.
+4.  If it's not configured, you'll need to set it up:
+    *   Choose a **User Type**. For development, **External** is fine. Click **Create**.
+    *   On the next screen, you **must** fill in the required fields:
+        *   **App name:** (e.g., "Idea Saver")
+        *   **User support email:** (Select your email address)
+        *   **Developer contact information:** (Enter your email address at the bottom)
+    *   Click **Save and Continue** through the "Scopes" and "Test users" steps. You don't need to add anything here for now.
+    *   Finally, go back to the dashboard and click **"Publish App"** to move it from "Testing" to "Production". While in testing, only registered test users can sign in. Publishing makes it available to any Google user.
+
+#### Step 4: Final Checks
+
+- **Clear Browser Cache:** Sometimes your browser can cache old settings. Try clearing your browser's cache and cookies, or open the app in an Incognito/Private window.
+- **Restart Development Server:** After making changes to your `.env` file, always stop and restart your `npm run dev` server to ensure the new variables are loaded.
