@@ -83,7 +83,7 @@ export default function LoginPage() {
         message = 'The sign-in window was closed. Please try again.';
         break;
       case 'auth/unauthorized-domain':
-        message = `This domain isn't authorized. Your app is trying to connect to Project ID: '${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'Not Set'}'. Go to the Firebase Console for that specific project and add 'localhost' to the 'Authorized domains' list.`;
+        message = `This domain isn't authorized. Your app is trying to connect to Project ID: '${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'Not Set'}'. Since 'localhost' is likely authorized, the most common cause is an unconfigured OAuth consent screen in Google Cloud. Please see the Troubleshooting section in README.md for detailed steps to fix this.`;
         break;
       case 'auth/account-exists-with-different-credential':
         message = 'An account already exists with this email, but with a different sign-in method (e.g., password). Try signing in with that method.';
