@@ -2,7 +2,6 @@
 import React, { useRef, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { useTheme } from 'next-themes';
 
 const vertexShader = `
 varying vec2 vUv;
@@ -20,9 +19,6 @@ precision highp float;
 varying vec2 vUv;
 uniform float time;
 uniform vec4 resolution;
-uniform vec3 color1;
-uniform vec3 color2;
-uniform vec3 color3;
 
 float PI = 3.141592653589793238;
 
@@ -95,10 +91,7 @@ float rayMarch(vec3 rayOrigin, vec3 ray) {
 void main() {
     vec2 newUV = (vUv - vec2(0.5)) * resolution.zw + vec2(0.5);
     vec3 cameraPos = vec3(0.0, 0.0, 5.0);
-    vec3 ray = normalize(vec3((vUv - vec2(0.5)) * resolution.zw, -1));
-    
-    vec3 backgroundColor = vec3(0.0);
-    vec3 finalColor = backgroundColor;
+    vec3 ray = normalize(vec3((vUv - vec2(0.5)) * resolution.zw, -1.0));
     
     float t = rayMarch(cameraPos, ray);
     if (t > 0.0) {
@@ -106,43 +99,29 @@ void main() {
         vec3 normal = getNormal(p);
         float fresnel = pow(1.0 + dot(ray, normal), 3.0);
         
-        vec3 baseColor = mix(color1, color2, smoothstep(-0.5, 0.5, p.x));
-        baseColor = mix(baseColor, color3, smoothstep(0.0, 1.0, p.y));
-
-        finalColor = baseColor * fresnel;
+        vec3 color1 = vec3(0.1, 0.2, 0.8);
+        vec3 color2 = vec3(0.8, 0.2, 0.5);
+        vec3 color3 = vec3(0.2, 0.8, 0.6);
+        
+        vec3 baseColor = mix(color1, color2, smoothstep(-0.5, 0.5, p.x + sin(time * 0.5) * 0.2));
+        baseColor = mix(baseColor, color3, smoothstep(0.0, 1.0, p.y + cos(time * 0.5) * 0.2));
+        
+        vec3 finalColor = baseColor * fresnel;
+        gl_FragColor = vec4(finalColor, 1.0);
+    } else {
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
     }
-
-    gl_FragColor = vec4(finalColor, 1.0);
 }
 `;
 
 function LavaLampShader() {
   const meshRef = useRef<THREE.Mesh>(null!);
   const { size } = useThree();
-  const { resolvedTheme } = useTheme();
   
   const uniforms = useMemo(() => ({
     time: { value: 0 },
-    resolution: { value: new THREE.Vector4() },
-    color1: { value: new THREE.Color('hsl(262, 84%, 58%)') }, // Primary
-    color2: { value: new THREE.Color('hsl(170, 80%, 30%)') }, // Accent
-    color3: { value: new THREE.Color('hsl(175, 70%, 12%)') }, // Dark Background
+    resolution: { value: new THREE.Vector4() }
   }), []);
-
-  React.useEffect(() => {
-    // This effect runs on theme change and on initial mount
-    const computedStyle = getComputedStyle(document.documentElement);
-    const primary = computedStyle.getPropertyValue('--primary').trim();
-    const accent = computedStyle.getPropertyValue('--accent').trim();
-    const bg = computedStyle.getPropertyValue('--background').trim();
-    
-    if(meshRef.current) {
-        (meshRef.current.material as THREE.ShaderMaterial).uniforms.color1.value.set(`hsl(${primary})`);
-        (meshRef.current.material as THREE.ShaderMaterial).uniforms.color2.value.set(`hsl(${accent})`);
-        (meshRef.current.material as THREE.ShaderMaterial).uniforms.color3.value.set(`hsl(${bg})`);
-    }
-
-  }, [resolvedTheme, uniforms]);
 
   React.useEffect(() => {
     const { width, height } = size;
@@ -160,7 +139,7 @@ function LavaLampShader() {
     if (meshRef.current) {
       (meshRef.current.material as THREE.ShaderMaterial).uniforms.resolution.value.set(width, height, a1, a2);
     }
-  }, [size]);
+  }, [size, uniforms]);
 
   useFrame((state) => {
     if (meshRef.current) {
@@ -194,7 +173,7 @@ export const LavaLamp = () => {
           position: [0, 0, 2]
         }}
         orthographic
-        gl={{ antialias: true }}
+        gl={{ antialias: true, alpha: true }}
       >
         <LavaLampShader />
       </Canvas>
