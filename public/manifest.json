@@ -1,0 +1,16 @@
+{
+  "name": "Idea Saver",
+  "short_name": "Idea Saver",
+  "description": "Quickly capture and transcribe your ideas.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f5f7",
+  "theme_color": "#6f29ef",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
