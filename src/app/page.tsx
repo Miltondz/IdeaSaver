@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -82,7 +83,7 @@ export default function LoginPage() {
         message = 'The sign-in window was closed. Please try again.';
         break;
       case 'auth/unauthorized-domain':
-        message = `This domain is not authorized. Please check your Firebase console. The app is configured with Auth Domain: '${process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'Not Set'}'. Make sure this matches an authorized domain.`;
+        message = `This domain is not authorized. Please add it to your Firebase project's authorized domains. The app is currently configured with Project ID: '${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'Not Set'}' and Auth Domain: '${process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'Not Set'}'.`;
         break;
       case 'auth/account-exists-with-different-credential':
         message = 'An account already exists with this email, but with a different sign-in method (e.g., password). Try signing in with that method.';
