@@ -50,7 +50,12 @@ export default function SettingsPage() {
   
   const updateSetting = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     if (!settings) return;
-    setSettings(prev => prev ? ({ ...prev, [key]: value }) : null);
+    const newSettings = { ...settings, [key]: value };
+    // If cloud sync is turned off, also turn off auto-sync
+    if (key === 'cloudSyncEnabled' && !value) {
+      newSettings.autoCloudSync = false;
+    }
+    setSettings(newSettings);
   };
 
   const refreshLocalRecordings = useCallback(() => {
@@ -100,7 +105,7 @@ export default function SettingsPage() {
   if (!user || !settings) {
     return (
         <div className="container mx-auto p-4 pt-8 flex justify-center">
-            <Card className="w-full max-w-2xl">
+            <Card className="w-full max-w-2xl bg-card/80 backdrop-blur-sm">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Settings className="h-6 w-6" />
@@ -119,7 +124,7 @@ export default function SettingsPage() {
   return (
     <div className="container mx-auto p-4 pt-8 flex flex-col items-center">
       {user.email === 'mdvoid@gmail.com' && (
-         <Card className="w-full max-w-2xl mb-8 border-blue-500/50">
+         <Card className="w-full max-w-2xl mb-8 border-blue-500/50 bg-card/80 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
               <LayoutDashboard className="h-6 w-6" />
@@ -168,7 +173,7 @@ export default function SettingsPage() {
         </Card>
       )}
 
-      <Card className="w-full max-w-2xl">
+      <Card className="w-full max-w-2xl bg-card/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Settings className="h-6 w-6" />
@@ -210,7 +215,7 @@ export default function SettingsPage() {
                         <Switch id="cloud-sync" checked={settings.cloudSyncEnabled} onCheckedChange={(checked) => updateSetting('cloudSyncEnabled', checked)} disabled={!settings.isPro}/>
                         <Label htmlFor="cloud-sync">{t('settings_enable_cloud_sync')}</Label>
                     </div>
-                    {settings.cloudSyncEnabled && settings.isPro && (
+                    {settings.isPro && settings.cloudSyncEnabled && (
                       <div className="flex items-center space-x-2 pl-4">
                           <Checkbox id="auto-send" checked={settings.autoCloudSync} onCheckedChange={(checked) => updateSetting('autoCloudSync', !!checked)} />
                           <Label htmlFor="auto-send">{t('settings_auto_save_cloud')}</Label>
@@ -261,7 +266,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card className="w-full max-w-2xl mt-8">
+      <Card className="w-full max-w-2xl mt-8 bg-card/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Archive className="h-5 w-5" /> {t('settings_local_storage')}

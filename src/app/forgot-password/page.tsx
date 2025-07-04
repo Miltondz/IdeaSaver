@@ -59,7 +59,7 @@ export default function ForgotPasswordPage() {
         </div>
         <h1 className="text-3xl font-bold">{t('appName')}</h1>
       </div>
-      <Card className="w-full max-w-sm">
+      <Card className="w-full max-w-sm bg-card/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle>{t('forgot_password_title')}</CardTitle>
           <CardDescription>

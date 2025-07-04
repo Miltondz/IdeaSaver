@@ -80,7 +80,7 @@ export default function PricingPage() {
       </div>
 
       <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-        <Card className="flex flex-col">
+        <Card className="flex flex-col bg-card/80 backdrop-blur-sm">
           <CardHeader>
             <CardTitle>{t('pricing_free_plan_title')}</CardTitle>
             <CardDescription>{t('pricing_free_plan_desc')}</CardDescription>
@@ -103,7 +103,7 @@ export default function PricingPage() {
             </Button>
           </CardFooter>
         </Card>
-        <Card className="border-primary flex flex-col">
+        <Card className="border-primary flex flex-col bg-card/80 backdrop-blur-sm">
           <CardHeader>
             <div className="flex justify-between items-center">
                 <CardTitle>{t('pricing_pro_plan_title')}</CardTitle>

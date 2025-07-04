@@ -15,7 +15,7 @@ export default function TermsOfServicePage() {
             </Link>
         </Button>
       </div>
-      <Card className="shadow-lg">
+      <Card className="bg-card/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="text-3xl">Terms of Service</CardTitle>
         </CardHeader>

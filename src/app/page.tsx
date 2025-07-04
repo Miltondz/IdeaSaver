@@ -12,7 +12,6 @@ import { Lightbulb, Loader2 } from 'lucide-react';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { auth, firebaseConfigError } from '@/lib/firebase';
-import { saveSettings } from '@/lib/storage';
 import { useLanguage } from '@/hooks/use-language';
 import { LanguageToggle } from '@/components/language-toggle';
 
@@ -31,7 +30,7 @@ export default function LoginPage() {
   if (firebaseConfigError) {
     return (
        <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-        <Card className="w-full max-w-lg text-center p-8 border-destructive">
+        <Card className="w-full max-w-lg text-center p-8 border-destructive bg-card/80 backdrop-blur-sm">
             <CardHeader>
                 <CardTitle className="text-destructive">Configuration Error</CardTitle>
                 <CardDescription className="text-destructive/90">
@@ -179,7 +178,7 @@ export default function LoginPage() {
             <TabsTrigger value="signup" disabled={isLoading}>{t('login_signup_tab')}</TabsTrigger>
         </TabsList>
         <TabsContent value="signin">
-          <Card>
+          <Card className="bg-card/80 backdrop-blur-sm">
             <CardHeader>
               <CardTitle>{t('login_signin_title')}</CardTitle>
               <CardDescription>
@@ -211,7 +210,7 @@ export default function LoginPage() {
           </Card>
         </TabsContent>
         <TabsContent value="signup">
-          <Card>
+          <Card className="bg-card/80 backdrop-blur-sm">
             <CardHeader>
               <CardTitle>{t('login_signup_title')}</CardTitle>
               <CardDescription>

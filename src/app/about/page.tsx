@@ -10,7 +10,7 @@ export default function AboutPage() {
   const { t } = useLanguage();
   return (
     <div className="container mx-auto p-4 pt-8 max-w-2xl">
-      <Card className="shadow-lg border-primary/20">
+      <Card className="bg-card/80 backdrop-blur-sm">
         <CardHeader className="items-center text-center p-8">
           <CardTitle className="text-3xl">Milton Diaz</CardTitle>
           <CardDescription className="text-lg text-muted-foreground pt-1">{t('about_title')}</CardDescription>
