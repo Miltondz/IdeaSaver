@@ -182,7 +182,7 @@ export default function LoginPage() {
               </Button>
             </CardContent>
             <CardFooter className="flex-col items-center justify-center text-center text-sm gap-2 pt-4">
-                <Link href="#" className="text-sm text-muted-foreground underline hover:text-foreground">
+                <Link href="/forgot-password" className="text-sm text-muted-foreground underline hover:text-foreground">
                     Forgot Password?
                 </Link>
                 <div className="text-muted-foreground">
