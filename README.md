@@ -145,9 +145,13 @@ This is a critical but often missed step. Firebase Authentication uses Google Cl
     *   Click **Save and Continue**. The next pages are "Scopes" and "Test Users". You can skip these and continue clicking "Save and Continue". You do not need to add any scopes or test users.
     *   On the final "Summary" page, you might be asked for "Información adicional" (Additional Information) for verification purposes. **You can leave this section blank.** This app only requests basic profile information and does not require Google's formal verification process.
     *   **Verification Questionnaire:** You may be presented with a "Cuestionario de verificación" (Verification Questionnaire). You should answer **No** to all questions. The app is intended for public use, not for personal, internal, or specific plugin use.
-    *   Finally, go back to the dashboard and click **"Publish App"** to move it from "Testing" to "Production". While in testing, only registered test users can sign in. Publishing makes it available to any Google user. **This is the most common final step that is missed.** If your app is in "Testing", the sign-in will fail unless you've added your account as a test user.
+    *   Finally, go back to the dashboard and click **"Publish App"** to move it from "Testing" to "Production". While in testing, only registered test users can sign in. Publishing makes it available to any Google user. **This is the most common final step that is missed.** If your app is in "Testing", the sign-in will fail for any user not on your explicit "Test Users" list.
+
+        **Important:** Don't worry, "publishing" here doesn't submit your app for a lengthy review or list it in a public marketplace. It simply means that any Google user is *allowed* to sign in, which is necessary for anyone (including your first test users) to use the app. You must switch to "Production" to test with real users.
 
 #### Step 4: Final Checks
 
 - **Clear Browser Cache:** Sometimes your browser can cache old settings. Try clearing your browser's cache and cookies, or open the app in an Incognito/Private window.
 - **Restart Development Server:** After making changes to your `.env` file, always stop and restart your `npm run dev` server to ensure the new variables are loaded.
+
+```
