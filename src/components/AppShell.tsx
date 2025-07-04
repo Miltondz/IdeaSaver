@@ -36,7 +36,6 @@ function ThemeToggle() {
 
 function Header() {
     const pathname = usePathname();
-    const router = useRouter();
     const { toast } = useToast();
     const [open, setOpen] = React.useState(false);
     const { user } = useAuth();
@@ -66,7 +65,6 @@ function Header() {
       try {
         await signOut(auth);
         toast({ title: t('logout_success_title'), description: t('logout_success_desc') });
-        router.push('/');
       } catch (error) {
         toast({ variant: 'destructive', title: t('logout_fail_title'), description: t('logout_fail_desc') });
       }

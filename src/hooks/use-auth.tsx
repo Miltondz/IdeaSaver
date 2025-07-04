@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // --- Logged out user routing ---
             if (!user) {
                 if (!publicPages.includes(pathname)) {
-                    router.push('/');
+                    if (pathname !== '/') router.push('/');
                 }
                 return;
             }
@@ -47,17 +47,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const isPricingPage = pathname === '/pricing';
 
             if (settings.planSelected) {
-                // User has completed onboarding, redirect them to the app if they land on auth/pricing pages.
+                // User has completed onboarding, redirect them from auth/pricing pages.
                 if (isAuthPage || isPricingPage) {
-                    router.push('/record');
+                    if (pathname !== '/record') router.push('/record');
                 }
             } else {
                 // User has NOT completed onboarding. They must select a plan.
-                // This happens right after signup.
                 if (!isPricingPage && !isAuthPage) {
                     // If they try to navigate anywhere else (e.g. /history), force them to /pricing.
                     // We allow isAuthPage to prevent a redirect loop immediately after signup.
-                    router.push('/pricing');
+                    if (pathname !== '/pricing') router.push('/pricing');
                 }
             }
         };
