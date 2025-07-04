@@ -13,6 +13,8 @@ import { getRecordings, deleteRecording as deleteRecordingFromStorage, getSettin
 import type { Recording } from "@/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import { transcribeVoiceNote } from "@/ai/flows/transcribe-voice-note";
+import { nameTranscription } from "@/ai/flows/name-transcription-flow";
 import { expandNote } from "@/ai/flows/expand-note-flow";
 import { summarizeNote } from "@/ai/flows/summarize-note-flow";
 import { expandAsProject } from "@/ai/flows/expand-as-project-flow";
@@ -42,6 +44,7 @@ export default function HistoryPage() {
   // AI Action State
   const [aiAction, setAiAction] = useState<'expand' | 'summarize' | 'expand-as-project' | 'extract-tasks' | null>(null);
   const [isProcessingAi, setIsProcessingAi] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [aiResult, setAiResult] = useState<string | null>(null);
   const [noteForAi, setNoteForAi] = useState<Recording | null>(null);
   const [confirmationAction, setConfirmationAction] = useState<{ action: () => void; title: string; description: string; } | null>(null);
@@ -212,6 +215,38 @@ export default function HistoryPage() {
     if (!text) return;
     const cleanText = text.replace(/<[^>]*>?/gm, '');
     await shareContent({ title, text: cleanText });
+  };
+
+  const proceedWithTranscribe = async (recording: Recording) => {
+    if (!user || !settings || !recording.audioDataUri) return;
+    setIsTranscribing(true);
+    if (!settings.isPro) deductCredit();
+
+    try {
+        const transcribeResult = await transcribeVoiceNote({ audioDataUri: recording.audioDataUri, aiModel: settings.aiModel });
+        const nameResult = await nameTranscription({ transcription: transcribeResult.transcription, aiModel: settings.aiModel });
+
+        const updatedRec = {
+            ...recording,
+            transcription: transcribeResult.transcription,
+            name: nameResult.name,
+        };
+
+        await updateRecording(updatedRec, user.uid);
+        refreshRecordings();
+        setSelectedRecording(updatedRec);
+        setEditableTranscription(updatedRec.transcription);
+        toast({ title: "Note transcribed and saved!" });
+    } catch (err) {
+        console.error("Transcription from history failed:", err);
+        toast({ variant: "destructive", title: "Transcription Failed", description: "Could not transcribe the note." });
+    } finally {
+        setIsTranscribing(false);
+    }
+  };
+
+  const handleTranscribeFromHistory = (recording: Recording) => {
+    handleAiActionClick(() => proceedWithTranscribe(recording));
   };
 
   const proceedWithExpand = (recording: Recording) => {
@@ -448,7 +483,11 @@ export default function HistoryPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex-1">
-                  <p className="text-muted-foreground line-clamp-3">{rec.summary || rec.transcription}</p>
+                  {rec.transcription ? (
+                    <p className="text-muted-foreground line-clamp-3">{rec.summary || rec.transcription}</p>
+                  ) : (
+                    <p className="text-muted-foreground italic">Audio note, not yet transcribed.</p>
+                  )}
                 </CardContent>
                 <CardFooter className="flex justify-between items-center">
                     <div className="flex gap-1 flex-wrap">
@@ -461,46 +500,50 @@ export default function HistoryPage() {
                                 </TooltipTrigger>
                                 <TooltipContent><p>View Details</p></TooltipContent>
                             </Tooltip>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleSimpleShare(rec)}>
-                                    <Share2 className="h-4 w-4" />
-                                </Button>
-                                </TooltipTrigger>
-                                <TooltipContent><p>Share Note</p></TooltipContent>
-                            </Tooltip>
-                             <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleSummarizeClick(rec)} disabled={!settings.isPro && settings.aiCredits < 1}>
-                                        <Sparkles className="h-4 w-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent><p>{settings.isPro ? "Summarize with AI" : `Summarize with AI (${settings.aiCredits} credits left)`}</p></TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExpandClick(rec)} disabled={!settings.isPro && settings.aiCredits < 1}>
-                                        <BrainCircuit className="h-4 w-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent><p>{settings.isPro ? "Expand with AI" : `Expand with AI (${settings.aiCredits} credits left)`}</p></TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExpandAsProjectClick(rec)} disabled={!settings.isPro && settings.aiCredits < 1}>
-                                        <FolderKanban className="h-4 w-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent><p>{settings.isPro ? "Expand as Project" : `Expand as Project (${settings.aiCredits} credits left)`}</p></TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExtractTasksClick(rec)} disabled={!settings.isPro && settings.aiCredits < 1}>
-                                        <ListTodo className="h-4 w-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent><p>{settings.isPro ? "Extract Tasks" : `Extract Tasks (${settings.aiCredits} credits left)`}</p></TooltipContent>
-                            </Tooltip>
+                             {rec.transcription && (
+                                <>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleSimpleShare(rec)}>
+                                            <Share2 className="h-4 w-4" />
+                                        </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>Share Note</p></TooltipContent>
+                                    </Tooltip>
+                                     <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleSummarizeClick(rec)} disabled={!settings.isPro && settings.aiCredits < 1}>
+                                                <Sparkles className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>{settings.isPro ? "Summarize with AI" : `Summarize with AI (${settings.aiCredits} credits left)`}</p></TooltipContent>
+                                    </Tooltip>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExpandClick(rec)} disabled={!settings.isPro && settings.aiCredits < 1}>
+                                                <BrainCircuit className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>{settings.isPro ? "Expand with AI" : `Expand with AI (${settings.aiCredits} credits left)`}</p></TooltipContent>
+                                    </Tooltip>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExpandAsProjectClick(rec)} disabled={!settings.isPro && settings.aiCredits < 1}>
+                                                <FolderKanban className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>{settings.isPro ? "Expand as Project" : `Expand as Project (${settings.aiCredits} credits left)`}</p></TooltipContent>
+                                    </Tooltip>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExtractTasksClick(rec)} disabled={!settings.isPro && settings.aiCredits < 1}>
+                                                <ListTodo className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>{settings.isPro ? "Extract Tasks" : `Extract Tasks (${settings.aiCredits} credits left)`}</p></TooltipContent>
+                                    </Tooltip>
+                                </>
+                            )}
                         </TooltipProvider>
                     </div>
                     <AlertDialog>
@@ -553,262 +596,283 @@ export default function HistoryPage() {
                       )}
                   </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-semibold">Transcription</h3>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleSaveTranscription}
-                          disabled={isSaving || !selectedRecording || editableTranscription === selectedRecording.transcription}
-                        >
-                          {isSaving ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
-                          Save
-                        </Button>
-                         <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                               <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleShareSection(selectedRecording.name, editableTranscription)}>
-                                  <Share2 className="h-4 w-4" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent><p>Share Transcription</p></TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8"
-                                onClick={() => handleCopyToClipboard(editableTranscription, 'details-transcription')}
-                              >
-                                {copiedStates['details-transcription'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent><p>Copy</p></TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                  {selectedRecording.transcription ? (
+                    <>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-semibold">Transcription</h3>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleSaveTranscription}
+                              disabled={isSaving || !selectedRecording || editableTranscription === selectedRecording.transcription}
+                            >
+                              {isSaving ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
+                              Save
+                            </Button>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleShareSection(selectedRecording.name, editableTranscription)}>
+                                      <Share2 className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Share Transcription</p></TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8"
+                                    onClick={() => handleCopyToClipboard(editableTranscription, 'details-transcription')}
+                                  >
+                                    {copiedStates['details-transcription'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Copy</p></TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </div>
+                        <Textarea
+                          value={editableTranscription}
+                          onChange={(e) => setEditableTranscription(e.target.value)}
+                          className="h-40 min-h-[160px] bg-muted/50 border-primary/20 focus-visible:ring-primary/50 resize-y"
+                          placeholder="Your transcription appears here..."
+                        />
                       </div>
-                    </div>
-                    <Textarea
-                      value={editableTranscription}
-                      onChange={(e) => setEditableTranscription(e.target.value)}
-                      className="h-40 min-h-[160px] bg-muted/50 border-primary/20 focus-visible:ring-primary/50 resize-y"
-                      placeholder="Your transcription appears here..."
-                    />
-                  </div>
 
 
-                  {(selectedRecording.summary || selectedRecording.expandedTranscription || selectedRecording.projectPlan || selectedRecording.actionItems) && (
-                    <Accordion type="multiple" className="w-full">
-                      {selectedRecording.summary && (
-                        <AccordionItem value="summary">
-                          <AccordionTrigger className="font-semibold">Summary</AccordionTrigger>
-                          <AccordionContent>
-                            <div className="relative">
-                              <p className="text-foreground/90 whitespace-pre-wrap bg-muted/50 rounded-md p-4 pr-24 border">{selectedRecording.summary}</p>
-                              <div className="absolute top-2 right-2 flex items-center">
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <Button size="icon" variant="ghost" className="h-8 w-8 bg-background/50 hover:bg-background" onClick={() => handleShareSection(`${selectedRecording.name} - Summary`, selectedRecording.summary)}>
-                                              <Share2 className="h-4 w-4" />
-                                          </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent><p>Share Summary</p></TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                className="h-8 w-8 bg-background/50 hover:bg-background"
-                                                onClick={() => handleCopyToClipboard(selectedRecording.summary, 'details-summary')}
-                                            >
-                                                {copiedStates['details-summary'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent><p>Copy</p></TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                              </div>
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
+                      {(selectedRecording.summary || selectedRecording.expandedTranscription || selectedRecording.projectPlan || selectedRecording.actionItems) && (
+                        <Accordion type="multiple" className="w-full">
+                          {selectedRecording.summary && (
+                            <AccordionItem value="summary">
+                              <AccordionTrigger className="font-semibold">Summary</AccordionTrigger>
+                              <AccordionContent>
+                                <div className="relative">
+                                  <p className="text-foreground/90 whitespace-pre-wrap bg-muted/50 rounded-md p-4 pr-24 border">{selectedRecording.summary}</p>
+                                  <div className="absolute top-2 right-2 flex items-center">
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Button size="icon" variant="ghost" className="h-8 w-8 bg-background/50 hover:bg-background" onClick={() => handleShareSection(`${selectedRecording.name} - Summary`, selectedRecording.summary)}>
+                                                  <Share2 className="h-4 w-4" />
+                                              </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent><p>Share Summary</p></TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    className="h-8 w-8 bg-background/50 hover:bg-background"
+                                                    onClick={() => handleCopyToClipboard(selectedRecording.summary, 'details-summary')}
+                                                >
+                                                    {copiedStates['details-summary'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent><p>Copy</p></TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                  </div>
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+                          )}
+                          {selectedRecording.expandedTranscription && (
+                            <AccordionItem value="expanded">
+                              <AccordionTrigger className="font-semibold">Expanded Note</AccordionTrigger>
+                              <AccordionContent>
+                                <div className="relative">
+                                  <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-24" dangerouslySetInnerHTML={createMarkup(selectedRecording.expandedTranscription)}></div>
+                                  <div className="absolute top-2 right-2 flex items-center">
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Button size="icon" variant="ghost" className="h-8 w-8 bg-background/50 hover:bg-background" onClick={() => handleShareSection(`${selectedRecording.name} - Expanded Note`, selectedRecording.expandedTranscription)}>
+                                                  <Share2 className="h-4 w-4" />
+                                              </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent><p>Share Expanded Note</p></TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    className="h-8 w-8 bg-background/50 hover:bg-background"
+                                                    onClick={() => handleCopyToClipboard(selectedRecording.expandedTranscription, 'details-expanded')}
+                                                >
+                                                    {copiedStates['details-expanded'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent><p>Copy</p></TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                  </div>
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+                          )}
+                          {selectedRecording.projectPlan && (
+                            <AccordionItem value="project">
+                              <AccordionTrigger className="font-semibold">Project Plan</AccordionTrigger>
+                              <AccordionContent>
+                                <div className="relative">
+                                  <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-24" dangerouslySetInnerHTML={createMarkup(selectedRecording.projectPlan)}></div>
+                                  <div className="absolute top-2 right-2 flex items-center">
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Button size="icon" variant="ghost" className="h-8 w-8 bg-background/50 hover:bg-background" onClick={() => handleShareSection(`${selectedRecording.name} - Project Plan`, selectedRecording.projectPlan)}>
+                                                  <Share2 className="h-4 w-4" />
+                                              </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent><p>Share Project Plan</p></TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    className="h-8 w-8 bg-background/50 hover:bg-background"
+                                                    onClick={() => handleCopyToClipboard(selectedRecording.projectPlan, 'details-project')}
+                                                >
+                                                    {copiedStates['details-project'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent><p>Copy</p></TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                  </div>
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+                          )}
+                          {selectedRecording.actionItems && (
+                            <AccordionItem value="tasks">
+                              <AccordionTrigger className="font-semibold">Action Items</AccordionTrigger>
+                              <AccordionContent>
+                                <div className="relative">
+                                  <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-24" dangerouslySetInnerHTML={createMarkup(selectedRecording.actionItems)}></div>
+                                  <div className="absolute top-2 right-2 flex items-center">
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Button size="icon" variant="ghost" className="h-8 w-8 bg-background/50 hover:bg-background" onClick={() => handleShareSection(`${selectedRecording.name} - Action Items`, selectedRecording.actionItems)}>
+                                                  <Share2 className="h-4 w-4" />
+                                              </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent><p>Share Action Items</p></TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    className="h-8 w-8 bg-background/50 hover:bg-background"
+                                                    onClick={() => handleCopyToClipboard(selectedRecording.actionItems, 'details-tasks')}
+                                                >
+                                                    {copiedStates['details-tasks'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent><p>Copy</p></TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                  </div>
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+                          )}
+                        </Accordion>
                       )}
-                      {selectedRecording.expandedTranscription && (
-                        <AccordionItem value="expanded">
-                          <AccordionTrigger className="font-semibold">Expanded Note</AccordionTrigger>
-                          <AccordionContent>
-                            <div className="relative">
-                              <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-24" dangerouslySetInnerHTML={createMarkup(selectedRecording.expandedTranscription)}></div>
-                              <div className="absolute top-2 right-2 flex items-center">
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <Button size="icon" variant="ghost" className="h-8 w-8 bg-background/50 hover:bg-background" onClick={() => handleShareSection(`${selectedRecording.name} - Expanded Note`, selectedRecording.expandedTranscription)}>
-                                              <Share2 className="h-4 w-4" />
-                                          </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent><p>Share Expanded Note</p></TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                className="h-8 w-8 bg-background/50 hover:bg-background"
-                                                onClick={() => handleCopyToClipboard(selectedRecording.expandedTranscription, 'details-expanded')}
-                                            >
-                                                {copiedStates['details-expanded'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent><p>Copy</p></TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                              </div>
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-                      )}
-                      {selectedRecording.projectPlan && (
-                        <AccordionItem value="project">
-                          <AccordionTrigger className="font-semibold">Project Plan</AccordionTrigger>
-                          <AccordionContent>
-                            <div className="relative">
-                              <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-24" dangerouslySetInnerHTML={createMarkup(selectedRecording.projectPlan)}></div>
-                              <div className="absolute top-2 right-2 flex items-center">
-                                 <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <Button size="icon" variant="ghost" className="h-8 w-8 bg-background/50 hover:bg-background" onClick={() => handleShareSection(`${selectedRecording.name} - Project Plan`, selectedRecording.projectPlan)}>
-                                              <Share2 className="h-4 w-4" />
-                                          </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent><p>Share Project Plan</p></TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                className="h-8 w-8 bg-background/50 hover:bg-background"
-                                                onClick={() => handleCopyToClipboard(selectedRecording.projectPlan, 'details-project')}
-                                            >
-                                                {copiedStates['details-project'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent><p>Copy</p></TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                              </div>
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-                      )}
-                      {selectedRecording.actionItems && (
-                        <AccordionItem value="tasks">
-                          <AccordionTrigger className="font-semibold">Action Items</AccordionTrigger>
-                          <AccordionContent>
-                            <div className="relative">
-                              <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-24" dangerouslySetInnerHTML={createMarkup(selectedRecording.actionItems)}></div>
-                              <div className="absolute top-2 right-2 flex items-center">
-                                 <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <Button size="icon" variant="ghost" className="h-8 w-8 bg-background/50 hover:bg-background" onClick={() => handleShareSection(`${selectedRecording.name} - Action Items`, selectedRecording.actionItems)}>
-                                              <Share2 className="h-4 w-4" />
-                                          </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent><p>Share Action Items</p></TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                className="h-8 w-8 bg-background/50 hover:bg-background"
-                                                onClick={() => handleCopyToClipboard(selectedRecording.actionItems, 'details-tasks')}
-                                            >
-                                                {copiedStates['details-tasks'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent><p>Copy</p></TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                              </div>
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-                      )}
-                    </Accordion>
+                    </>
+                  ) : (
+                     <Card className="my-4 text-center">
+                        <CardHeader>
+                            <CardTitle>Ready to Transcribe</CardTitle>
+                            <CardDescription>This is an audio-only note. Use an AI credit to get the transcription and unlock more actions.</CardDescription>
+                        </CardHeader>
+                        <CardFooter className="justify-center">
+                            <Button onClick={() => handleTranscribeFromHistory(selectedRecording)} disabled={isTranscribing || (!settings.isPro && settings.aiCredits < 1)}>
+                                {isTranscribing ? <Loader2 className="animate-spin mr-2" /> : <Sparkles className="mr-2" />}
+                                Transcribe with AI {!settings.isPro && ` (1 Credit)`}
+                            </Button>
+                        </CardFooter>
+                    </Card>
                   )}
                 </div>
               </div>
 
                <DialogFooter className="flex-wrap justify-end gap-2 pt-4 border-t mt-auto">
-                    <Button variant="outline" onClick={() => handleShareAll(selectedRecording)}>
-                        <Share2 className="mr-2 h-4 w-4" /> Share All
-                    </Button>
-                     <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div className="inline-block">
-                               <Button variant="outline" onClick={() => handleSummarizeClick(selectedRecording!)} disabled={!settings.isPro && settings.aiCredits < 1}>
-                                  <Sparkles className="mr-2 h-4 w-4" /> Summarize
-                              </Button>
-                            </div>
-                        </TooltipTrigger>
-                        {!settings.isPro && <TooltipContent><p>Costs 1 AI Credit</p></TooltipContent>}
-                      </Tooltip>
-                    </TooltipProvider>
-                     <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div className="inline-block">
-                               <Button variant="outline" onClick={() => handleExpandClick(selectedRecording!)} disabled={!settings.isPro && settings.aiCredits < 1}>
-                                  <BrainCircuit className="mr-2 h-4 w-4" /> Expand Note
-                              </Button>
-                            </div>
-                        </TooltipTrigger>
-                        {!settings.isPro && <TooltipContent><p>Costs 1 AI Credit</p></TooltipContent>}
-                      </Tooltip>
-                    </TooltipProvider>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div className="inline-block">
-                               <Button variant="outline" onClick={() => handleExpandAsProjectClick(selectedRecording!)} disabled={!settings.isPro && settings.aiCredits < 1}>
-                                  <FolderKanban className="mr-2 h-4 w-4" /> As Project
-                              </Button>
-                            </div>
-                        </TooltipTrigger>
-                         {!settings.isPro && <TooltipContent><p>Costs 1 AI Credit</p></TooltipContent>}
-                      </Tooltip>
-                    </TooltipProvider>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div className="inline-block">
-                               <Button variant="outline" onClick={() => handleExtractTasksClick(selectedRecording!)} disabled={!settings.isPro && settings.aiCredits < 1}>
-                                  <ListTodo className="mr-2 h-4 w-4" /> Get Tasks
-                              </Button>
-                            </div>
-                        </TooltipTrigger>
-                         {!settings.isPro && <TooltipContent><p>Costs 1 AI Credit</p></TooltipContent>}
-                      </Tooltip>
-                    </TooltipProvider>
+                  {selectedRecording.transcription && (
+                    <>
+                      <Button variant="outline" onClick={() => handleShareAll(selectedRecording)}>
+                          <Share2 className="mr-2 h-4 w-4" /> Share All
+                      </Button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                              <div className="inline-block">
+                                <Button variant="outline" onClick={() => handleSummarizeClick(selectedRecording!)} disabled={!settings.isPro && settings.aiCredits < 1}>
+                                    <Sparkles className="mr-2 h-4 w-4" /> Summarize
+                                </Button>
+                              </div>
+                          </TooltipTrigger>
+                          {!settings.isPro && <TooltipContent><p>Costs 1 AI Credit</p></TooltipContent>}
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                              <div className="inline-block">
+                                <Button variant="outline" onClick={() => handleExpandClick(selectedRecording!)} disabled={!settings.isPro && settings.aiCredits < 1}>
+                                    <BrainCircuit className="mr-2 h-4 w-4" /> Expand Note
+                                </Button>
+                              </div>
+                          </TooltipTrigger>
+                          {!settings.isPro && <TooltipContent><p>Costs 1 AI Credit</p></TooltipContent>}
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                              <div className="inline-block">
+                                <Button variant="outline" onClick={() => handleExpandAsProjectClick(selectedRecording!)} disabled={!settings.isPro && settings.aiCredits < 1}>
+                                    <FolderKanban className="mr-2 h-4 w-4" /> As Project
+                                </Button>
+                              </div>
+                          </TooltipTrigger>
+                          {!settings.isPro && <TooltipContent><p>Costs 1 AI Credit</p></TooltipContent>}
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                              <div className="inline-block">
+                                <Button variant="outline" onClick={() => handleExtractTasksClick(selectedRecording!)} disabled={!settings.isPro && settings.aiCredits < 1}>
+                                    <ListTodo className="mr-2 h-4 w-4" /> Get Tasks
+                                </Button>
+                              </div>
+                          </TooltipTrigger>
+                          {!settings.isPro && <TooltipContent><p>Costs 1 AI Credit</p></TooltipContent>}
+                        </Tooltip>
+                      </TooltipProvider>
+                    </>
+                  )}
               </DialogFooter>
             </>
           )}

@@ -168,6 +168,20 @@ export default function Home() {
     await saveSettings(newSettings, user.uid);
     setSettings(newSettings);
   }, [user, settings]);
+
+  const handleSaveAudioOnly = async () => {
+    if (!user || !recordedAudio) return;
+
+    try {
+        const name = `Audio Note - ${new Date().toLocaleString()}`;
+        await saveRecording({ name, transcription: '', audioDataUri: recordedAudio.dataUri }, user.uid);
+        toast({ title: "Audio note saved!", description: "You can find it and transcribe it later from your history." });
+        resetToIdle();
+    } catch (error) {
+        log("Error saving audio only:", error);
+        toast({ variant: 'destructive', title: "Save Failed", description: "Could not save the audio note." });
+    }
+  };
   
   const handleProcessRecording = useCallback(async () => {
     if (!user || !settings) {
@@ -904,14 +918,19 @@ export default function Home() {
                                 </div>
                             </div>
                         </CardContent>
-                        <CardFooter className="grid grid-cols-2 gap-4">
-                            <Button variant="outline" onClick={resetToIdle}>
-                                <Trash2 className="mr-2 h-4 w-4" /> Discard
-                            </Button>
-                            <Button onClick={() => handleAiActionClick(handleProcessRecording)}>
-                                <Send className="mr-2 h-4 w-4" /> Transcribe
-                                {!settings.isPro && ` (1 Credit)`}
-                            </Button>
+                        <CardFooter className="flex flex-col gap-2">
+                           <div className="grid grid-cols-2 gap-2 w-full">
+                                <Button variant="secondary" onClick={handleSaveAudioOnly}>
+                                    <Save /> Save Audio Only
+                                </Button>
+                                <Button onClick={() => handleAiActionClick(handleProcessRecording)} disabled={!settings.isPro && settings.aiCredits < 1}>
+                                    <Send /> Transcribe
+                                    {!settings.isPro && ` (1 Credit)`}
+                                </Button>
+                           </div>
+                           <Button variant="outline" className="w-full border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10 hover:text-destructive" onClick={resetToIdle}>
+                                <Trash2 /> Discard
+                           </Button>
                         </CardFooter>
                     </Card>
                 </div>
