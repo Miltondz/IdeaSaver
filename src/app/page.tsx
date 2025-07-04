@@ -228,8 +228,8 @@ export default function LoginPage() {
             <CardFooter className="flex-col items-center justify-center text-center text-sm gap-2 pt-4">
                  <div className="text-muted-foreground px-4">
                     By signing up, you agree to our{' '}
-                    <Link href="#" className="underline hover:text-foreground">Terms of Service</Link> and{' '}
-                    <Link href="#" className="underline hover:text-foreground">Privacy Policy</Link>.
+                    <Link href="/terms" className="underline hover:text-foreground">Terms of Service</Link> and{' '}
+                    <Link href="/privacy" className="underline hover:text-foreground">Privacy Policy</Link>.
                  </div>
                  <div className="text-muted-foreground">
                     Already have an account?{' '}
