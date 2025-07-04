@@ -50,7 +50,7 @@ export default function HistoryPage() {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [aiResult, setAiResult] = useState<string | null>(null);
   const [noteForAi, setNoteForAi] = useState<Recording | null>(null);
-  const [confirmationAction, setConfirmationAction] = useState<{ action: () => void; title: string; description: string; } | null>(null);
+  const [confirmationAction, setConfirmationAction] = useState<{ action: () => void; title: string; description: string; onCancel?: () => void; } | null>(null);
   const [creditConfirmation, setCreditConfirmation] = useState<{ action: () => void } | null>(null);
 
   // State for editing transcription
@@ -468,6 +468,7 @@ export default function HistoryPage() {
       },
       title: t('ai_overwrite_title', { feature: t('history_transcription_heading')}),
       description: t('ai_overwrite_desc'),
+      onCancel: () => setIsSaving(false),
     });
   };
 
@@ -504,7 +505,7 @@ export default function HistoryPage() {
       <h1 className="text-3xl font-bold mb-6 text-center">{t('history_page_title')}</h1>
       {recordings.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
-            <Card className="w-full max-w-sm text-center p-8">
+            <Card className="w-full max-w-sm text-center p-8 bg-card/80 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle>{t('history_no_recordings')}</CardTitle>
                 <CardDescription>
@@ -862,7 +863,7 @@ export default function HistoryPage() {
                       )}
                     </>
                   ) : (
-                     <Card className="my-4 text-center">
+                     <Card className="my-4 text-center bg-card/80 backdrop-blur-sm">
                         <CardHeader>
                             <CardTitle>{t('history_ready_to_transcribe')}</CardTitle>
                             <CardDescription>{t('history_ready_to_transcribe_desc')}</CardDescription>
@@ -989,7 +990,7 @@ export default function HistoryPage() {
         </DialogContent>
     </Dialog>
 
-    <AlertDialog open={!!confirmationAction} onOpenChange={(open) => !open && setConfirmationAction(null)}>
+    <AlertDialog open={!!confirmationAction} onOpenChange={(open) => {if (!open) { confirmationAction?.onCancel?.(); setConfirmationAction(null); }}}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{confirmationAction?.title}</AlertDialogTitle>
@@ -998,7 +999,10 @@ export default function HistoryPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('history_cancel_button')}</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => {
+                confirmationAction?.onCancel?.();
+                setConfirmationAction(null);
+            }}>{t('history_cancel_button')}</AlertDialogCancel>
             <AlertDialogAction onClick={() => {
                 confirmationAction?.action();
                 setConfirmationAction(null);
@@ -1014,7 +1018,7 @@ export default function HistoryPage() {
             <AlertDialogHeader>
             <AlertDialogTitle>{t('ai_confirmation_title')}</AlertDialogTitle>
             <AlertDialogDescription>
-                {t('ai_confirmation_desc', { credits: settings.aiCredits, plural: settings.aiCredits !== 1 ? 's' : '' })}
+                {t('ai_confirmation_desc', { credits: settings?.aiCredits ?? 0, plural: (settings?.aiCredits ?? 0) !== 1 ? 's' : '' })}
             </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -1032,3 +1036,5 @@ export default function HistoryPage() {
     </div>
   );
 }
+
+    
