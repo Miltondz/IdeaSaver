@@ -21,6 +21,7 @@ const GoogleIcon = () => <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w
 
 const LavaLamp = dynamic(() => import('@/components/ui/fluid-blob').then(mod => mod.LavaLamp), {
   ssr: false,
+  loading: () => <div style={{ width: '100%', height: '100%', position: "absolute", zIndex: 0, top: 0, left: 0 }} />,
 });
 
 

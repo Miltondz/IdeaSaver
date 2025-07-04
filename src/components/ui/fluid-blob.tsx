@@ -157,8 +157,10 @@ function LavaLampShader() {
       a2 = (height / width) / imageAspect;
     }
     
-    uniforms.resolution.value.set(width, height, a1, a2);
-  }, [size, uniforms]);
+    if (meshRef.current) {
+      (meshRef.current.material as THREE.ShaderMaterial).uniforms.resolution.value.set(width, height, a1, a2);
+    }
+  }, [size]);
 
   useFrame((state) => {
     if (meshRef.current) {
