@@ -440,9 +440,10 @@ export default function HistoryPage() {
   }
   
   const getAiActionDescription = () => {
-      const actionKey = `ai_action_${aiAction?.replace(/-/g, '_')}`;
-      const actionText = t(actionKey as any, {});
-      return t('ai_result_dialog_desc', { action: actionText });
+    if (!aiAction) return '';
+    const actionKey = `ai_action_${aiAction}`;
+    const actionText = t(actionKey as any, {});
+    return t('ai_result_dialog_desc', { action: actionText });
   }
   
   if (isLoading || !settings) {

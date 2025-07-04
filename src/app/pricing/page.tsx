@@ -23,7 +23,7 @@ export default function PricingPage() {
 
   const handleSelectPlan = async (plan: 'free' | 'pro') => {
     if (!user) {
-        toast({ variant: "destructive", title: "Error", description: t('pricing_select_error') });
+        toast({ variant: "destructive", title: t('pricing_error_title'), description: t('pricing_select_error') });
         return;
     }
     const settings = await getSettings(user.uid);

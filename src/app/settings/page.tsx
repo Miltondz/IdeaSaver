@@ -20,12 +20,14 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useLanguage } from "@/hooks/use-language";
 
 type DeletionPolicy = "never" | "7" | "15" | "30";
 
 export default function SettingsPage() {
   const { user } = useAuth();
   const [settings, setSettings] = useState<AppSettings | null>(null);
+  const { t } = useLanguage();
   
   const [localRecordings, setLocalRecordings] = useState<Recording[]>([]);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -68,9 +70,9 @@ export default function SettingsPage() {
     try {
       await deleteRecordingFromStorage(id, user.uid);
       refreshLocalRecordings();
-      toast({ title: "Recording Deleted" });
+      toast({ title: t('settings_sheet_delete_success') });
     } catch (error) {
-       toast({ variant: "destructive", title: "Deletion Failed" });
+       toast({ variant: "destructive", title: t('settings_sheet_delete_fail') });
     }
   };
   
@@ -89,8 +91,8 @@ export default function SettingsPage() {
     if (!user || !settings) return;
     await saveSettings(settings, user.uid);
     toast({
-      title: "Settings Saved",
-      description: "Your new settings have been applied.",
+      title: t('settings_save_success_title'),
+      description: t('settings_save_success'),
       className: "bg-accent text-accent-foreground border-accent",
     });
   };
@@ -102,12 +104,12 @@ export default function SettingsPage() {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Settings className="h-6 w-6" />
-                        Settings
+                        {t('settings_page_title')}
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="flex items-center justify-center p-8">
                      <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                    <p>Loading settings...</p>
+                    <p>{t('history_loading')}</p>
                 </CardContent>
             </Card>
         </div>
@@ -121,22 +123,22 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
               <LayoutDashboard className="h-6 w-6" />
-              Admin Dashboard
+              {t('settings_admin_title')}
             </CardTitle>
-            <CardDescription>Usage tracking, cost management, and developer controls.</CardDescription>
+            <CardDescription>{t('settings_admin_desc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
               <div className="space-y-4">
-                  <h3 className="text-lg font-medium flex items-center gap-2"><Code className="h-5 w-5" /> Developer Controls</h3>
+                  <h3 className="text-lg font-medium flex items-center gap-2"><Code className="h-5 w-5" /> {t('settings_dev_controls')}</h3>
                   <div className="flex items-center space-x-2">
                       <Switch id="is-pro-dev" checked={settings.isPro} onCheckedChange={(checked) => updateSetting('isPro', checked)} />
-                      <Label htmlFor="is-pro-dev">Simulate Pro User</Label>
+                      <Label htmlFor="is-pro-dev">{t('settings_simulate_pro')}</Label>
                   </div>
               </div>
               <div className="space-y-4">
-                  <h3 className="text-lg font-medium flex items-center gap-2"><BarChart3 className="h-5 w-5" /> AI Usage & Cost Tracking</h3>
+                  <h3 className="text-lg font-medium flex items-center gap-2"><BarChart3 className="h-5 w-5" /> {t('settings_ai_usage')}</h3>
                   <p className="text-sm text-muted-foreground">
-                      Monitor your AI model usage and associated costs directly in the Google Cloud console. This is the most accurate source for billing information.
+                      {t('settings_ai_usage_desc')}
                   </p>
                   <Link
                       href={`https://console.cloud.google.com/vertex-ai/usage?project=${projectId}`}
@@ -144,14 +146,14 @@ export default function SettingsPage() {
                       rel="noopener noreferrer"
                       className={cn(buttonVariants({ variant: "outline" }), "w-full sm:w-auto")}
                   >
-                      View Vertex AI Usage
+                      {t('settings_view_vertex_usage')}
                   </Link>
               </div>
 
               <div className="space-y-4">
-                  <h3 className="text-lg font-medium flex items-center gap-2"><Database className="h-5 w-5" /> Database Management</h3>
+                  <h3 className="text-lg font-medium flex items-center gap-2"><Database className="h-5 w-5" /> {t('settings_db_management')}</h3>
                   <p className="text-sm text-muted-foreground">
-                     Manage your Firestore database, including collections, documents, and security rules.
+                     {t('settings_db_management_desc')}
                   </p>
                    <Link
                       href={`https://console.firebase.google.com/project/${projectId}/firestore/data`}
@@ -159,7 +161,7 @@ export default function SettingsPage() {
                       rel="noopener noreferrer"
                       className={cn(buttonVariants({ variant: "outline" }), "w-full sm:w-auto")}
                   >
-                      Open Firestore Console
+                      {t('settings_open_firestore')}
                   </Link>
               </div>
           </CardContent>
@@ -170,24 +172,24 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Settings className="h-6 w-6" />
-            Settings
+            {t('settings_page_title')}
           </CardTitle>
-          <CardDescription>Manage your application settings and integrations.</CardDescription>
+          <CardDescription>{t('settings_page_desc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
             <fieldset>
                 <div className="space-y-2">
-                    <h3 className="text-lg font-medium flex items-center gap-2"><Gem className="h-5 w-5" /> Plan & Credits</h3>
+                    <h3 className="text-lg font-medium flex items-center gap-2"><Gem className="h-5 w-5" /> {t('settings_plan_credits')}</h3>
                     <div className="bg-muted/50 p-4 rounded-lg border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div>
-                            <p className="font-semibold">Your current plan: <span className="text-primary">{settings.isPro ? 'Pro' : 'Free'}</span></p>
+                            <p className="font-semibold">{t('settings_current_plan')} <span className="text-primary">{settings.isPro ? t('settings_plan_pro') : t('settings_plan_free')}</span></p>
                             {!settings.isPro && (
-                                <p className="text-sm text-muted-foreground">You have <span className="font-bold text-foreground">{settings.aiCredits}</span> AI credits remaining.</p>
+                                <p className="text-sm text-muted-foreground">{t('settings_credits_remaining', { credits: settings.aiCredits, plural: settings.aiCredits !== 1 ? 's' : '' })}</p>
                             )}
                         </div>
                         {!settings.isPro && (
                             <Button asChild size="sm">
-                                <Link href="/pricing">Upgrade to Pro</Link>
+                                <Link href="/pricing">{t('settings_upgrade_to_pro')}</Link>
                             </Button>
                         )}
                     </div>
@@ -196,57 +198,57 @@ export default function SettingsPage() {
 
             <fieldset className="space-y-4 group">
                 <div className="space-y-2">
-                    <h3 className="text-lg font-medium flex items-center gap-2"><Database className="h-5 w-5" /> Cloud Sync</h3>
+                    <h3 className="text-lg font-medium flex items-center gap-2"><Database className="h-5 w-5" /> {t('settings_cloud_sync')}</h3>
                      {!settings.isPro && (
                         <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md border border-dashed">
-                           <p className="font-semibold text-foreground/90">Cloud Sync is a Pro feature.</p>
-                           <p>Sync your notes securely across all your devices and ensure they're always backed up.</p>
-                           <Button size="sm" className="mt-2" asChild><Link href="/pricing">Upgrade to Pro</Link></Button>
+                           <p className="font-semibold text-foreground/90">{t('settings_cloud_sync_pro_feature')}</p>
+                           <p>{t('settings_cloud_sync_pro_feature_desc')}</p>
+                           <Button size="sm" className="mt-2" asChild><Link href="/pricing">{t('settings_upgrade_to_pro')}</Link></Button>
                         </div>
                     )}
                     <div className="flex items-center space-x-2" style={{ opacity: !settings.isPro ? 0.5 : 1 }}>
                         <Switch id="cloud-sync" checked={settings.cloudSyncEnabled} onCheckedChange={(checked) => updateSetting('cloudSyncEnabled', checked)} disabled={!settings.isPro}/>
-                        <Label htmlFor="cloud-sync">Enable Cloud Sync</Label>
+                        <Label htmlFor="cloud-sync">{t('settings_enable_cloud_sync')}</Label>
                     </div>
                     {settings.cloudSyncEnabled && (
                     <div className="flex items-center space-x-2 pl-4" style={{ opacity: !settings.isPro ? 0.5 : 1 }}>
                         <Checkbox id="auto-send" checked={settings.autoCloudSync} onCheckedChange={(checked) => updateSetting('autoCloudSync', !!checked)} disabled={!settings.isPro} />
-                        <Label htmlFor="auto-send">Automatically save new notes to cloud</Label>
+                        <Label htmlFor="auto-send">{t('settings_auto_save_cloud')}</Label>
                     </div>
                     )}
                 </div>
             </fieldset>
 
             <div className="space-y-4">
-                <h3 className="text-lg font-medium flex items-center gap-2"><Trash2 className="h-5 w-5" /> Auto-delete Recordings</h3>
-                <p className="text-sm text-muted-foreground">Automatically delete old local recordings to save space on your device. This cannot be undone.</p>
+                <h3 className="text-lg font-medium flex items-center gap-2"><Trash2 className="h-5 w-5" /> {t('settings_auto_delete')}</h3>
+                <p className="text-sm text-muted-foreground">{t('settings_auto_delete_desc')}</p>
                 <RadioGroup value={settings.deletionPolicy} onValueChange={(value) => updateSetting('deletionPolicy', value as DeletionPolicy)}>
-                    <div className="flex items-center space-x-2"><RadioGroupItem value="never" id="never" /><Label htmlFor="never">Never</Label></div>
-                    <div className="flex items-center space-x-2"><RadioGroupItem value="7" id="7" /><Label htmlFor="7">After 7 days</Label></div>
-                    <div className="flex items-center space-x-2"><RadioGroupItem value="15" id="15" /><Label htmlFor="15">After 15 days</Label></div>
-                    <div className="flex items-center space-x-2"><RadioGroupItem value="30" id="30" /><Label htmlFor="30">After 30 days</Label></div>
+                    <div className="flex items-center space-x-2"><RadioGroupItem value="never" id="never" /><Label htmlFor="never">{t('settings_delete_never')}</Label></div>
+                    <div className="flex items-center space-x-2"><RadioGroupItem value="7" id="7" /><Label htmlFor="7">{t('settings_delete_7_days')}</Label></div>
+                    <div className="flex items-center space-x-2"><RadioGroupItem value="15" id="15" /><Label htmlFor="15">{t('settings_delete_15_days')}</Label></div>
+                    <div className="flex items-center space-x-2"><RadioGroupItem value="30" id="30" /><Label htmlFor="30">{t('settings_delete_30_days')}</Label></div>
                 </RadioGroup>
             </div>
             
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="trello" className="border-b-0">
                 <AccordionTrigger className="p-0 hover:no-underline">
-                  <h3 className="text-lg font-medium flex items-center gap-2"><Trello className="h-5 w-5" /> Trello Integration</h3>
+                  <h3 className="text-lg font-medium flex items-center gap-2"><Trello className="h-5 w-5" /> {t('settings_trello')}</h3>
                 </AccordionTrigger>
                 <AccordionContent className="pt-4 space-y-4">
                   {!settings.isPro && (
                     <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md border border-dashed">
-                        <p className="font-semibold text-foreground/90">Trello Integration is a Pro feature.</p>
-                        <p>Connect ideas directly to your Trello boards for seamless project management.</p>
-                        <Button size="sm" className="mt-2" asChild><Link href="/pricing">Upgrade to Pro</Link></Button>
+                        <p className="font-semibold text-foreground/90">{t('settings_trello_pro_feature')}</p>
+                        <p>{t('settings_trello_pro_feature_desc')}</p>
+                        <Button size="sm" className="mt-2" asChild><Link href="/pricing">{t('settings_upgrade_to_pro')}</Link></Button>
                     </div>
                   )}
                   <div style={{ opacity: !settings.isPro ? 0.5 : 1 }}>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Connect your Trello account to seamlessly create cards from your notes.
+                      {t('settings_trello_connect_desc')}
                     </p>
                     <Button disabled={!settings.isPro}>
-                        Connect to Trello
+                        {t('settings_connect_trello')}
                     </Button>
                   </div>
                 </AccordionContent>
@@ -254,7 +256,7 @@ export default function SettingsPage() {
             </Accordion>
             
             <div className="flex justify-end">
-                <Button onClick={handleSave}><Save className="mr-2 h-4 w-4" /> Save Settings</Button>
+                <Button onClick={handleSave}><Save className="mr-2 h-4 w-4" /> {t('settings_save_button')}</Button>
             </div>
         </CardContent>
       </Card>
@@ -262,21 +264,21 @@ export default function SettingsPage() {
       <Card className="w-full max-w-2xl mt-8">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Archive className="h-5 w-5" /> Local Storage Management
+            <Archive className="h-5 w-5" /> {t('settings_local_storage')}
           </CardTitle>
-          <CardDescription>View and manage recordings stored directly on this device's browser storage.</CardDescription>
+          <CardDescription>{t('settings_local_storage_desc')}</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={handleManageClick}>Manage Local Recordings</Button>
+          <Button onClick={handleManageClick}>{t('settings_manage_local')}</Button>
         </CardContent>
       </Card>
       
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent className="w-full sm:max-w-lg">
           <SheetHeader>
-            <SheetTitle>Local Device Recordings</SheetTitle>
+            <SheetTitle>{t('settings_sheet_title')}</SheetTitle>
             <SheetDescription>
-              These recordings are saved in your browser. Deleting them here is permanent.
+              {t('settings_sheet_desc')}
             </SheetDescription>
           </SheetHeader>
           <ScrollArea className="h-[calc(100%-8rem)] mt-4 pr-4">
@@ -296,21 +298,21 @@ export default function SettingsPage() {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Delete this recording?</AlertDialogTitle>
+                        <AlertDialogTitle>{t('history_delete_dialog_title')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This action cannot be undone and will permanently delete the recording from your device.
+                          {t('history_delete_dialog_desc')}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDeleteLocal(rec.id)}>Delete</AlertDialogAction>
+                        <AlertDialogCancel>{t('history_cancel_button')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDeleteLocal(rec.id)}>{t('history_delete_button')}</AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
                 </div>
               )) : (
                 <div className="text-muted-foreground text-center py-8">
-                    <p>No local recordings found for this user.</p>
+                    <p>{t('settings_sheet_empty')}</p>
                 </div>
               )}
             </div>
