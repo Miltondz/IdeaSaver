@@ -118,7 +118,7 @@ This is the most direct cause. You must tell Firebase which domains are allowed 
 4.  Go to the **Settings** tab.
 5.  Under the **Authorized domains** section, click **Add domain**.
 6.  Add `localhost` for local development.
-7.  If you have deployed your app, add your live domain as well (e.g., `your-app.web.app`).
+7.  If you have deployed your app, add your live domain as well (e.g., `ideasaver.site`).
 8.  **Important:** Make sure your project's auto-generated auth domain (like `your-project-id.firebaseapp.com`) is also in this list. It usually is by default.
 
 #### Step 2: Ensure Google Sign-In Provider is Enabled

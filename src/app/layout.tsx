@@ -7,6 +7,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { AuthProvider } from '@/hooks/use-auth';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://ideasaver.site'),
   title: 'Idea Saver',
   description: 'Quickly capture and transcribe your ideas.',
   manifest: '/manifest.json',
