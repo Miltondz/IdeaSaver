@@ -24,6 +24,8 @@ export interface AppSettings {
   aiModel: string;
   cloudSyncEnabled: boolean;
   autoCloudSync: boolean;
+  aiCredits: number;
+  monthlyCreditsLastUpdated: string; // ISO string
 }
 
 // --- LocalStorage Helper Functions ---
@@ -64,12 +66,32 @@ export function getSettings(userId?: string | null): AppSettings {
     aiModel: "gemini-1.5-flash-latest",
     cloudSyncEnabled: false,
     autoCloudSync: false,
+    aiCredits: 0,
+    monthlyCreditsLastUpdated: new Date().toISOString(),
   };
   if (typeof window === "undefined" || !userId) {
     return defaults;
   }
-  const data = localStorage.getItem(getSettingsKey(userId));
-  return data ? { ...defaults, ...JSON.parse(data) } : defaults;
+  
+  const key = getSettingsKey(userId);
+  const data = localStorage.getItem(key);
+  let settings: AppSettings = data ? { ...defaults, ...JSON.parse(data) } : { ...defaults };
+
+  // Monthly credit refresh logic for Free users who have completed onboarding
+  if (settings.planSelected && !settings.isPro) {
+      const lastUpdate = new Date(settings.monthlyCreditsLastUpdated);
+      const now = new Date();
+      // Check if the last update was in a previous month (of any year)
+      if (now.getFullYear() > lastUpdate.getFullYear() || now.getMonth() > lastUpdate.getMonth()) {
+          settings.aiCredits += 2;
+          settings.monthlyCreditsLastUpdated = now.toISOString();
+          localStorage.setItem(key, JSON.stringify(settings)); // Save immediately
+          // Dispatch a storage event to notify other tabs/windows of the credit change
+          window.dispatchEvent(new Event('storage'));
+      }
+  }
+
+  return settings;
 }
 
 export function saveSettings(settings: AppSettings, userId: string): void {

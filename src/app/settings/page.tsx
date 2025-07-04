@@ -10,7 +10,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { getSettings, saveSettings, getLocalRecordings, deleteRecording as deleteRecordingFromStorage, AppSettings } from "@/lib/storage";
-import { Settings, Trash2, Trello, Save, Database, Archive, Code, BarChart3, LayoutDashboard, Server } from "lucide-react";
+import { Settings, Trash2, Trello, Save, Database, Archive, Code, BarChart3, LayoutDashboard, Server, Gem } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { Recording } from "@/types";
@@ -175,6 +175,25 @@ export default function SettingsPage() {
           <CardDescription>Manage your application settings and integrations.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
+            <fieldset>
+                <div className="space-y-2">
+                    <h3 className="text-lg font-medium flex items-center gap-2"><Gem className="h-5 w-5" /> Plan & Credits</h3>
+                    <div className="bg-muted/50 p-4 rounded-lg border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <p className="font-semibold">Your current plan: <span className="text-primary">{settings.isPro ? 'Pro' : 'Free'}</span></p>
+                            {!settings.isPro && (
+                                <p className="text-sm text-muted-foreground">You have <span className="font-bold text-foreground">{settings.aiCredits}</span> AI credits remaining.</p>
+                            )}
+                        </div>
+                        {!settings.isPro && (
+                            <Button asChild size="sm">
+                                <Link href="/pricing">Upgrade to Pro</Link>
+                            </Button>
+                        )}
+                    </div>
+                </div>
+            </fieldset>
+
             <fieldset className="space-y-4 group">
                 <div className="space-y-2">
                     <h3 className="text-lg font-medium flex items-center gap-2"><Database className="h-5 w-5" /> Cloud Sync</h3>

@@ -13,7 +13,7 @@ import { expandNote } from "@/ai/flows/expand-note-flow";
 import { summarizeNote } from "@/ai/flows/summarize-note-flow";
 import { expandAsProject } from "@/ai/flows/expand-as-project-flow";
 import { extractTasks } from "@/ai/flows/extract-tasks-flow";
-import { getSettings, saveRecording, saveRecordingToDB, applyDeletions, AppSettings, deleteRecording, updateRecording } from "@/lib/storage";
+import { getSettings, saveRecording, saveRecordingToDB, applyDeletions, AppSettings, deleteRecording, updateRecording, saveSettings } from "@/lib/storage";
 import type { Recording } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -30,7 +30,7 @@ import DOMPurify from 'isomorphic-dompurify';
 
 
 type RecordingStatus = "idle" | "recording" | "reviewing" | "transcribing" | "naming" | "completed";
-type AiAction = "expand" | "summarize" | "expand-as-project" | "extract-tasks";
+type AiAction = "expand" | "summarize" | "expand-as-project" | "extract-tasks" | "transcribe";
 
 const RECORDING_TIME_LIMIT_SECONDS = 600; // 10 minutes
 
@@ -102,6 +102,8 @@ export default function Home() {
   const [noteForAi, setNoteForAi] = useState<Recording | null>(null);
   const [copiedStates, setCopiedStates] = useState<Record<string, boolean>>({});
   const [confirmationAction, setConfirmationAction] = useState<{ action: () => void; title: string; description: string; } | null>(null);
+  const [creditConfirmation, setCreditConfirmation] = useState<{ action: () => void } | null>(null);
+
 
   // State for editing transcription
   const [editableTranscription, setEditableTranscription] = useState<string>('');
@@ -160,6 +162,13 @@ export default function Home() {
     }
     setIdleQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
   }, []);
+
+  const deductCredit = useCallback(() => {
+    if (!user) return;
+    const newSettings = { ...settings, aiCredits: settings.aiCredits - 1 };
+    saveSettings(newSettings, user.uid);
+    setSettings(newSettings);
+  }, [user, settings]);
   
   const handleProcessRecording = useCallback(async () => {
     if (!user) {
@@ -177,6 +186,7 @@ export default function Home() {
     setRecordingStatus("transcribing");
     
     try {
+        if (!settings.isPro) deductCredit();
         const audioDataUri = recordedAudio.dataUri;
         log("handleProcessRecording: Calling transcribeVoiceNote...");
         const transcribeResult = await transcribeVoiceNote({ audioDataUri, aiModel: settings.aiModel });
@@ -226,7 +236,7 @@ export default function Home() {
           mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
         }
       }
-  }, [resetToIdle, toast, log, settings.aiModel, user, recordedAudio]);
+  }, [resetToIdle, toast, log, settings.aiModel, settings.isPro, user, recordedAudio, deductCredit]);
 
   const onStop = useCallback(async () => {
     log("onStop: Recording stopped, entering review phase.");
@@ -501,6 +511,7 @@ export default function Home() {
     setAiAction('expand');
     setAiResult(null);
     setIsProcessingAi(true);
+    if (!settings.isPro) deductCredit();
 
     expandNote({ transcription: recording.transcription, aiModel: settings.aiModel })
         .then(async (result) => {
@@ -518,15 +529,28 @@ export default function Home() {
         .finally(() => setIsProcessingAi(false));
   };
 
+  const handleAiActionClick = (action: () => void) => {
+    if (settings.isPro) {
+        action();
+        return;
+    }
+    if (settings.aiCredits < 1) {
+        toast({ variant: "destructive", title: "No AI Credits", description: "You're out of AI credits. Upgrade to Pro for unlimited use." });
+        return;
+    }
+    setCreditConfirmation({ action });
+  };
+
+
   const handleExpandClick = (recording: Recording) => {
       if (recording.expandedTranscription) {
         setConfirmationAction({
-            action: () => proceedWithExpand(recording),
+            action: () => handleAiActionClick(() => proceedWithExpand(recording)),
             title: "Overwrite Expanded Note?",
             description: "An expanded version of this note already exists. Generating a new version will overwrite the existing one. Are you sure you want to continue?",
         });
       } else {
-          proceedWithExpand(recording);
+          handleAiActionClick(() => proceedWithExpand(recording));
       }
   };
 
@@ -536,6 +560,7 @@ export default function Home() {
     setAiAction('summarize');
     setAiResult(null);
     setIsProcessingAi(true);
+    if (!settings.isPro) deductCredit();
 
     summarizeNote({ transcription: recording.transcription, aiModel: settings.aiModel })
         .then(async (result) => {
@@ -556,12 +581,12 @@ export default function Home() {
   const handleSummarizeClick = (recording: Recording) => {
     if (recording.summary) {
         setConfirmationAction({
-            action: () => proceedWithSummarize(recording),
+            action: () => handleAiActionClick(() => proceedWithSummarize(recording)),
             title: "Overwrite Summary?",
             description: "This note already has a summary. Generating a new one will overwrite the existing summary. Are you sure you want to continue?",
         });
     } else {
-        proceedWithSummarize(recording);
+        handleAiActionClick(() => proceedWithSummarize(recording));
     }
   };
   
@@ -571,6 +596,7 @@ export default function Home() {
     setAiAction('expand-as-project');
     setAiResult(null);
     setIsProcessingAi(true);
+    if (!settings.isPro) deductCredit();
 
     expandAsProject({ transcription: recording.transcription, aiModel: settings.aiModel })
         .then(async (result) => {
@@ -591,12 +617,12 @@ export default function Home() {
   const handleExpandAsProjectClick = (recording: Recording) => {
       if (recording.projectPlan) {
         setConfirmationAction({
-            action: () => proceedWithExpandAsProject(recording),
+            action: () => handleAiActionClick(() => proceedWithExpandAsProject(recording)),
             title: "Overwrite Project Plan?",
             description: "A project plan for this note already exists. Generating a new version will overwrite the existing one. Are you sure you want to continue?",
         });
       } else {
-          proceedWithExpandAsProject(recording);
+          handleAiActionClick(() => proceedWithExpandAsProject(recording));
       }
   };
 
@@ -606,6 +632,7 @@ export default function Home() {
     setAiAction('extract-tasks');
     setAiResult(null);
     setIsProcessingAi(true);
+    if (!settings.isPro) deductCredit();
 
     extractTasks({ transcription: recording.transcription, aiModel: settings.aiModel })
         .then(async (result) => {
@@ -626,12 +653,12 @@ export default function Home() {
   const handleExtractTasksClick = (recording: Recording) => {
     if (recording.actionItems) {
         setConfirmationAction({
-            action: () => proceedWithExtractTasks(recording),
+            action: () => handleAiActionClick(() => proceedWithExtractTasks(recording)),
             title: "Overwrite Action Items?",
             description: "An action item list for this note already exists. Generating a new one will overwrite the existing list. Are you sure you want to continue?",
         });
     } else {
-        proceedWithExtractTasks(recording);
+        handleAiActionClick(() => proceedWithExtractTasks(recording));
     }
   };
 
@@ -754,18 +781,21 @@ export default function Home() {
                             />
                         </div>
                         <div className="space-y-4">
-                            <h3 className="font-semibold text-left">AI Actions</h3>
+                            <h3 className="font-semibold text-left">
+                                AI Actions
+                                {!settings.isPro && ` (${settings.aiCredits} Credit${settings.aiCredits !== 1 ? 's' : ''} remaining)`}
+                            </h3>
                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <div className="w-full">
-                                      <Button className="w-full" variant="outline" onClick={() => lastRecording && handleSummarizeClick(lastRecording)} disabled={!settings.isPro}>
+                                      <Button className="w-full" variant="outline" onClick={() => lastRecording && handleSummarizeClick(lastRecording)} disabled={!settings.isPro && settings.aiCredits < 1}>
                                           <Sparkles /> Summarize
                                       </Button>
                                     </div>
                                   </TooltipTrigger>
-                                  {!settings.isPro && <TooltipContent><p>Upgrade to Pro to use AI summarization.</p></TooltipContent>}
+                                  {!settings.isPro && <TooltipContent><p>{settings.aiCredits < 1 ? "No credits left" : "Costs 1 AI Credit"}</p></TooltipContent>}
                                 </Tooltip>
                               </TooltipProvider>
                               
@@ -773,12 +803,12 @@ export default function Home() {
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                      <div className="w-full">
-                                      <Button className="w-full" variant="outline" onClick={() => lastRecording && handleExpandClick(lastRecording)} disabled={!settings.isPro}>
+                                      <Button className="w-full" variant="outline" onClick={() => lastRecording && handleExpandClick(lastRecording)} disabled={!settings.isPro && settings.aiCredits < 1}>
                                           <BrainCircuit /> Expand
                                       </Button>
                                     </div>
                                   </TooltipTrigger>
-                                  {!settings.isPro && <TooltipContent><p>Upgrade to Pro to use AI note expansion.</p></TooltipContent>}
+                                  {!settings.isPro && <TooltipContent><p>{settings.aiCredits < 1 ? "No credits left" : "Costs 1 AI Credit"}</p></TooltipContent>}
                                 </Tooltip>
                               </TooltipProvider>
 
@@ -786,12 +816,12 @@ export default function Home() {
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                      <div className="w-full">
-                                      <Button className="w-full" variant="outline" onClick={() => lastRecording && handleExpandAsProjectClick(lastRecording)} disabled={!settings.isPro}>
+                                      <Button className="w-full" variant="outline" onClick={() => lastRecording && handleExpandAsProjectClick(lastRecording)} disabled={!settings.isPro && settings.aiCredits < 1}>
                                           <FolderKanban /> As Project
                                       </Button>
                                     </div>
                                   </TooltipTrigger>
-                                  {!settings.isPro && <TooltipContent><p>Upgrade to Pro to generate project plans.</p></TooltipContent>}
+                                  {!settings.isPro && <TooltipContent><p>{settings.aiCredits < 1 ? "No credits left" : "Costs 1 AI Credit"}</p></TooltipContent>}
                                 </Tooltip>
                               </TooltipProvider>
 
@@ -799,12 +829,12 @@ export default function Home() {
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                      <div className="w-full">
-                                      <Button className="w-full" variant="outline" onClick={() => lastRecording && handleExtractTasksClick(lastRecording)} disabled={!settings.isPro}>
+                                      <Button className="w-full" variant="outline" onClick={() => lastRecording && handleExtractTasksClick(lastRecording)} disabled={!settings.isPro && settings.aiCredits < 1}>
                                           <ListTodo /> Get Tasks
                                       </Button>
                                     </div>
                                   </TooltipTrigger>
-                                  {!settings.isPro && <TooltipContent><p>Upgrade to Pro to extract action items.</p></TooltipContent>}
+                                  {!settings.isPro && <TooltipContent><p>{settings.aiCredits < 1 ? "No credits left" : "Costs 1 AI Credit"}</p></TooltipContent>}
                                 </Tooltip>
                               </TooltipProvider>
                            </div>
@@ -867,8 +897,9 @@ export default function Home() {
                             <Button variant="outline" onClick={resetToIdle}>
                                 <Trash2 className="mr-2 h-4 w-4" /> Discard
                             </Button>
-                            <Button onClick={handleProcessRecording}>
-                                <Send className="mr-2 h-4 w-4" /> Transcribe & Save
+                            <Button onClick={() => handleAiActionClick(handleProcessRecording)}>
+                                <Send className="mr-2 h-4 w-4" /> Transcribe
+                                {!settings.isPro && ` (1 Credit)`}
                             </Button>
                         </CardFooter>
                     </Card>
@@ -1003,6 +1034,26 @@ export default function Home() {
                     setConfirmationAction(null);
                 }}>
                     Overwrite
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={!!creditConfirmation} onOpenChange={(open) => !open && setCreditConfirmation(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirm AI Action</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This action will cost 1 AI credit. You have {settings.aiCredits} credit{settings.aiCredits !== 1 ? 's' : ''} remaining. Do you want to proceed?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => {
+                    creditConfirmation?.action();
+                    setCreditConfirmation(null);
+                }}>
+                    Proceed
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
