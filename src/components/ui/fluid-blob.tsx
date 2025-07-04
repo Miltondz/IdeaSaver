@@ -119,7 +119,7 @@ void main() {
 function LavaLampShader() {
   const meshRef = useRef<THREE.Mesh>(null!);
   const { size } = useThree();
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
   
   const uniforms = useMemo(() => ({
     time: { value: 0 },
@@ -142,7 +142,7 @@ function LavaLampShader() {
         (meshRef.current.material as THREE.ShaderMaterial).uniforms.color3.value.set(`hsl(${bg})`);
     }
 
-  }, [theme]); // Correct dependency
+  }, [resolvedTheme, uniforms]);
 
   React.useEffect(() => {
     const { width, height } = size;
@@ -180,7 +180,7 @@ function LavaLampShader() {
 
 export const LavaLamp = () => {
   return (
-    <div style={{ width: '100%', height: '100%', position: "absolute", zIndex: -1, top: 0, left: 0 }}>
+    <div style={{ width: '100%', height: '100%', position: "absolute", zIndex: 0, top: 0, left: 0, pointerEvents: 'none' }}>
       <Canvas
         camera={{
           left: -0.5,
