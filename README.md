@@ -53,7 +53,9 @@ Before you begin, you need a Firebase project.
 5. Click the Web icon (`</>`) to create a new web app.
 6. Give it a nickname and register the app.
 7. After registering, Firebase will provide you with a `firebaseConfig` object. You will need these values for the next step.
-8. From the sidebar, go to **Build > Authentication** and enable the **Email/Password** and **Google** sign-in providers.
+8. From the sidebar, go to **Build > Authentication**.
+    - On the **Sign-in method** tab, enable the **Email/Password** and **Google** sign-in providers.
+    - On the **Settings** tab, go to **Authorized domains**. Click **Add domain** and add `localhost`. If you deploy your app to a custom domain, you must add that domain here as well. This is a critical step for Google Sign-In to work.
 9. Go to **Build > Firestore Database** and create a database. Start in **test mode** for easy setup.
 
 ### 3. Environment Variables
@@ -93,3 +95,11 @@ GOOGLE_API_KEY=AIza...
    ```
 
 The application will be available at `http://localhost:9002`.
+
+## Troubleshooting
+
+### Google Sign-In Fails: "domain not authorized"
+If you see an error message like "This domain is not authorized for Google Sign-In", it means you haven't authorized the domain you're running the app from.
+
+- **For local development:** Go to your Firebase Console → Authentication → Settings → Authorized domains and add `localhost`.
+- **For a deployed app:** You must add your live domain (e.g., `your-app-name.web.app` or `your-custom-domain.com`) to the same list.
