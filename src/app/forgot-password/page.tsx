@@ -1,12 +1,14 @@
+
 'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Lightbulb, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase';
@@ -47,9 +49,7 @@ export default function ForgotPasswordPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="absolute top-8 flex items-center gap-3">
-        <div className="w-12 h-12 rounded-full bg-primary/10 border-2 border-primary text-primary flex items-center justify-center">
-            <Lightbulb className="w-6 h-6"/>
-        </div>
+        <Image src="/logo.svg" alt="Idea Saver Logo" width={48} height={48} />
         <h1 className="text-4xl font-bold tracking-tight">Idea Saver</h1>
       </div>
       <Card className="w-full max-w-sm">

@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
-import { Lightbulb, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import Image from 'next/image';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { auth, firebaseConfigError } from '@/lib/firebase';
@@ -150,9 +151,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="absolute top-8 flex items-center gap-3">
-        <div className="w-12 h-12 rounded-full bg-primary/10 border-2 border-primary text-primary flex items-center justify-center">
-            <Lightbulb className="w-6 h-6"/>
-        </div>
+        <Image src="/logo.svg" alt="Idea Saver Logo" width={48} height={48} />
         <h1 className="text-4xl font-bold tracking-tight">Idea Saver</h1>
       </div>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-sm">
