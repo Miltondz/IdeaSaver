@@ -73,7 +73,7 @@ export default function LoginPage() {
         message = 'Password should be at least 6 characters.';
         break;
       case 'auth/invalid-api-key':
-        message = 'Firebase API Key is invalid. Please check your configuration.';
+        message = `Firebase API Key is invalid. Please check your .env configuration. The app is using Project ID: '${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'Not Set'}'.`;
         break;
       case 'auth/popup-blocked':
         message = 'Your browser blocked the sign-in popup. Please allow popups for this site.';
@@ -82,7 +82,7 @@ export default function LoginPage() {
         message = 'The sign-in window was closed. Please try again.';
         break;
       case 'auth/unauthorized-domain':
-        message = 'This domain is not authorized for Google Sign-In. Please check your Firebase console settings.';
+        message = `This domain is not authorized. Please check your Firebase console. The app is configured with Auth Domain: '${process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'Not Set'}'. Make sure this matches an authorized domain.`;
         break;
       case 'auth/account-exists-with-different-credential':
         message = 'An account already exists with this email, but with a different sign-in method (e.g., password). Try signing in with that method.';
