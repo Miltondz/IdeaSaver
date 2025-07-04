@@ -1,8 +1,8 @@
-
 'use client';
 import React, { useRef, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useTheme } from 'next-themes';
 
 const vertexShader = `
 varying vec2 vUv;
@@ -119,6 +119,7 @@ void main() {
 function LavaLampShader() {
   const meshRef = useRef<THREE.Mesh>(null!);
   const { size } = useThree();
+  const { theme } = useTheme();
   
   const uniforms = useMemo(() => ({
     time: { value: 0 },
@@ -129,18 +130,19 @@ function LavaLampShader() {
   }), []);
 
   React.useEffect(() => {
+    // This effect runs on theme change and on initial mount
     const computedStyle = getComputedStyle(document.documentElement);
     const primary = computedStyle.getPropertyValue('--primary').trim();
     const accent = computedStyle.getPropertyValue('--accent').trim();
     const bg = computedStyle.getPropertyValue('--background').trim();
     
     if(meshRef.current) {
-        (meshRef.current.material as THREE.ShaderMaterial).uniforms.color1.value = new THREE.Color(`hsl(${primary})`);
-        (meshRef.current.material as THREE.ShaderMaterial).uniforms.color2.value = new THREE.Color(`hsl(${accent})`);
-        (meshRef.current.material as THREE.ShaderMaterial).uniforms.color3.value = new THREE.Color(`hsl(${bg})`);
+        (meshRef.current.material as THREE.ShaderMaterial).uniforms.color1.value.set(`hsl(${primary})`);
+        (meshRef.current.material as THREE.ShaderMaterial).uniforms.color2.value.set(`hsl(${accent})`);
+        (meshRef.current.material as THREE.ShaderMaterial).uniforms.color3.value.set(`hsl(${bg})`);
     }
 
-  }, [size]);
+  }, [theme]); // Correct dependency
 
   React.useEffect(() => {
     const { width, height } = size;
