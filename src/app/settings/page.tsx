@@ -3,14 +3,15 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { getSettings, saveSettings, getLocalRecordings, deleteRecording as deleteRecordingFromStorage, AppSettings } from "@/lib/storage";
-import { Settings, Trash2, Trello, Save, Database, Archive, Code, BarChart3, LayoutDashboard, Server, Gem, Loader2 } from "lucide-react";
+import { getSettings, saveSettings, getLocalRecordings, deleteRecording as deleteRecordingFromStorage, AppSettings, deleteUserData, clearUserLocalStorage } from "@/lib/storage";
+import { Settings, Trash2, Trello, Save, Database, Archive, Code, BarChart3, LayoutDashboard, Server, Gem, Loader2, AlertTriangle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { Recording } from "@/types";
@@ -21,6 +22,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useLanguage } from "@/hooks/use-language";
+import { deleteUser } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 type DeletionPolicy = "never" | "7" | "15" | "30";
 
@@ -28,9 +31,14 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const { t } = useLanguage();
+  const router = useRouter();
   
   const [localRecordings, setLocalRecordings] = useState<Recording[]>([]);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm1, setShowDeleteConfirm1] = useState(false);
+  const [showDeleteConfirm2, setShowDeleteConfirm2] = useState(false);
+
 
   const { toast } = useToast();
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
@@ -100,6 +108,35 @@ export default function SettingsPage() {
       description: t('settings_save_success'),
       className: "bg-accent text-accent-foreground border-accent",
     });
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    setIsDeleting(true);
+    try {
+        // 1. Delete Firestore data
+        await deleteUserData(user.uid);
+        
+        // 2. Clear local storage
+        clearUserLocalStorage(user.uid);
+        
+        // 3. Delete user from Firebase Auth
+        await deleteUser(user);
+
+        toast({ title: t('settings_account_deleted_title'), description: t('settings_account_deleted_desc') });
+        router.push('/');
+
+    } catch(error: any) {
+        if (error.code === 'auth/requires-recent-login') {
+            toast({ variant: "destructive", title: t('settings_reauth_required_title'), description: t('settings_reauth_required_desc') });
+        } else {
+            toast({ variant: "destructive", title: t('settings_delete_account_fail_title'), description: `${t('settings_delete_account_fail_desc')} ${error.message}` });
+        }
+    } finally {
+        setIsDeleting(false);
+        setShowDeleteConfirm1(false);
+        setShowDeleteConfirm2(false);
+    }
   };
   
   if (!user || !settings) {
@@ -277,6 +314,28 @@ export default function SettingsPage() {
           <Button onClick={handleManageClick}>{t('settings_manage_local')}</Button>
         </CardContent>
       </Card>
+
+      <Card className="w-full max-w-2xl mt-8 border-destructive/50 bg-card/80 backdrop-blur-sm">
+          <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="danger" className="border-b-0">
+                <AccordionTrigger className="p-6 hover:no-underline">
+                   <div className="flex flex-col items-start">
+                    <CardTitle className="flex items-center gap-2 text-destructive">
+                        <AlertTriangle className="h-5 w-5" />
+                        {t('settings_danger_zone_title')}
+                    </CardTitle>
+                    <CardDescription className="text-destructive/80 pt-1">{t('settings_danger_zone_desc')}</CardDescription>
+                   </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-6 pb-6">
+                    <Button variant="destructive" onClick={() => setShowDeleteConfirm1(true)} disabled={isDeleting}>
+                        {isDeleting ? <Loader2 className="animate-spin" /> : <Trash2 />}
+                        {t('settings_delete_account_button')}
+                    </Button>
+                </AccordionContent>
+              </AccordionItem>
+          </Accordion>
+      </Card>
       
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent className="w-full sm:max-w-lg">
@@ -324,6 +383,44 @@ export default function SettingsPage() {
           </ScrollArea>
         </SheetContent>
       </Sheet>
+
+      {/* Double confirmation dialogs */}
+       <AlertDialog open={showDeleteConfirm1} onOpenChange={setShowDeleteConfirm1}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t('settings_delete_confirm1_title')}</AlertDialogTitle>
+                <AlertDialogDescription>{t('settings_delete_confirm1_desc')}</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{t('history_cancel_button')}</AlertDialogCancel>
+                <AlertDialogAction 
+                  className={cn(buttonVariants({ variant: "destructive" }))}
+                  onClick={() => { setShowDeleteConfirm1(false); setShowDeleteConfirm2(true); }}
+                >
+                  {t('settings_delete_confirm1_button')}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={showDeleteConfirm2} onOpenChange={setShowDeleteConfirm2}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t('settings_delete_confirm2_title')}</AlertDialogTitle>
+                <AlertDialogDescription>{t('settings_delete_confirm2_desc')}</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{t('history_cancel_button')}</AlertDialogCancel>
+                <AlertDialogAction 
+                  className={cn(buttonVariants({ variant: "destructive" }))}
+                  onClick={handleDeleteAccount}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? <Loader2 className="animate-spin" /> : t('settings_delete_confirm2_button')}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     </div>
   );
 }

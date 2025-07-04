@@ -334,6 +334,22 @@ export const en = {
   settings_sheet_delete_success: 'Recording Deleted',
   settings_sheet_delete_fail: 'Deletion Failed',
   settings_sheet_empty: 'No local recordings found for this user.',
+  settings_danger_zone_title: 'Danger Zone',
+  settings_danger_zone_desc: 'Irreversible account actions.',
+  settings_delete_account_button: 'Delete Account',
+  settings_delete_confirm1_title: 'Are you absolutely sure?',
+  settings_delete_confirm1_desc: 'This action is irreversible. It will immediately delete all your notes, data, and settings from our servers.',
+  settings_delete_confirm1_button: 'Continue with Deletion',
+  settings_delete_confirm2_title: 'Final Confirmation',
+  settings_delete_confirm2_desc: 'This is your final warning. Your account and all associated data will be permanently deleted. This cannot be undone.',
+  settings_delete_confirm2_button: 'Yes, Delete My Account Permanently',
+  settings_account_deleted_title: 'Account Deleted',
+  settings_account_deleted_desc: 'Your account has been permanently deleted.',
+  settings_delete_account_fail_title: 'Failed to Delete Account',
+  settings_delete_account_fail_desc: 'An error occurred while deleting your account:',
+  settings_reauth_required_title: 'Re-authentication Required',
+  settings_reauth_required_desc: 'This is a sensitive operation. Please sign out and sign back in before deleting your account to ensure it is you.',
+
   
   // About Page
   about_title: 'Sole Developer & Creator',
@@ -364,4 +380,14 @@ export const en = {
   feedback_thank_you_desc: 'Your feedback has been sent. We appreciate you helping us improve.',
   feedback_message_required_title: 'Message Required',
   feedback_message_required_desc: 'Please write a message before sending.',
+
+  // Onboarding Splash
+  onboarding_step1_title: "Record Your Voice",
+  onboarding_step1_desc: "Tap the microphone to instantly capture your thoughts, ideas, and reminders.",
+  onboarding_step2_title: "Unleash AI Magic",
+  onboarding_step2_desc: "Automatically transcribe, summarize, and even expand your notes into structured documents.",
+  onboarding_step3_title: "Sync & Access Anywhere",
+  onboarding_step3_desc: "With a Pro plan, your notes are securely saved to the cloud, available on all your devices.",
+  onboarding_dont_show_again: "Don't show this again",
+  onboarding_get_started: "Get Started",
 };

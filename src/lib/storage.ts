@@ -20,6 +20,7 @@ type DeletionPolicy = "never" | "7" | "15" | "30";
 export interface AppSettings {
   isPro: boolean;
   planSelected: boolean;
+  hasSeenOnboardingSplash: boolean;
   deletionPolicy: DeletionPolicy;
   aiModel: string;
   cloudSyncEnabled: boolean;
@@ -29,10 +30,12 @@ export interface AppSettings {
 }
 
 const getSettingsKey = (userId: string) => `${SETTINGS_KEY}_${userId}`;
+const getRecordingsKey = (userId: string) => `${RECORDINGS_KEY}_${userId}`;
+
 
 const _getRecordingsFromStorage = (userId: string | null): Recording[] => {
   if (typeof window === "undefined" || !userId) return [];
-  const data = localStorage.getItem(`${RECORDINGS_KEY}_${userId}`);
+  const data = localStorage.getItem(getRecordingsKey(userId));
   try {
     return data ? JSON.parse(data) : [];
   } catch (error) {
@@ -46,7 +49,7 @@ export const getLocalRecordings = _getRecordingsFromStorage;
 const _saveRecordingsToStorage = (recordings: Recording[], userId: string | null): void => {
   if (typeof window === "undefined" || !userId) return;
   try {
-    localStorage.setItem(`${RECORDINGS_KEY}_${userId}`, JSON.stringify(recordings));
+    localStorage.setItem(getRecordingsKey(userId), JSON.stringify(recordings));
   } catch (error) {
     console.error("Error saving recordings to localStorage. Data may be too large.", error);
   }
@@ -69,6 +72,7 @@ const _saveSettingsToCache = (settings: AppSettings, userId: string) => {
 const defaultSettings: Omit<AppSettings, 'monthlyCreditsLastUpdated'> = { 
     isPro: false,
     planSelected: false,
+    hasSeenOnboardingSplash: false,
     deletionPolicy: "never",
     aiModel: "gemini-1.5-flash-latest",
     cloudSyncEnabled: false,
@@ -77,6 +81,12 @@ const defaultSettings: Omit<AppSettings, 'monthlyCreditsLastUpdated'> = {
 };
 
 // --- Public API for Storage ---
+
+export function clearUserLocalStorage(userId: string) {
+    if (typeof window === "undefined" || !userId) return;
+    localStorage.removeItem(getSettingsKey(userId));
+    localStorage.removeItem(getRecordingsKey(userId));
+}
 
 export async function getSettings(userId?: string | null): Promise<AppSettings> {
   const getInitialSettings = (): AppSettings => ({
@@ -144,6 +154,29 @@ export async function saveSettings(settings: AppSettings, userId: string): Promi
 }
 
 // --- Firestore Functions ---
+export async function deleteUserData(userId: string): Promise<void> {
+    if (!db) {
+        console.error("Firestore not available. Cannot delete user data.");
+        throw new Error("Database not connected.");
+    }
+    
+    const recordingsQuery = query(collection(db, "recordings"), where("userId", "==", userId));
+    const settingsDocRef = doc(db, "settings", userId);
+
+    const batch = writeBatch(db);
+
+    // Delete settings
+    batch.delete(settingsDocRef);
+
+    // Find and delete all recordings
+    const recordingsSnapshot = await getDocs(recordingsQuery);
+    recordingsSnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+    });
+
+    await batch.commit();
+}
+
 export async function saveRecordingToDB(recording: Recording): Promise<void> {
   const settings = await getSettings(recording.userId);
   if (!settings.cloudSyncEnabled || !db) {

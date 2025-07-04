@@ -334,6 +334,21 @@ export const es = {
   settings_sheet_delete_success: 'Grabación Eliminada',
   settings_sheet_delete_fail: 'Fallo al Eliminar',
   settings_sheet_empty: 'No se encontraron grabaciones locales para este usuario.',
+  settings_danger_zone_title: 'Zona de Peligro',
+  settings_danger_zone_desc: 'Acciones de cuenta irreversibles.',
+  settings_delete_account_button: 'Eliminar Cuenta',
+  settings_delete_confirm1_title: '¿Estás absolutamente seguro?',
+  settings_delete_confirm1_desc: 'Esta acción es irreversible. Eliminará inmediatamente todas tus notas, datos y ajustes de nuestros servidores.',
+  settings_delete_confirm1_button: 'Continuar con la Eliminación',
+  settings_delete_confirm2_title: 'Confirmación Final',
+  settings_delete_confirm2_desc: 'Esta es tu última advertencia. Tu cuenta y todos los datos asociados serán eliminados permanentemente. Esto no se puede deshacer.',
+  settings_delete_confirm2_button: 'Sí, Eliminar Mi Cuenta Permanentemente',
+  settings_account_deleted_title: 'Cuenta Eliminada',
+  settings_account_deleted_desc: 'Tu cuenta ha sido eliminada permanentemente.',
+  settings_delete_account_fail_title: 'Fallo al Eliminar la Cuenta',
+  settings_delete_account_fail_desc: 'Ocurrió un error al eliminar tu cuenta:',
+  settings_reauth_required_title: 'Se Requiere Re-autenticación',
+  settings_reauth_required_desc: 'Esta es una operación sensible. Por favor, cierra sesión y vuelve a iniciarla antes de eliminar tu cuenta para asegurar que eres tú.',
 
   // About Page
   about_title: 'Desarrollador y Creador Único',
@@ -364,4 +379,14 @@ export const es = {
   feedback_thank_you_desc: 'Tus comentarios han sido enviados. Agradecemos tu ayuda para mejorar.',
   feedback_message_required_title: 'Mensaje Requerido',
   feedback_message_required_desc: 'Por favor, escribe un mensaje antes de enviar.',
+
+  // Onboarding Splash
+  onboarding_step1_title: "Graba Tu Voz",
+  onboarding_step1_desc: "Toca el micrófono para capturar al instante tus pensamientos, ideas y recordatorios.",
+  onboarding_step2_title: "Desata la Magia de la IA",
+  onboarding_step2_desc: "Transcribe, resume e incluso expande tus notas automáticamente en documentos estructurados.",
+  onboarding_step3_title: "Sincroniza y Accede en Todas Partes",
+  onboarding_step3_desc: "Con un plan Pro, tus notas se guardan de forma segura en la nube, disponibles en todos tus dispositivos.",
+  onboarding_dont_show_again: "No volver a mostrar",
+  onboarding_get_started: "Comenzar",
 };
