@@ -151,9 +151,11 @@ export async function saveRecordingToDB(recording: Recording): Promise<void> {
     return;
   }
   try {
+    // Create a copy of the recording and remove the audio data before saving to DB
+    const { audioDataUri, ...dbData } = recording;
     const docRef = doc(db, "recordings", recording.id);
-    await setDoc(docRef, recording, { merge: true });
-    console.log("Recording saved to Firestore with ID: ", recording.id);
+    await setDoc(docRef, dbData, { merge: true });
+    console.log("Recording text data saved to Firestore with ID: ", recording.id);
   } catch (error) {
     console.error("Error adding document to Firestore: ", error);
     throw new Error("Failed to save recording to database.");
@@ -177,29 +179,52 @@ export async function deleteRecordingFromDB(id: string, userId: string): Promise
 // --- Hybrid Functions (Local Storage + Firestore) ---
 export async function getRecordings(userId: string): Promise<Recording[]> {
   const { cloudSyncEnabled } = await getSettings(userId);
+  const localRecordings = _getRecordingsFromStorage(userId);
 
   if (cloudSyncEnabled && db) {
     try {
       const q = query(collection(db, "recordings"), where("userId", "==", userId));
       const querySnapshot = await getDocs(q);
-      const recordings = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Recording));
+      const cloudRecordings = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Recording));
 
-      // Sort recordings by date descending on the client side
-      recordings.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      // Create a map of local recordings for quick lookup of audio data
+      const localMap = new Map<string, Recording>(localRecordings.map(rec => [rec.id, rec]));
 
-      // Sync local storage with what's in the cloud
-      _saveRecordingsToStorage(recordings, userId);
-      return recordings;
+      // Merge cloud (text) and local (audio) data
+      const mergedRecordings = cloudRecordings.map(cloudRec => {
+        const localRec = localMap.get(cloudRec.id);
+        return {
+          ...cloudRec, // Cloud data is the source of truth for text
+          audioDataUri: localRec?.audioDataUri, // But audio comes from local
+        };
+      });
+      
+      // Add any recordings that are only available locally (e.g., recorded while offline)
+      localRecordings.forEach(localRec => {
+        if (!mergedRecordings.some(m => m.id === localRec.id)) {
+            mergedRecordings.push(localRec);
+        }
+      });
+
+      // Sort recordings by date descending
+      mergedRecordings.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      // Sync the fully merged result back to local storage
+      _saveRecordingsToStorage(mergedRecordings, userId);
+      return mergedRecordings;
+
     } catch (error) {
       console.error("Error fetching from Firestore, falling back to local storage.", error);
-      return Promise.resolve(_getRecordingsFromStorage(userId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      return Promise.resolve(localRecordings.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     }
   } else {
+    // If cloud sync is off, just return local recordings
     const recordings = _getRecordingsFromStorage(userId);
     recordings.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     return Promise.resolve(recordings);
   }
 }
+
 
 export async function getRecording(id: string, userId: string): Promise<Recording | undefined> {
   const { cloudSyncEnabled } = await getSettings(userId);
@@ -208,7 +233,9 @@ export async function getRecording(id: string, userId: string): Promise<Recordin
         const docRef = doc(db, "recordings", id);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists() && docSnap.data().userId === userId) {
-          return { id: docSnap.id, ...docSnap.data() } as Recording;
+          const cloudData = { id: docSnap.id, ...docSnap.data() } as Recording;
+          const localData = _getRecordingsFromStorage(userId).find(r => r.id === id);
+          return { ...cloudData, audioDataUri: localData?.audioDataUri };
         }
       } catch (error) {
         console.error("Error fetching doc from Firestore, falling back to local", error);
@@ -231,10 +258,11 @@ export async function saveRecording(data: Omit<Recording, 'id' | 'date' | 'userI
 
   const recordings = _getRecordingsFromStorage(userId);
   
-  // Always save to local storage first
+  // Always save to local storage first, with audio
   _saveRecordingsToStorage([...recordings, newRecording], userId);
   
   if (settings.cloudSyncEnabled && settings.autoCloudSync) {
+    // saveRecordingToDB will strip audio before sending
     await saveRecordingToDB(newRecording);
   }
   
@@ -242,27 +270,31 @@ export async function saveRecording(data: Omit<Recording, 'id' | 'date' | 'userI
 }
 
 export async function updateRecording(recording: Recording, userId: string): Promise<Recording> {
-  const settings = await getSettings(userId);
-  
-  let recordings = _getRecordingsFromStorage(userId);
-  const index = recordings.findIndex(r => r.id === recording.id);
+    const settings = await getSettings(userId);
+    const allLocalRecordings = _getRecordingsFromStorage(userId);
+    const existingRecording = allLocalRecordings.find(r => r.id === recording.id);
 
-  if (index !== -1) {
-    recordings[index] = recording;
-  } else {
-    recordings.push(recording);
-  }
-  _saveRecordingsToStorage(recordings, userId);
+    // Create the final updated object, preserving the existing local audio URI 
+    // if the incoming update doesn't have one.
+    const updatedRecording: Recording = {
+        ...recording,
+        audioDataUri: recording.audioDataUri || existingRecording?.audioDataUri,
+    };
 
-  if (settings.cloudSyncEnabled && db) {
-    try {
-      await saveRecordingToDB(recording);
-    } catch (error) {
-      console.error("Error updating document in Firestore: ", error);
+    const index = allLocalRecordings.findIndex(r => r.id === recording.id);
+    if (index !== -1) {
+        allLocalRecordings[index] = updatedRecording;
+    } else {
+        allLocalRecordings.push(updatedRecording);
     }
-  }
-  
-  return recording;
+    _saveRecordingsToStorage(allLocalRecordings, userId);
+
+    if (settings.cloudSyncEnabled) {
+        // saveRecordingToDB will handle stripping the audio data before saving to Firestore
+        await saveRecordingToDB(updatedRecording);
+    }
+
+    return updatedRecording;
 }
 
 

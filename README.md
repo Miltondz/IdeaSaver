@@ -21,7 +21,7 @@ This application is built with a professional tech stack, featuring user authent
 - **AI Note Expansion:** Elaborate on your brief ideas, turning them into well-structured text.
 - **AI Project Plan Generation:** Transform a voice note into a formal project plan with goals, milestones, and risks.
 - **AI Task Extraction:** Automatically pull out a markdown-formatted to-do list from your transcription.
-- **Cloud Sync:** Securely save and sync all your notes and AI-generated content across devices using Firestore.
+- **Cloud Sync:** Securely save and sync all your transcriptions and AI-generated content across devices using Firestore. (Audio playback is only available on the recording device).
 
 ## Tech Stack
 
@@ -153,5 +153,3 @@ This is a critical but often missed step. Firebase Authentication uses Google Cl
 
 - **Clear Browser Cache:** Sometimes your browser can cache old settings. Try clearing your browser's cache and cookies, or open the app in an Incognito/Private window.
 - **Restart Development Server:** After making changes to your `.env` file, always stop and restart your `npm run dev` server to ensure the new variables are loaded.
-
-```

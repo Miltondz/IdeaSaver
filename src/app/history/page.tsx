@@ -548,7 +548,7 @@ export default function HistoryPage() {
                         <audio controls className="w-full" src={selectedRecording.audioDataUri}></audio>
                       ) : (
                         <div className="text-sm text-muted-foreground p-4 bg-muted/50 rounded-md border">
-                          Audio playback is not available for this note.
+                          Audio playback is only available on the device where it was recorded.
                         </div>
                       )}
                   </div>
