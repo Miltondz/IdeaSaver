@@ -48,9 +48,8 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-      <div className="absolute top-8 flex items-center gap-3">
-        <Image src="/logo.svg" alt="Idea Saver Logo" width={48} height={48} />
-        <h1 className="text-4xl font-bold tracking-tight">Idea Saver</h1>
+       <div className="mb-8">
+        <Image src="/logo.svg" alt="Idea Saver Logo" width={150} height={150} priority />
       </div>
       <Card className="w-full max-w-sm">
         <CardHeader>

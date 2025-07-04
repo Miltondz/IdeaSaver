@@ -1,29 +1,24 @@
-<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="512" height="512" fill="#2A4036"/>
-<g transform="translate(30, 0)">
-    <!-- Microphone -->
-    <path d="M136.5 304C136.5 310.351 131.351 315.5 125 315.5H119C112.649 315.5 107.5 310.351 107.5 304V280.5H136.5V304Z" fill="#A855F7"/>
-    <rect x="117" y="315" width="10" height="20" fill="#A855F7"/>
-    <path d="M165 212C165 174.423 134.577 144 97 144C59.4231 144 29 174.423 29 212V252C29 289.577 59.4231 320 97 320C134.577 320 165 289.577 165 252V212Z" fill="#A855F7"/>
-    <rect x="49" y="194" width="96" height="12" rx="6" fill="#2A4036"/>
-    <rect x="49" y="222" width="96" height="12" rx="6" fill="#2A4036"/>
-    <rect x="49" y="250" width="96" height="12" rx="6" fill="#2A4036"/>
+<svg viewBox="0 0 100 85" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="logoTitle logoDesc">
+  <title id="logoTitle">Idea Saver Icon</title>
+  <desc id="logoDesc">An icon with a purple microphone, a white soundwave, and a purple and white lightbulb.</desc>
+  <!-- Microphone Body -->
+  <path d="M38 22C38 16.4772 42.4772 12 48 12C53.5228 12 58 16.4772 58 22V26H38V22Z" fill="#9c44dc"/>
+  <path d="M38 31V34H58V31H38Z" fill="#9c44dc"/>
+  <path d="M38 39V42H58V39H38Z" fill="#9c44dc"/>
+  <path d="M38 47V48C38 53.5228 42.4772 58 48 58C53.5228 58 58 53.5228 58 48V47H38Z" fill="#9c44dc"/>
+  <!-- Microphone Stand -->
+  <path d="M45 58H51V68H45V58Z" fill="#9c44dc"/>
+  <path d="M36 56H60V62H36V56Z" fill="#9c44dc"/>
+  <path d="M42 68H54V72H42V68Z" fill="#9c44dc"/>
 
-    <!-- Sound Wave -->
-    <path d="M189 256L205 235L221 280L237 220L253 275L269 240L285 256" stroke="#F5F5F5" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Soundwave -->
+  <path d="M60 44L63 49L66 39L69 52L72 41L75 47L78 44" stroke="#f5f3e6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
 
-    <!-- Lightbulb -->
-    <g>
-        <!-- Bulb glass -->
-        <circle cx="384" cy="216" r="80" fill="#FFFBEB" stroke="#A855F7" stroke-width="16"/>
-        <!-- Bulb base -->
-        <path d="M428 296H340V328H428V296Z" fill="#A855F7"/>
-        <path d="M418 328H350V344H418V328Z" fill="#A855F7"/>
-        <path d="M408 344H360V360H408V344Z" fill="#A855F7"/>
-        <!-- Filament -->
-        <path d="M366 226L374 206L382 236L390 206L398 226" stroke="#4A4A4A" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-    </g>
-</g>
-<!-- Text -->
-<text fill="#FFFFFF" xml:space="preserve" style="white-space: pre" font-family="sans-serif" font-size="64" font-weight="bold" letter-spacing="0em"><tspan x="110" y="440">Idea Saver</tspan></text>
+  <!-- Lightbulb -->
+  <path d="M89 39C89 31.268 82.732 25 75 25C67.268 25 61 31.268 61 39C61 44.5773 64.0566 49.3377 69 51.9811V58H81V51.9811C75.9434 49.3377 89 44.5773 89 39Z" stroke="#9c44dc" stroke-width="4" fill="#f5f3e6"/>
+  <path d="M68 58H82V63H68V58Z" fill="#9c44dc"/>
+  <path d="M67 63H83V66H67V63Z" fill="#9c44dc"/>
+  <path d="M68 66H82V71H68V66Z" fill="#9c44dc"/>
+  <path d="M67 71H83V74H67V71Z" fill="#9c44dc"/>
+  <path d="M71 39L73 42L75 39L77 42L79 39" stroke="#9c44dc" stroke-width="2" stroke-linecap="round"/>
 </svg>
