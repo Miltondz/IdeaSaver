@@ -18,14 +18,14 @@ export default function PricingPage() {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const handleSelectPlan = (plan: 'free' | 'pro') => {
+  const handleSelectPlan = async (plan: 'free' | 'pro') => {
     if (!user) {
         toast({ variant: "destructive", title: "Error", description: "You must be logged in to select a plan." });
         return;
     }
-    const settings = getSettings(user.uid);
+    const settings = await getSettings(user.uid);
     if (plan === 'pro') {
-      saveSettings({
+      await saveSettings({
         ...settings,
         isPro: true,
         planSelected: true,
@@ -38,7 +38,7 @@ export default function PricingPage() {
           className: "bg-accent text-accent-foreground border-accent",
       });
     } else {
-       saveSettings({
+       await saveSettings({
         ...settings,
         isPro: false,
         planSelected: true,

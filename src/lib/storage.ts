@@ -28,8 +28,6 @@ export interface AppSettings {
   monthlyCreditsLastUpdated: string; // ISO string
 }
 
-// --- LocalStorage Helper Functions ---
-
 const getSettingsKey = (userId: string) => `${SETTINGS_KEY}_${userId}`;
 
 const _getRecordingsFromStorage = (userId: string | null): Recording[] => {
@@ -51,15 +49,24 @@ const _saveRecordingsToStorage = (recordings: Recording[], userId: string | null
     localStorage.setItem(`${RECORDINGS_KEY}_${userId}`, JSON.stringify(recordings));
   } catch (error) {
     console.error("Error saving recordings to localStorage. Data may be too large.", error);
-    // Potentially notify the user that storage is full
   }
 };
 
 
-// --- Public API for Storage ---
+const _getSettingsFromCache = (userId: string): AppSettings | null => {
+    if (typeof window === "undefined") return null;
+    const data = localStorage.getItem(getSettingsKey(userId));
+    return data ? JSON.parse(data) : null;
+};
 
-export function getSettings(userId?: string | null): AppSettings {
-  const defaults: AppSettings = { 
+const _saveSettingsToCache = (settings: AppSettings, userId: string) => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(getSettingsKey(userId), JSON.stringify(settings));
+    // Dispatch a storage event to notify other tabs/windows
+    window.dispatchEvent(new Event('storage'));
+};
+
+const defaultSettings: Omit<AppSettings, 'monthlyCreditsLastUpdated'> = { 
     isPro: false,
     planSelected: false,
     deletionPolicy: "never",
@@ -67,43 +74,78 @@ export function getSettings(userId?: string | null): AppSettings {
     cloudSyncEnabled: false,
     autoCloudSync: false,
     aiCredits: 0,
-    monthlyCreditsLastUpdated: new Date().toISOString(),
-  };
-  if (typeof window === "undefined" || !userId) {
-    return defaults;
-  }
-  
-  const key = getSettingsKey(userId);
-  const data = localStorage.getItem(key);
-  let settings: AppSettings = data ? { ...defaults, ...JSON.parse(data) } : { ...defaults };
+};
 
-  // Monthly credit refresh logic for Free users who have completed onboarding
-  if (settings.planSelected && !settings.isPro) {
-      const lastUpdate = new Date(settings.monthlyCreditsLastUpdated);
-      const now = new Date();
-      // Check if the last update was in a previous month (of any year)
-      if (now.getFullYear() > lastUpdate.getFullYear() || now.getMonth() > lastUpdate.getMonth()) {
-          settings.aiCredits += 2;
-          settings.monthlyCreditsLastUpdated = now.toISOString();
-          localStorage.setItem(key, JSON.stringify(settings)); // Save immediately
-          // Dispatch a storage event to notify other tabs/windows of the credit change
-          window.dispatchEvent(new Event('storage'));
-      }
+// --- Public API for Storage ---
+
+export async function getSettings(userId?: string | null): Promise<AppSettings> {
+  const getInitialSettings = (): AppSettings => ({
+      ...defaultSettings,
+      monthlyCreditsLastUpdated: new Date().toISOString(),
+  });
+
+  if (!userId || !db) {
+    // Return cached or default settings if no user or DB connection
+    return _getSettingsFromCache(userId || '') || getInitialSettings();
   }
 
-  return settings;
+  try {
+    const docRef = doc(db, "settings", userId);
+    const docSnap = await getDoc(docRef);
+    let settings: AppSettings;
+
+    if (docSnap.exists()) {
+      settings = { ...getInitialSettings(), ...docSnap.data() } as AppSettings;
+    } else {
+      // First time user, or no settings in DB yet
+      settings = _getSettingsFromCache(userId) || getInitialSettings();
+    }
+    
+    // Monthly credit refresh logic for Free users who have completed onboarding
+    if (settings.planSelected && !settings.isPro) {
+        const lastUpdate = new Date(settings.monthlyCreditsLastUpdated);
+        const now = new Date();
+        // Check if the last update was in a previous month (of any year)
+        if (now.getFullYear() > lastUpdate.getFullYear() || now.getMonth() > lastUpdate.getMonth()) {
+            settings.aiCredits += 2;
+            settings.monthlyCreditsLastUpdated = now.toISOString();
+            // Save immediately to DB and cache
+            await saveSettings(settings, userId); 
+        }
+    }
+
+    _saveSettingsToCache(settings, userId);
+    return settings;
+
+  } catch (error) {
+    console.error("Error fetching settings from Firestore, falling back to cache.", error);
+    return _getSettingsFromCache(userId) || getInitialSettings();
+  }
 }
 
-export function saveSettings(settings: AppSettings, userId: string): void {
-  if (typeof window === "undefined" || !userId) return;
-  localStorage.setItem(getSettingsKey(userId), JSON.stringify(settings));
-  // Dispatch a storage event to notify other tabs/windows
-  window.dispatchEvent(new Event('storage'));
+export async function saveSettings(settings: AppSettings, userId: string): Promise<void> {
+  if (!userId) return;
+
+  _saveSettingsToCache(settings, userId);
+
+  if (!db) {
+    console.warn("Firestore not available. Settings saved locally only.");
+    return;
+  }
+  
+  try {
+    const docRef = doc(db, "settings", userId);
+    await setDoc(docRef, settings, { merge: true });
+  } catch(error) {
+    console.error("Failed to save settings to Firestore:", error);
+    // The settings are already saved locally, so the app can continue.
+    // We might want to add a retry mechanism here in a real-world app.
+  }
 }
 
 // --- Firestore Functions ---
 export async function saveRecordingToDB(recording: Recording): Promise<void> {
-  const settings = getSettings(recording.userId);
+  const settings = await getSettings(recording.userId);
   if (!settings.cloudSyncEnabled || !db) {
     console.log("Cloud Sync is disabled. Skipping Firestore save.");
     return;
@@ -119,7 +161,7 @@ export async function saveRecordingToDB(recording: Recording): Promise<void> {
 }
 
 export async function deleteRecordingFromDB(id: string, userId: string): Promise<void> {
-  const settings = getSettings(userId);
+  const settings = await getSettings(userId);
   if (!settings.cloudSyncEnabled || !db) {
     return;
   }
@@ -134,7 +176,7 @@ export async function deleteRecordingFromDB(id: string, userId: string): Promise
 
 // --- Hybrid Functions (Local Storage + Firestore) ---
 export async function getRecordings(userId: string): Promise<Recording[]> {
-  const { cloudSyncEnabled } = getSettings(userId);
+  const { cloudSyncEnabled } = await getSettings(userId);
 
   if (cloudSyncEnabled && db) {
     try {
@@ -160,7 +202,7 @@ export async function getRecordings(userId: string): Promise<Recording[]> {
 }
 
 export async function getRecording(id: string, userId: string): Promise<Recording | undefined> {
-  const { cloudSyncEnabled } = getSettings(userId);
+  const { cloudSyncEnabled } = await getSettings(userId);
   if (cloudSyncEnabled && db) {
       try {
         const docRef = doc(db, "recordings", id);
@@ -178,7 +220,7 @@ export async function getRecording(id: string, userId: string): Promise<Recordin
 }
 
 export async function saveRecording(data: Omit<Recording, 'id' | 'date' | 'userId'>, userId: string): Promise<Recording> {
-  const settings = getSettings(userId);
+  const settings = await getSettings(userId);
   
   const newRecording: Recording = {
     id: new Date().getTime().toString(),
@@ -200,7 +242,7 @@ export async function saveRecording(data: Omit<Recording, 'id' | 'date' | 'userI
 }
 
 export async function updateRecording(recording: Recording, userId: string): Promise<Recording> {
-  const settings = getSettings(userId);
+  const settings = await getSettings(userId);
   
   let recordings = _getRecordingsFromStorage(userId);
   const index = recordings.findIndex(r => r.id === recording.id);
@@ -237,7 +279,7 @@ export async function deleteRecording(id: string, userId: string): Promise<void>
 export async function applyDeletions(userId: string): Promise<void> {
   if (typeof window === "undefined" || !userId) return;
 
-  const { deletionPolicy, cloudSyncEnabled } = getSettings(userId);
+  const { deletionPolicy, cloudSyncEnabled } = await getSettings(userId);
   if (deletionPolicy === "never") {
     return;
   }

@@ -37,7 +37,7 @@ export default function HistoryPage() {
   const [copiedStates, setCopiedStates] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
   const { user } = useAuth();
-  const [settings, setSettings] = useState<AppSettings>(() => getSettings(user?.uid));
+  const [settings, setSettings] = useState<AppSettings | null>(null);
   
   // AI Action State
   const [aiAction, setAiAction] = useState<'expand' | 'summarize' | 'expand-as-project' | 'extract-tasks' | null>(null);
@@ -51,14 +51,28 @@ export default function HistoryPage() {
   const [editableTranscription, setEditableTranscription] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
 
-  const deductCredit = useCallback(() => {
-    if (!user) return;
+  useEffect(() => {
+    if (user) {
+      getSettings(user.uid).then(setSettings);
+    }
+    const handleSettingsChange = async () => {
+      if (user) {
+        setSettings(await getSettings(user.uid));
+      }
+    };
+    window.addEventListener('storage', handleSettingsChange);
+    return () => window.removeEventListener('storage', handleSettingsChange);
+  }, [user]);
+
+  const deductCredit = useCallback(async () => {
+    if (!user || !settings) return;
     const newSettings = { ...settings, aiCredits: settings.aiCredits - 1 };
-    saveSettings(newSettings, user.uid);
+    await saveSettings(newSettings, user.uid);
     setSettings(newSettings);
   }, [user, settings]);
 
   const handleAiActionClick = (action: () => void) => {
+    if (!settings) return;
     if (settings.isPro) {
         action();
         return;
@@ -90,13 +104,6 @@ export default function HistoryPage() {
     if (user) {
       refreshRecordings();
     }
-    const handleSettingsChange = () => {
-      if (user) {
-        setSettings(getSettings(user.uid));
-      }
-    };
-    window.addEventListener('storage', handleSettingsChange);
-    return () => window.removeEventListener('storage', handleSettingsChange);
   }, [user, refreshRecordings]);
 
 
@@ -208,7 +215,7 @@ export default function HistoryPage() {
   };
 
   const proceedWithExpand = (recording: Recording) => {
-    if (!user) return;
+    if (!user || !settings) return;
     setNoteForAi(recording);
     setAiAction('expand');
     setAiResult(null);
@@ -245,7 +252,7 @@ export default function HistoryPage() {
   };
   
   const proceedWithSummarize = (recording: Recording) => {
-    if (!user) return;
+    if (!user || !settings) return;
     setNoteForAi(recording);
     setAiAction('summarize');
     setAiResult(null);
@@ -282,7 +289,7 @@ export default function HistoryPage() {
   };
 
   const proceedWithExpandAsProject = (recording: Recording) => {
-    if (!user) return;
+    if (!user || !settings) return;
     setNoteForAi(recording);
     setAiAction('expand-as-project');
     setAiResult(null);
@@ -319,7 +326,7 @@ export default function HistoryPage() {
   };
   
   const proceedWithExtractTasks = (recording: Recording) => {
-    if (!user) return;
+    if (!user || !settings) return;
     setNoteForAi(recording);
     setAiAction('extract-tasks');
     setAiResult(null);
@@ -399,7 +406,7 @@ export default function HistoryPage() {
       return `This is an AI-generated ${aiAction?.replace(/-/g, ' ')} of your original note. The result has been automatically saved.`;
   }
   
-  if (isLoading) {
+  if (isLoading || !settings) {
     return (
         <div className="flex justify-center items-center h-full p-4">
             <div className="flex items-center text-muted-foreground">

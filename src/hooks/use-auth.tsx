@@ -28,36 +28,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     useEffect(() => {
-        if (loading) return;
+        const routeUser = async () => {
+            if (loading) return;
 
-        const settings = getSettings(user?.uid);
-        const isAuthPage = pathname === '/';
-        const isPricingPage = pathname === '/pricing';
-        const publicPages = ['/', '/pricing', '/forgot-password', '/terms', '/privacy', '/about'];
+            const publicPages = ['/', '/pricing', '/forgot-password', '/terms', '/privacy', '/about'];
 
-        // --- Logged out user routing ---
-        if (!user) {
-            if (!publicPages.includes(pathname)) {
-                router.push('/');
+            // --- Logged out user routing ---
+            if (!user) {
+                if (!publicPages.includes(pathname)) {
+                    router.push('/');
+                }
+                return;
             }
-            return;
-        }
 
-        // --- Logged in user routing ---
-        if (settings.planSelected) {
-            // User has completed onboarding, redirect them to the app if they land on auth/pricing pages.
-            if (isAuthPage || isPricingPage) {
-                router.push('/record');
+            // --- Logged in user routing ---
+            const settings = await getSettings(user.uid);
+            const isAuthPage = pathname === '/';
+            const isPricingPage = pathname === '/pricing';
+
+            if (settings.planSelected) {
+                // User has completed onboarding, redirect them to the app if they land on auth/pricing pages.
+                if (isAuthPage || isPricingPage) {
+                    router.push('/record');
+                }
+            } else {
+                // User has NOT completed onboarding. They must select a plan.
+                // This happens right after signup.
+                if (!isPricingPage && !isAuthPage) {
+                    // If they try to navigate anywhere else (e.g. /history), force them to /pricing.
+                    // We allow isAuthPage to prevent a redirect loop immediately after signup.
+                    router.push('/pricing');
+                }
             }
-        } else {
-            // User has NOT completed onboarding. They must select a plan.
-            // This happens right after signup.
-            if (!isPricingPage && !isAuthPage) {
-                // If they try to navigate anywhere else (e.g. /history), force them to /pricing.
-                // We allow isAuthPage to prevent a redirect loop immediately after signup.
-                router.push('/pricing');
-            }
-        }
+        };
+
+        routeUser();
     }, [user, loading, router, pathname]);
 
     if (loading) {

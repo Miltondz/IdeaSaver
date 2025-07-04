@@ -10,7 +10,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { getSettings, saveSettings, getLocalRecordings, deleteRecording as deleteRecordingFromStorage, AppSettings } from "@/lib/storage";
-import { Settings, Trash2, Trello, Save, Database, Archive, Code, BarChart3, LayoutDashboard, Server, Gem } from "lucide-react";
+import { Settings, Trash2, Trello, Save, Database, Archive, Code, BarChart3, LayoutDashboard, Server, Gem, Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { Recording } from "@/types";
@@ -25,8 +25,7 @@ type DeletionPolicy = "never" | "7" | "15" | "30";
 
 export default function SettingsPage() {
   const { user } = useAuth();
-  const [settings, setSettings] = useState<AppSettings>(() => getSettings(user?.uid));
-  const [isMounted, setIsMounted] = useState(false);
+  const [settings, setSettings] = useState<AppSettings | null>(null);
   
   const [localRecordings, setLocalRecordings] = useState<Recording[]>([]);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -35,21 +34,21 @@ export default function SettingsPage() {
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 
   useEffect(() => {
-    setIsMounted(true);
-    const handleSettingsChange = () => {
+    const handleSettingsChange = async () => {
         if (user) {
-            setSettings(getSettings(user.uid));
+            setSettings(await getSettings(user.uid));
         }
     };
     if (user) {
-        setSettings(getSettings(user.uid));
+        getSettings(user.uid).then(setSettings);
     }
     window.addEventListener('storage', handleSettingsChange);
     return () => window.removeEventListener('storage', handleSettingsChange);
   }, [user]);
   
   const updateSetting = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+    if (!settings) return;
+    setSettings(prev => prev ? ({ ...prev, [key]: value }) : null);
   };
 
   const refreshLocalRecordings = useCallback(() => {
@@ -86,9 +85,9 @@ export default function SettingsPage() {
       return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const handleSave = () => {
-    if (!user) return;
-    saveSettings(settings, user.uid);
+  const handleSave = async () => {
+    if (!user || !settings) return;
+    await saveSettings(settings, user.uid);
     toast({
       title: "Settings Saved",
       description: "Your new settings have been applied.",
@@ -96,7 +95,7 @@ export default function SettingsPage() {
     });
   };
   
-  if (!isMounted || !user) {
+  if (!user || !settings) {
     return (
         <div className="container mx-auto p-4 pt-8 flex justify-center">
             <Card className="w-full max-w-2xl">
@@ -106,7 +105,8 @@ export default function SettingsPage() {
                         Settings
                     </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex items-center justify-center p-8">
+                     <Loader2 className="h-6 w-6 animate-spin mr-2" />
                     <p>Loading settings...</p>
                 </CardContent>
             </Card>

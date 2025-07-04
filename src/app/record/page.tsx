@@ -77,7 +77,7 @@ export default function Home() {
   const [recordedAudio, setRecordedAudio] = useState<{ blob: Blob; dataUri: string } | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
   const { user } = useAuth();
-  const [settings, setSettings] = useState<AppSettings>(() => getSettings(user?.uid));
+  const [settings, setSettings] = useState<AppSettings | null>(null);
   const [idleQuote, setIdleQuote] = useState(motivationalQuotes[0]);
   const router = useRouter();
 
@@ -109,27 +109,26 @@ export default function Home() {
   const [editableTranscription, setEditableTranscription] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
 
-  
   useEffect(() => {
     setIdleQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
 
-    const handleSettingsChange = () => {
+    const handleSettingsChange = async () => {
       if (user) {
-        setSettings(getSettings(user.uid));
+        setSettings(await getSettings(user.uid));
       }
     };
     
     if (user) {
-        setSettings(getSettings(user.uid));
-        applyDeletions(user.uid);
+      getSettings(user.uid).then(setSettings);
+      applyDeletions(user.uid);
     }
     window.addEventListener('storage', handleSettingsChange);
 
     return () => {
-        window.removeEventListener('storage', handleSettingsChange);
+      window.removeEventListener('storage', handleSettingsChange);
     };
   }, [user]);
-  
+
   const log = useCallback((...args: any[]) => {
     const message = args.map(arg => {
       if (typeof arg === 'object' && arg !== null) {
@@ -163,15 +162,15 @@ export default function Home() {
     setIdleQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
   }, []);
 
-  const deductCredit = useCallback(() => {
-    if (!user) return;
+  const deductCredit = useCallback(async () => {
+    if (!user || !settings) return;
     const newSettings = { ...settings, aiCredits: settings.aiCredits - 1 };
-    saveSettings(newSettings, user.uid);
+    await saveSettings(newSettings, user.uid);
     setSettings(newSettings);
   }, [user, settings]);
   
   const handleProcessRecording = useCallback(async () => {
-    if (!user) {
+    if (!user || !settings) {
         toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to process recordings." });
         resetToIdle();
         return;
@@ -186,7 +185,7 @@ export default function Home() {
     setRecordingStatus("transcribing");
     
     try {
-        if (!settings.isPro) deductCredit();
+        if (!settings.isPro) await deductCredit();
         const audioDataUri = recordedAudio.dataUri;
         log("handleProcessRecording: Calling transcribeVoiceNote...");
         const transcribeResult = await transcribeVoiceNote({ audioDataUri, aiModel: settings.aiModel });
@@ -236,7 +235,7 @@ export default function Home() {
           mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
         }
       }
-  }, [resetToIdle, toast, log, settings.aiModel, settings.isPro, user, recordedAudio, deductCredit]);
+  }, [resetToIdle, toast, log, settings, user, recordedAudio, deductCredit]);
 
   const onStop = useCallback(async () => {
     log("onStop: Recording stopped, entering review phase.");
@@ -506,7 +505,7 @@ export default function Home() {
 
   // --- AI Action Handlers ---
   const proceedWithExpand = (recording: Recording) => {
-    if (!user) return;
+    if (!user || !settings) return;
     setNoteForAi(recording);
     setAiAction('expand');
     setAiResult(null);
@@ -530,6 +529,7 @@ export default function Home() {
   };
 
   const handleAiActionClick = (action: () => void) => {
+    if (!settings) return;
     if (settings.isPro) {
         action();
         return;
@@ -555,7 +555,7 @@ export default function Home() {
   };
 
   const proceedWithSummarize = (recording: Recording) => {
-    if (!user) return;
+    if (!user || !settings) return;
     setNoteForAi(recording);
     setAiAction('summarize');
     setAiResult(null);
@@ -591,7 +591,7 @@ export default function Home() {
   };
   
   const proceedWithExpandAsProject = (recording: Recording) => {
-    if (!user) return;
+    if (!user || !settings) return;
     setNoteForAi(recording);
     setAiAction('expand-as-project');
     setAiResult(null);
@@ -627,7 +627,7 @@ export default function Home() {
   };
 
   const proceedWithExtractTasks = (recording: Recording) => {
-    if (!user) return;
+    if (!user || !settings) return;
     setNoteForAi(recording);
     setAiAction('extract-tasks');
     setAiResult(null);
@@ -672,7 +672,7 @@ export default function Home() {
     });
   };
 
-  const handleSaveTranscription = () => {
+  const handleSaveTranscription = async () => {
     if (!lastRecording || !user) return;
     if (editableTranscription === lastRecording.transcription) {
         toast({ title: "No changes to save." });
@@ -712,6 +712,17 @@ export default function Home() {
   
   const getAiActionDescription = () => {
       return `This is an AI-generated ${aiAction?.replace(/-/g, ' ')} of your original note. The result has been automatically saved.`;
+  }
+
+  if (!settings) {
+    return (
+        <div className="flex justify-center items-center h-full p-4">
+            <div className="flex items-center text-muted-foreground">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <p className="ml-3">Loading...</p>
+            </div>
+        </div>
+    );
   }
 
   return (
