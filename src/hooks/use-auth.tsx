@@ -7,7 +7,7 @@ import { Loader2 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { getSettings } from '@/lib/storage';
 
-export const AuthContext = createContext<{ user: User | null }>({ user: null });
+export const AuthContext = createContext<{ user: User | null; loading: boolean }>({ user: null, loading: true });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
@@ -33,11 +33,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const settings = getSettings(user?.uid);
         const isAuthPage = pathname === '/';
         const isPricingPage = pathname === '/pricing';
+        const publicPages = ['/', '/pricing', '/forgot-password', '/terms', '/privacy', '/about'];
 
         // --- Logged out user routing ---
         if (!user) {
-            const isPublicPage = isAuthPage || isPricingPage || pathname.startsWith('/about');
-            if (!isPublicPage) {
+            if (!publicPages.includes(pathname)) {
                 router.push('/');
             }
             return;
@@ -67,25 +67,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             </div>
         );
     }
-
-    // If we're still loading the user object on a protected page, don't render children yet.
-    const isProtectedPage = !['/', '/pricing', '/about'].includes(pathname);
-    if (loading && isProtectedPage) {
-        return (
-             <div className="flex h-screen w-full items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
-        );
-    }
     
-    // On initial load, if there's no user and we're on a protected page,
-    // the redirect will be triggered by the useEffect, so we can return null to avoid flicker.
+    const isProtectedPage = !['/', '/pricing', '/about', '/terms', '/privacy', '/forgot-password'].includes(pathname);
     if (!user && isProtectedPage) {
         return null;
     }
 
 
-    return <AuthContext.Provider value={{ user }}>{children}</AuthContext.Provider>;
+    return <AuthContext.Provider value={{ user, loading }}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => useContext(AuthContext);

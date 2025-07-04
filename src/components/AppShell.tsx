@@ -3,7 +3,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Lightbulb, History, Settings, LogOut, Menu } from 'lucide-react';
+import { Lightbulb, History, Settings, LogOut, Menu, UserCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
@@ -119,16 +119,20 @@ function Header() {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAuthPage = pathname === '/';
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
-  if (isAuthPage) {
-    return <>{children}</>;
+  const noShellRoutes = ['/', '/pricing', '/forgot-password', '/terms', '/privacy'];
+  
+  if (loading) {
+     return (
+        <div className="flex h-screen w-full items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+    );
   }
-
-  // If we are on an app page but still don't have a user, show nothing (the AuthProvider will redirect)
-  if (!user) {
-    return null;
+  
+  if (noShellRoutes.includes(pathname) || !user) {
+    return <>{children}</>;
   }
 
   return (
