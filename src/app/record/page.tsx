@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Mic, Loader2, Share2, History, Trash2, Play, Send, Pause, Save, Copy, Check, FolderKanban, ListTodo, Sparkles, BrainCircuit } from "lucide-react";
+import { Mic, Loader2, Share2, History, Trash2, Play, Send, Pause, Save, Copy, Check, FolderKanban, ListTodo, Sparkles, BrainCircuit, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeVoiceNote } from "@/ai/flows/transcribe-voice-note";
@@ -29,6 +29,7 @@ import { marked } from 'marked';
 import DOMPurify from 'isomorphic-dompurify';
 import { useLanguage } from "@/hooks/use-language";
 import { useLogger } from "@/hooks/use-logger";
+import { cn } from "@/lib/utils";
 
 
 type RecordingStatus = "idle" | "recording" | "reviewing" | "transcribing" | "naming" | "completed";
@@ -89,6 +90,27 @@ export default function Home() {
   // State for editing transcription
   const [editableTranscription, setEditableTranscription] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
+
+  // State for visual feedback
+  const [showSuccessIndicator, setShowSuccessIndicator] = useState(false);
+  const [showErrorIndicator, setShowErrorIndicator] = useState(false);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (showSuccessIndicator) {
+      timer = setTimeout(() => setShowSuccessIndicator(false), 3000);
+    }
+    return () => clearTimeout(timer);
+  }, [showSuccessIndicator]);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (showErrorIndicator) {
+      timer = setTimeout(() => setShowErrorIndicator(false), 3000);
+    }
+    return () => clearTimeout(timer);
+  }, [showErrorIndicator]);
+
 
   useEffect(() => {
     if (typeof window !== 'undefined' && navigator.share) {
@@ -169,11 +191,13 @@ export default function Home() {
   const handleProcessRecording = useCallback(async () => {
     if (!user || !settings) {
         toast({ variant: "destructive", title: t('auth_fail_title'), description: t('record_auth_error') });
+        setShowErrorIndicator(true);
         resetToIdle();
         return;
     }
     if (!recordedAudio) {
         toast({ variant: "destructive", title: t('record_no_recording_error_title'), description: t('record_no_recording_error_desc') });
+        setShowErrorIndicator(true);
         resetToIdle();
         return;
     }
@@ -217,6 +241,7 @@ export default function Home() {
         setLastRecording(newRecording);
         setEditableTranscription(newRecording.transcription);
         setRecordingStatus("completed");
+        setShowSuccessIndicator(true);
         log("handleProcessRecording: UI state updated. Process complete.");
 
       } catch (error) {
@@ -226,6 +251,7 @@ export default function Home() {
           title: t('record_processing_fail_title'),
           description: t('record_processing_fail_desc'),
         });
+        setShowErrorIndicator(true);
         resetToIdle();
       } finally {
         log("handleProcessRecording: Cleaning up media recorder references.");
@@ -567,10 +593,12 @@ export default function Home() {
             setLastRecording(savedRecording);
             setAiResult(result.expandedDocument);
             toast({ title: t('ai_expand_success') });
+            setShowSuccessIndicator(true);
         })
         .catch(err => {
             log("Expansion failed:", err);
             toast({ variant: "destructive", title: t('ai_expand_fail_title'), description: t('ai_expand_fail') });
+            setShowErrorIndicator(true);
             setNoteForAi(null);
         })
         .finally(() => setIsProcessingAi(false));
@@ -617,10 +645,12 @@ export default function Home() {
             setLastRecording(savedRecording);
             setAiResult(result.summary);
             toast({ title: t('ai_summarize_success') });
+            setShowSuccessIndicator(true);
         })
         .catch(err => {
             log("Summarization failed:", err);
             toast({ variant: "destructive", title: t('ai_summarize_fail_title'), description: t('ai_summarize_fail') });
+            setShowErrorIndicator(true);
             setNoteForAi(null);
         })
         .finally(() => setIsProcessingAi(false));
@@ -653,10 +683,12 @@ export default function Home() {
             setLastRecording(savedRecording);
             setAiResult(result.projectPlan);
             toast({ title: t('ai_project_plan_success') });
+            setShowSuccessIndicator(true);
         })
         .catch(err => {
             log("Project plan generation failed:", err);
             toast({ variant: "destructive", title: t('ai_project_plan_fail_title'), description: t('ai_project_plan_fail') });
+            setShowErrorIndicator(true);
             setNoteForAi(null);
         })
         .finally(() => setIsProcessingAi(false));
@@ -689,10 +721,12 @@ export default function Home() {
             setLastRecording(savedRecording);
             setAiResult(result.tasks);
             toast({ title: t('ai_extract_tasks_success') });
+            setShowSuccessIndicator(true);
         })
         .catch(err => {
             log("Task extraction failed:", err);
             toast({ variant: "destructive", title: t('ai_extract_tasks_fail_title'), description: t('ai_extract_tasks_fail') });
+            setShowErrorIndicator(true);
             setNoteForAi(null);
         })
         .finally(() => setIsProcessingAi(false));
@@ -735,9 +769,11 @@ export default function Home() {
                 const savedRecording = await updateRecording(updatedRec, user.uid);
                 setLastRecording(savedRecording);
                 toast({ title: t('ai_update_success') });
+                setShowSuccessIndicator(true);
             } catch (error) {
                 log("Update Failed:", error);
                 toast({ variant: "destructive", title: t('ai_update_fail_title'), description: t('ai_update_fail') });
+                setShowErrorIndicator(true);
             } finally {
                 setIsSaving(false);
             }
@@ -783,12 +819,30 @@ export default function Home() {
                 </div>
             ) : recordingStatus === 'completed' && lastRecording ? (
               <div className="w-full max-w-2xl mx-auto">
-                <Card className="w-full bg-card/80 border-border backdrop-blur-sm shadow-lg">
+                <Card className={cn(
+                  "w-full bg-card/80 border backdrop-blur-sm shadow-lg transition-all duration-300",
+                  showSuccessIndicator && "border-green-500/50 shadow-green-500/10",
+                  showErrorIndicator && "border-destructive/50 shadow-destructive/10"
+                )}>
                     <CardHeader>
-                        <CardTitle className="text-2xl text-primary">{lastRecording.name}</CardTitle>
-                        <CardDescription>
-                            {t('record_completed_title')}
-                        </CardDescription>
+                      <div className="flex justify-between items-start">
+                        <div className="pr-4 text-left">
+                          <CardTitle className="text-2xl text-primary">{lastRecording.name}</CardTitle>
+                          <CardDescription>{t('record_completed_title')}</CardDescription>
+                        </div>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" onClick={resetToIdle} className="flex-shrink-0">
+                                        <X className="h-6 w-6" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{t('ai_close_button')}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                      </div>
                     </CardHeader>
                     <CardContent className="space-y-6">
                         {lastRecording.audioDataUri && (
@@ -950,10 +1004,17 @@ export default function Home() {
                                     <Save className="mr-2 h-4 w-4" />
                                     {t('record_save_audio_only')}
                                 </Button>
-                                <Button onClick={() => handleAiActionClick(handleProcessRecording)} disabled={!settings.isPro && settings.aiCredits < 1} className="flex-1">
-                                    <Sparkles className="mr-2 h-4 w-4" />
-                                    {!settings.isPro ? t('record_transcribe_with_credit') : t('record_transcribe_button')}
-                                </Button>
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button onClick={() => handleAiActionClick(handleProcessRecording)} disabled={!settings.isPro && settings.aiCredits < 1} className="flex-1">
+                                                <Sparkles className="mr-2 h-4 w-4" />
+                                                {!settings.isPro ? t('record_transcribe_with_credit') : t('record_transcribe_button')}
+                                            </Button>
+                                        </TooltipTrigger>
+                                        {!settings.isPro && <TooltipContent><p>{t('record_credits_no_pro')}</p></TooltipContent>}
+                                    </Tooltip>
+                                </TooltipProvider>
                            </div>
                            {isShareApiAvailable && (
                                <Button variant="outline" className="w-full" onClick={handleShareAudio}>
