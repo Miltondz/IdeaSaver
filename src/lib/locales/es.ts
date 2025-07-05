@@ -403,4 +403,12 @@ export const es = {
   onboarding_step3_desc: "Con un plan Pro, tus notas se guardan de forma segura en la nube, disponibles en todos tus dispositivos.",
   onboarding_dont_show_again: "No volver a mostrar",
   onboarding_get_started: "Comenzar",
+
+  // Debug Drawer
+  debug_drawer_title: "Registros de Depuración",
+  debug_drawer_desc: "Registros de eventos en vivo de la aplicación.",
+  debug_drawer_copy_button: "Copiar Todos los Registros",
+  debug_drawer_copied_toast: "¡Todos los registros copiados al portapapeles!",
+  debug_drawer_clear_button: "Limpiar Registros",
+  debug_drawer_cleared_toast: "¡Registros limpiados!",
 };

@@ -20,6 +20,7 @@ import { FeedbackButton } from './FeedbackButton';
 import { HistoryButton } from './HistoryButton';
 import { useNavigationLoader } from '@/hooks/use-navigation-loader';
 import { PlanBadge } from './PlanBadge';
+import { DebugButton } from './DebugButton';
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme()
@@ -193,6 +194,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main className="flex-1">{children}</main>
       <FeedbackButton />
       <HistoryButton />
+      <DebugButton />
     </div>
   );
 }

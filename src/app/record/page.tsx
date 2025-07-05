@@ -28,6 +28,7 @@ import { Label } from "@/components/ui/label";
 import { marked } from 'marked';
 import DOMPurify from 'isomorphic-dompurify';
 import { useLanguage } from "@/hooks/use-language";
+import { useLogger } from "@/hooks/use-logger";
 
 
 type RecordingStatus = "idle" | "recording" | "reviewing" | "transcribing" | "naming" | "completed";
@@ -54,12 +55,12 @@ export default function Home() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [lastRecording, setLastRecording] = useState<Recording | null>(null);
   const [recordedAudio, setRecordedAudio] = useState<{ blob: Blob; dataUri: string } | null>(null);
-  const [logs, setLogs] = useState<string[]>([]);
   const { user, settings } = useAuth();
   const [idleQuote, setIdleQuote] = useState('');
   const router = useRouter();
   const { t } = useLanguage();
   const [isShareApiAvailable, setIsShareApiAvailable] = useState(false);
+  const { log } = useLogger();
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -111,22 +112,6 @@ export default function Home() {
         applyDeletions(user.uid);
     }
   }, [user]);
-
-  const log = useCallback((...args: any[]) => {
-    const message = args.map(arg => {
-      if (typeof arg === 'object' && arg !== null) {
-        try {
-          return JSON.stringify(arg, null, 2);
-        } catch (e) {
-          return '[Unserializable Object]';
-        }
-      }
-      return String(arg);
-    }).join(' ');
-    
-    const timestamp = new Date().toLocaleTimeString();
-    setLogs(prevLogs => [`[${timestamp}] ${message}`, ...prevLogs]);
-  }, []);
   
   const resetToIdle = useCallback(() => {
     const motivationalQuotes = [
@@ -164,7 +149,7 @@ export default function Home() {
 
   const handleSaveAudioOnly = async () => {
     if (!user || !recordedAudio) return;
-
+    log('Attempting to save audio note only.');
     try {
         const name = `${t('record_audio_note_prefix')} - ${new Date().toLocaleString()}`;
         await saveRecording({ name, transcription: '', audioDataUri: recordedAudio.dataUri }, user.uid);
@@ -291,7 +276,7 @@ export default function Home() {
   }, [recordingStatus, requestStopRecording]);
 
   const startRecording = useCallback(async () => {
-    setLogs([]);
+    log("Attempting to start recording...");
     setElapsedTime(0);
     setRecordedAudio(null);
     
@@ -312,6 +297,7 @@ export default function Home() {
       mediaRecorderRef.current.start();
       
       setRecordingStatus("recording");
+      log("Recording started successfully.");
     } catch (error) {
       log("Failed to get microphone access:", error);
       toast({
@@ -501,7 +487,7 @@ export default function Home() {
 
   // --- Custom Audio Player Logic ---
   const formatTime = (seconds: number) => {
-    if (!isFinite(seconds)) return "00:00";
+    if (!isFinite(seconds) || seconds < 0) return "00:00";
     const date = new Date(seconds * 1000);
     const mm = date.getUTCMinutes().toString().padStart(2, '0');
     const ss = date.getUTCSeconds().toString().padStart(2, '0');

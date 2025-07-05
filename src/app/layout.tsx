@@ -8,6 +8,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { AuthProvider } from '@/hooks/use-auth';
 import { LanguageProvider } from '@/hooks/use-language';
 import { NavigationLoaderProvider } from '@/hooks/use-navigation-loader';
+import { LoggerProvider } from '@/hooks/use-logger';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://ideasaver.site'),
@@ -39,19 +40,21 @@ export default function RootLayout({
       <body className="font-body antialiased bg-background text-foreground">
         <AuthProvider>
           <LanguageProvider>
-            <ThemeProvider
-                attribute="class"
-                defaultTheme="system"
-                enableSystem
-                disableTransitionOnChange
-            >
-              <NavigationLoaderProvider>
-                <AppShell>
-                  {children}
-                </AppShell>
-                <Toaster />
-              </NavigationLoaderProvider>
-            </ThemeProvider>
+            <LoggerProvider>
+              <ThemeProvider
+                  attribute="class"
+                  defaultTheme="system"
+                  enableSystem
+                  disableTransitionOnChange
+              >
+                <NavigationLoaderProvider>
+                  <AppShell>
+                    {children}
+                  </AppShell>
+                  <Toaster />
+                </NavigationLoaderProvider>
+              </ThemeProvider>
+            </LoggerProvider>
           </LanguageProvider>
         </AuthProvider>
       </body>

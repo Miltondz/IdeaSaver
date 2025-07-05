@@ -404,4 +404,12 @@ export const en = {
   onboarding_step3_desc: "With a Pro plan, your notes are securely saved to the cloud, available on all your devices.",
   onboarding_dont_show_again: "Don't show this again",
   onboarding_get_started: "Get Started",
+
+  // Debug Drawer
+  debug_drawer_title: "Debug Logs",
+  debug_drawer_desc: "Live event logs from the application.",
+  debug_drawer_copy_button: "Copy All Logs",
+  debug_drawer_copied_toast: "All logs copied to clipboard!",
+  debug_drawer_clear_button: "Clear Logs",
+  debug_drawer_cleared_toast: "Logs cleared!",
 };

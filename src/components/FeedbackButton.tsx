@@ -57,7 +57,7 @@ export function FeedbackButton() {
         <Button 
           variant="outline" 
           size="icon" 
-          className="fixed top-1/2 -translate-y-1/2 left-0 -translate-x-10 h-14 w-14 rounded-r-full shadow-lg bg-card/80 backdrop-blur-sm z-50 transition-transform duration-300 ease-in-out hover:translate-x-0"
+          className="fixed top-1/2 -translate-y-1/2 left-0 -translate-x-10 h-14 w-14 rounded-r-full shadow-lg bg-card/80 backdrop-blur-sm z-50 transition-transform duration-300 ease-in-out hover:translate-x-0 border-purple-500/50"
         >
           <MessageSquarePlus className="h-6 w-6" />
         </Button>
