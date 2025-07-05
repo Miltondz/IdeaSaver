@@ -41,7 +41,7 @@ export default function HistoryPage() {
   const { toast } = useToast();
   const { user, settings, refreshSettings } = useAuth();
   const { t, language } = useLanguage();
-  const [canShareFiles, setCanShareFiles] = useState(false);
+  const [isShareApiAvailable, setIsShareApiAvailable] = useState(false);
   
   // AI Action State
   const [aiAction, setAiAction] = useState<'expand' | 'summarize' | 'expand-as-project' | 'extract-tasks' | null>(null);
@@ -58,10 +58,8 @@ export default function HistoryPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    // Check for file sharing capabilities
-    const dummyFile = new File([""], "dummy.txt", { type: "text/plain" });
-    if (navigator.canShare && navigator.canShare({ files: [dummyFile] })) {
-        setCanShareFiles(true);
+    if (typeof window !== 'undefined' && navigator.share) {
+        setIsShareApiAvailable(true);
     }
   }, []);
   
@@ -144,47 +142,31 @@ export default function HistoryPage() {
   };
 
   const shareContent = async (shareData: ShareData) => {
-    if (navigator.share && typeof navigator.share === 'function') {
-      // Check if we can share the data
-      if (navigator.canShare && navigator.canShare(shareData)) {
-        try {
-          await navigator.share(shareData);
-          return;
-        } catch (err) {
-           if (err instanceof DOMException && (err.name === 'AbortError' || err.name === 'NotAllowedError')) {
-            if (err.name === 'NotAllowedError' && shareData.text) {
-                handleCopyToClipboard(shareData.text, 'share-fallback');
-                toast({
-                    title: t('record_share_denied_title'),
-                    description: t('record_share_denied_desc'),
-                });
-            }
-            return;
-          }
-          console.error("Share failed:", err);
-          toast({
-            variant: "destructive",
-            title: t('record_share_fail_title'),
-            description: t('record_share_fail_desc'),
-          });
-          return;
-        }
+    if (!navigator.share) {
+      // Fallback for browsers that don't support the Share API
+      if (shareData.text) {
+        handleCopyToClipboard(shareData.text, 'share-fallback');
+        toast({ title: t('record_share_unsupported_title'), description: t('record_share_unsupported_desc') });
+      } else {
+        toast({ variant: "destructive", title: t('record_share_unsupported_file_title'), description: t('record_share_unsupported_file_desc') });
       }
+      return;
     }
 
-    // Fallback for browsers that don't support sharing, or can't share the specific data type
-    if (shareData.text) {
-        handleCopyToClipboard(shareData.text, 'share-fallback');
-        toast({
-            title: t('record_share_unsupported_title'),
-            description: t('record_share_unsupported_desc'),
-        });
-    } else {
-        toast({
-            variant: "destructive",
-            title: t('record_share_unsupported_file_title'),
-            description: t('record_share_unsupported_file_desc'),
-        });
+    try {
+      await navigator.share(shareData);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        // User clicked cancel, this is not an error.
+        return;
+      }
+      // For any other error, assume it's a failure and inform the user.
+      console.error("Share API failed:", err);
+      toast({
+        variant: "destructive",
+        title: t('record_share_fail_title'),
+        description: t('record_share_fail_desc'),
+      });
     }
   };
   
@@ -653,7 +635,7 @@ export default function HistoryPage() {
                   <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between">
                           <h3 className="font-semibold">Audio</h3>
-                          {selectedRecording.audioDataUri && canShareFiles && (
+                          {selectedRecording.audioDataUri && isShareApiAvailable && (
                             <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger asChild>

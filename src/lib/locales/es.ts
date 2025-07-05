@@ -12,6 +12,8 @@ export const es = {
   logout_fail_title: 'Error al Cerrar Sesión',
   logout_fail_desc: 'No se pudo cerrar la sesión. Por favor, inténtalo de nuevo.',
   header_credit_display: '{credits} Créditos Restantes',
+  header_pro_trial_day_left: 'Prueba Pro: 1 día restante',
+  header_pro_trial_days_left: 'Prueba Pro: {daysLeft} días restantes',
   
   // Login Page
   login_header: 'Idea Saver',

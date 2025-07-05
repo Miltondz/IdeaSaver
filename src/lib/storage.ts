@@ -26,6 +26,7 @@ export interface AppSettings {
   autoCloudSync: boolean;
   aiCredits: number;
   monthlyCreditsLastUpdated: string; // ISO string
+  proTrialEndsAt?: string;
 }
 
 const getSettingsKey = (userId: string) => `${SETTINGS_KEY}_${userId}`;
@@ -76,6 +77,7 @@ const defaultSettings: Omit<AppSettings, 'monthlyCreditsLastUpdated'> = {
     cloudSyncEnabled: false,
     autoCloudSync: false,
     aiCredits: 0,
+    proTrialEndsAt: undefined,
 };
 
 // --- Public API for Storage ---
@@ -109,6 +111,19 @@ export async function getSettings(userId?: string | null): Promise<AppSettings> 
       settings = _getSettingsFromCache(userId) || getInitialSettings();
     }
     
+    // Check for pro trial expiration
+    if (settings.isPro && settings.proTrialEndsAt) {
+        const trialEndDate = new Date(settings.proTrialEndsAt);
+        if (new Date() > trialEndDate) {
+            settings.isPro = false;
+            settings.cloudSyncEnabled = false;
+            settings.autoCloudSync = false;
+            settings.proTrialEndsAt = undefined;
+            // Save the new state
+            await saveSettings(settings, userId); 
+        }
+    }
+
     // Monthly credit refresh logic for Free users who have completed onboarding
     if (settings.planSelected && !settings.isPro) {
         const lastUpdate = new Date(settings.monthlyCreditsLastUpdated);

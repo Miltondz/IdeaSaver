@@ -12,6 +12,8 @@ export const en = {
   logout_fail_title: 'Logout Failed',
   logout_fail_desc: 'Could not log you out. Please try again.',
   header_credit_display: '{credits} Credits Left',
+  header_pro_trial_day_left: 'Pro Trial: 1 day left',
+  header_pro_trial_days_left: 'Pro Trial: {daysLeft} days left',
   
   // Login Page
   login_header: 'Idea Saver',

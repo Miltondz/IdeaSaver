@@ -1,3 +1,4 @@
+
 'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,12 +26,16 @@ export default function PricingPage() {
     }
     const settings = await getSettings(user.uid);
     if (plan === 'pro') {
+      const trialEndDate = new Date();
+      trialEndDate.setDate(trialEndDate.getDate() + 7);
+
       await saveSettings({
         ...settings,
         isPro: true,
         planSelected: true,
         cloudSyncEnabled: true,
         autoCloudSync: true,
+        proTrialEndsAt: trialEndDate.toISOString(),
       }, user.uid);
       toast({ 
           title: t('pricing_pro_trial_activated'),

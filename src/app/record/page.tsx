@@ -59,7 +59,7 @@ export default function Home() {
   const [idleQuote, setIdleQuote] = useState('');
   const router = useRouter();
   const { t } = useLanguage();
-  const [canShareFiles, setCanShareFiles] = useState(false);
+  const [isShareApiAvailable, setIsShareApiAvailable] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -90,10 +90,8 @@ export default function Home() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    // Check for file sharing capabilities
-    const dummyFile = new File([""], "dummy.txt", { type: "text/plain" });
-    if (navigator.canShare && navigator.canShare({ files: [dummyFile] })) {
-        setCanShareFiles(true);
+    if (typeof window !== 'undefined' && navigator.share) {
+        setIsShareApiAvailable(true);
     }
     
     const motivationalQuotes = [
@@ -393,52 +391,36 @@ export default function Home() {
   }, [recordingStatus]);
 
   const shareContent = async (shareData: ShareData) => {
-    if (navigator.share && typeof navigator.share === 'function') {
-      // Check if we can share the data
-      if (navigator.canShare && navigator.canShare(shareData)) {
-        try {
-          await navigator.share(shareData);
-          return;
-        } catch (err) {
-           if (err instanceof DOMException && (err.name === 'AbortError' || err.name === 'NotAllowedError')) {
-            if (err.name === 'NotAllowedError' && shareData.text) {
-                handleCopyToClipboard(shareData.text, 'share-fallback');
-                toast({
-                    title: t('record_share_denied_title'),
-                    description: t('record_share_denied_desc'),
-                });
-            }
-            return;
-          }
-          console.error("Share failed:", err);
-          toast({
-            variant: "destructive",
-            title: t('record_share_fail_title'),
-            description: t('record_share_fail_desc'),
-          });
-          return;
-        }
+    if (!navigator.share) {
+      // Fallback for browsers that don't support the Share API
+      if (shareData.text) {
+        handleCopyToClipboard(shareData.text, 'share-fallback');
+        toast({ title: t('record_share_unsupported_title'), description: t('record_share_unsupported_desc') });
+      } else {
+        toast({ variant: "destructive", title: t('record_share_unsupported_file_title'), description: t('record_share_unsupported_file_desc') });
       }
+      return;
     }
 
-    // Fallback for browsers that don't support sharing, or can't share the specific data type
-    if (shareData.text) {
-        handleCopyToClipboard(shareData.text, 'share-fallback');
-        toast({
-            title: t('record_share_unsupported_title'),
-            description: t('record_share_unsupported_desc'),
-        });
-    } else {
-        toast({
-            variant: "destructive",
-            title: t('record_share_unsupported_file_title'),
-            description: t('record_share_unsupported_file_desc'),
-        });
+    try {
+      await navigator.share(shareData);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        // User clicked cancel, this is not an error.
+        return;
+      }
+      // For any other error, assume it's a failure and inform the user.
+      console.error("Share API failed:", err);
+      toast({
+        variant: "destructive",
+        title: t('record_share_fail_title'),
+        description: t('record_share_fail_desc'),
+      });
     }
   };
 
-
   const handleShare = async (recording: Recording) => {
+    if (!recording?.transcription) return;
     await shareContent({
       title: recording.name,
       text: recording.transcription,
@@ -896,7 +878,7 @@ export default function Home() {
                               </TooltipProvider>
                            </div>
                            <div className="grid grid-cols-2 gap-2">
-                                <Button variant="outline" onClick={() => lastRecording && handleShare(lastRecording)}>
+                                <Button variant="outline" onClick={() => lastRecording && handleShare(lastRecording)} disabled={!isShareApiAvailable || !lastRecording?.transcription}>
                                     <Share2 /> {t('record_share_note_button')}
                                 </Button>
                                 <Button variant="outline" onClick={() => router.push('/history')}>
@@ -959,7 +941,7 @@ export default function Home() {
                                     <Send /> {!settings.isPro ? t('record_transcribe_with_credit') : t('record_transcribe_button')}
                                 </Button>
                            </div>
-                           {canShareFiles && (
+                           {isShareApiAvailable && (
                                <Button variant="outline" className="w-full" onClick={handleShareAudio}>
                                    <Share2 /> {t('record_share_audio_button')}
                                </Button>

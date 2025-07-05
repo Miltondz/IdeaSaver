@@ -3,7 +3,7 @@
 import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth as firebaseAuth } from '@/lib/firebase';
-import { Loader2 } from 'lucide-react';
+import { Lightbulb, Loader2 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { getSettings, type AppSettings } from '@/lib/storage';
 
@@ -76,8 +76,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     if (loading) {
         return (
-            <div className="flex h-screen w-full items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin" />
+            <div className="flex h-screen w-full flex-col items-center justify-center bg-background gap-4">
+                <div className="bg-primary/10 border border-primary/20 rounded-full p-4">
+                    <Lightbulb className="h-12 w-12 text-primary" />
+                </div>
+                <div className="flex items-center text-muted-foreground">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <p className="ml-3 text-lg">Loading App...</p>
+                </div>
             </div>
         );
     }

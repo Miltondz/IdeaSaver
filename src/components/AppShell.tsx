@@ -3,7 +3,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Lightbulb, Settings, LogOut, Menu, Sun, Moon } from 'lucide-react';
+import { Lightbulb, Settings, LogOut, Menu, Sun, Moon, Gem } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
@@ -16,7 +16,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { useLanguage } from '@/hooks/use-language';
 import { LanguageToggle } from './language-toggle';
-import { getSettings, type AppSettings } from '@/lib/storage';
 import { Badge } from './ui/badge';
 import { Sparkles } from 'lucide-react';
 import { FeedbackButton } from './FeedbackButton';
@@ -75,6 +74,34 @@ function Header() {
     
     if (!user) return null;
 
+    const proTrialEndsAt = settings?.proTrialEndsAt ? new Date(settings.proTrialEndsAt) : null;
+    const daysLeft = proTrialEndsAt ? Math.ceil((proTrialEndsAt.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0;
+
+    const PlanBadge = ({ isMobile = false }) => {
+        if (!settings) return null;
+
+        if (settings.isPro && proTrialEndsAt && daysLeft > 0) {
+            return (
+                <Badge variant="outline" className={cn("border-green-500/50 text-green-600 dark:text-green-400 font-semibold", !isMobile && "hidden sm:flex")}>
+                    <Gem className="mr-2 h-3 w-3" />
+                    {daysLeft === 1 ? t('header_pro_trial_day_left') : t('header_pro_trial_days_left', { daysLeft })}
+                </Badge>
+            );
+        }
+
+        if (!settings.isPro) {
+            return (
+                <Badge variant="outline" className={cn("border-primary/50 text-primary font-semibold", !isMobile && "hidden sm:flex")}>
+                    <Sparkles className="mr-2 h-3 w-3" />
+                    {t('header_credit_display', { credits: settings.aiCredits })}
+                </Badge>
+            );
+        }
+        
+        return null;
+    };
+
+
     return (
         <header className="sticky top-0 z-40 w-full border-b bg-card/80 backdrop-blur-sm">
             <div className="container flex h-14 items-center">
@@ -101,12 +128,7 @@ function Header() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                     {settings && !settings.isPro && (
-                        <Badge variant="outline" className="border-primary/50 text-primary font-semibold hidden sm:flex">
-                            <Sparkles className="mr-2 h-3 w-3" />
-                            {t('header_credit_display', { credits: settings.aiCredits })}
-                        </Badge>
-                     )}
+                     <PlanBadge />
                      <LanguageToggle />
                      <ThemeToggle />
                      <div className="hidden md:flex">
@@ -122,19 +144,14 @@ function Header() {
                                 </Button>
                             </SheetTrigger>
                             <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-                                <SheetHeader className="sr-only">
-                                  <SheetTitle>Menu</SheetTitle>
-                                  <SheetDescription>Main application navigation and options.</SheetDescription>
+                                <SheetHeader className="p-4 pb-0">
+                                  <SheetTitle className="sr-only">Menu</SheetTitle>
+                                  <SheetDescription className="sr-only">Main application navigation and options.</SheetDescription>
+                                  <div className="flex justify-end">
+                                      <PlanBadge isMobile={true} />
+                                  </div>
                                 </SheetHeader>
                                 <div className="p-4">
-                                  <div className="flex justify-end mb-4">
-                                      {settings && !settings.isPro && (
-                                          <Badge variant="outline" className="border-primary/50 text-primary font-semibold">
-                                              <Sparkles className="mr-2 h-3 w-3" />
-                                              {t('header_credit_display', { credits: settings.aiCredits })}
-                                          </Badge>
-                                      )}
-                                  </div>
                                   <nav className="flex flex-col gap-4">
                                       {navItems.map((item) => (
                                           <Link
