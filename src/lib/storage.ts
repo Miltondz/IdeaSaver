@@ -159,8 +159,17 @@ export async function saveSettings(settings: AppSettings, userId: string): Promi
   }
   
   try {
+    const firestoreSettings = { ...settings };
+    // Firestore doesn't allow `undefined` fields. We need to remove them.
+    Object.keys(firestoreSettings).forEach(key => {
+      const k = key as keyof AppSettings;
+      if (firestoreSettings[k] === undefined) {
+        delete firestoreSettings[k];
+      }
+    });
+    
     const docRef = doc(db, "settings", userId);
-    await setDoc(docRef, settings, { merge: true });
+    await setDoc(docRef, firestoreSettings, { merge: true });
   } catch(error) {
     console.error("Failed to save settings to Firestore:", error);
     // The settings are already saved locally, so the app can continue.
