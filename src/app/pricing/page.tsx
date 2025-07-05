@@ -1,4 +1,3 @@
-
 'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +5,6 @@ import { CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { saveSettings, getSettings } from "@/lib/storage";
 import { useAuth } from "@/hooks/use-auth";
@@ -16,9 +14,8 @@ import { LanguageToggle } from "@/components/language-toggle";
 
 export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
-  const router = useRouter();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, refreshSettings } = useAuth();
   const { t } = useLanguage();
 
   const handleSelectPlan = async (plan: 'free' | 'pro') => {
@@ -55,7 +52,7 @@ export default function PricingPage() {
           description: t('pricing_free_plan_selected_desc'),
       });
     }
-    router.push('/record');
+    await refreshSettings();
   };
     
   return (

@@ -1,13 +1,13 @@
 
 'use client';
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth as firebaseAuth } from '@/lib/firebase';
 import { Loader2 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { getSettings, type AppSettings } from '@/lib/storage';
 
-export const AuthContext = createContext<{ user: User | null; settings: AppSettings | null; loading: boolean }>({ user: null, settings: null, loading: true });
+export const AuthContext = createContext<{ user: User | null; settings: AppSettings | null; loading: boolean; refreshSettings: () => Promise<void>; }>({ user: null, settings: null, loading: true, refreshSettings: async () => {} });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
@@ -15,6 +15,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [loading, setLoading] = useState(true);
     const router = useRouter();
     const pathname = usePathname();
+
+    const refreshSettings = useCallback(async () => {
+        if (user) {
+            const userSettings = await getSettings(user.uid);
+            setSettings(userSettings);
+        }
+    }, [user]);
 
     useEffect(() => {
         if (!firebaseAuth) {
@@ -75,12 +82,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         );
     }
     
-    const isProtectedPage = !['/', '/pricing', '/about', '/terms', '/privacy', '/forgot-password'].includes(pathname);
-    if (!user && isProtectedPage) {
-        return null;
-    }
-
-    return <AuthContext.Provider value={{ user, settings, loading }}>{children}</AuthContext.Provider>;
+    return <AuthContext.Provider value={{ user, settings, loading, refreshSettings }}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => useContext(AuthContext);
