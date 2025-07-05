@@ -673,7 +673,7 @@ export default function HistoryPage() {
                 <div className="space-y-4 py-4">
                   <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between">
-                          <h3 className="font-semibold">Audio</h3>
+                          <h3 className="font-semibold">{t('history_audio_playback_title', { defaultValue: 'Audio' })}</h3>
                           {selectedRecording.audioDataUri && isShareApiAvailable && (
                             <TooltipProvider>
                                 <Tooltip>
@@ -702,15 +702,22 @@ export default function HistoryPage() {
                         <div className="flex items-center justify-between">
                           <h3 className="font-semibold">{t('history_transcription_heading')}</h3>
                           <div className="flex items-center gap-1">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={handleSaveTranscription}
-                              disabled={isSaving || !selectedRecording || editableTranscription === selectedRecording.transcription}
-                            >
-                              {isSaving ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
-                              {t('record_save_button')}
-                            </Button>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={handleSaveTranscription}
+                                    disabled={isSaving || !selectedRecording || editableTranscription === selectedRecording.transcription}
+                                  >
+                                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>{t('record_save_button')}</p></TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -733,7 +740,7 @@ export default function HistoryPage() {
                                     {copiedStates['details-transcription'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent><p>Copy</p></TooltipContent>
+                                <TooltipContent><p>{t('ai_copy_tooltip')}</p></TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                           </div>
@@ -754,8 +761,8 @@ export default function HistoryPage() {
                               <AccordionTrigger className="font-semibold">{t('history_summary_heading')}</AccordionTrigger>
                               <AccordionContent>
                                 <div className="relative">
-                                  <p className="text-foreground/90 whitespace-pre-wrap bg-muted/50 rounded-md p-4 pr-24 border">{selectedRecording.summary}</p>
-                                  <div className="absolute top-2 right-2 flex items-center">
+                                  <p className="text-foreground/90 whitespace-pre-wrap bg-muted/50 rounded-md p-4 pr-20 border">{selectedRecording.summary}</p>
+                                  <div className="absolute top-2 right-2 flex items-center gap-1">
                                     <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
@@ -778,7 +785,7 @@ export default function HistoryPage() {
                                                     {copiedStates['details-summary'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                                                 </Button>
                                             </TooltipTrigger>
-                                            <TooltipContent><p>Copy</p></TooltipContent>
+                                            <TooltipContent><p>{t('ai_copy_tooltip')}</p></TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
                                   </div>
@@ -791,8 +798,8 @@ export default function HistoryPage() {
                               <AccordionTrigger className="font-semibold">{t('history_expanded_note_heading')}</AccordionTrigger>
                               <AccordionContent>
                                 <div className="relative">
-                                  <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-24" dangerouslySetInnerHTML={createMarkup(selectedRecording.expandedTranscription)}></div>
-                                  <div className="absolute top-2 right-2 flex items-center">
+                                  <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-20" dangerouslySetInnerHTML={createMarkup(selectedRecording.expandedTranscription)}></div>
+                                  <div className="absolute top-2 right-2 flex items-center gap-1">
                                     <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
@@ -815,7 +822,7 @@ export default function HistoryPage() {
                                                     {copiedStates['details-expanded'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                                                 </Button>
                                             </TooltipTrigger>
-                                            <TooltipContent><p>Copy</p></TooltipContent>
+                                            <TooltipContent><p>{t('ai_copy_tooltip')}</p></TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
                                   </div>
@@ -828,8 +835,8 @@ export default function HistoryPage() {
                               <AccordionTrigger className="font-semibold">{t('history_project_plan_heading')}</AccordionTrigger>
                               <AccordionContent>
                                 <div className="relative">
-                                  <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-24" dangerouslySetInnerHTML={createMarkup(selectedRecording.projectPlan)}></div>
-                                  <div className="absolute top-2 right-2 flex items-center">
+                                  <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-20" dangerouslySetInnerHTML={createMarkup(selectedRecording.projectPlan)}></div>
+                                  <div className="absolute top-2 right-2 flex items-center gap-1">
                                     <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
@@ -852,7 +859,7 @@ export default function HistoryPage() {
                                                     {copiedStates['details-project'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                                                 </Button>
                                             </TooltipTrigger>
-                                            <TooltipContent><p>Copy</p></TooltipContent>
+                                            <TooltipContent><p>{t('ai_copy_tooltip')}</p></TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
                                   </div>
@@ -865,8 +872,8 @@ export default function HistoryPage() {
                               <AccordionTrigger className="font-semibold">{t('history_action_items_heading')}</AccordionTrigger>
                               <AccordionContent>
                                 <div className="relative">
-                                  <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-24" dangerouslySetInnerHTML={createMarkup(selectedRecording.actionItems)}></div>
-                                  <div className="absolute top-2 right-2 flex items-center">
+                                  <div className="prose prose-sm sm:prose-base max-w-none whitespace-pre-wrap dark:prose-invert rounded-md border bg-muted/50 p-4 pr-20" dangerouslySetInnerHTML={createMarkup(selectedRecording.actionItems)}></div>
+                                  <div className="absolute top-2 right-2 flex items-center gap-1">
                                     <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
@@ -889,7 +896,7 @@ export default function HistoryPage() {
                                                     {copiedStates['details-tasks'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                                                 </Button>
                                             </TooltipTrigger>
-                                            <TooltipContent><p>Copy</p></TooltipContent>
+                                            <TooltipContent><p>{t('ai_copy_tooltip')}</p></TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
                                   </div>
@@ -920,7 +927,7 @@ export default function HistoryPage() {
                <DialogFooter className="pt-4 border-t mt-auto">
                   {selectedRecording.transcription && (
                     <div className="w-full flex flex-col gap-2">
-                      <div className="grid grid-cols-2 sm:grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -1011,7 +1018,7 @@ export default function HistoryPage() {
                                         {copiedStates['ai-result-dialog'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                                     </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent><p>Copy</p></TooltipContent>
+                                    <TooltipContent><p>{t('ai_copy_tooltip')}</p></TooltipContent>
                                 </Tooltip>
                              </TooltipProvider>
                         </div>
@@ -1072,3 +1079,5 @@ export default function HistoryPage() {
     </div>
   );
 }
+
+    

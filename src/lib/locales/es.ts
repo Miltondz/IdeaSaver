@@ -281,6 +281,7 @@ export const es = {
   history_nothing_to_share: 'Esta nota no tiene contenido para compartir.',
   history_nothing_to_share_title: 'Nada que compartir',
   history_details_title: 'Detalles de la Nota',
+  history_audio_playback_title: 'Audio',
   history_audio_playback_unavailable: 'La reproducción de audio solo está disponible en el dispositivo donde se grabó.',
   history_transcription_heading: 'Transcripción',
   history_summary_heading: 'Resumen',
@@ -412,3 +413,5 @@ export const es = {
   debug_drawer_clear_button: "Limpiar Registros",
   debug_drawer_cleared_toast: "¡Registros limpiados!",
 };
+
+    

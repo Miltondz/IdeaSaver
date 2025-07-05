@@ -281,6 +281,7 @@ export const en = {
   history_nothing_to_share: 'This note has no content to share.',
   history_nothing_to_share_title: 'Nothing to share',
   history_details_title: 'Note Details',
+  history_audio_playback_title: 'Audio',
   history_audio_playback_unavailable: 'Audio playback is only available on the device where it was recorded.',
   history_transcription_heading: 'Transcription',
   history_summary_heading: 'Summary',
@@ -413,3 +414,5 @@ export const en = {
   debug_drawer_clear_button: "Clear Logs",
   debug_drawer_cleared_toast: "Logs cleared!",
 };
+
+    
