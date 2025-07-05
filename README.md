@@ -1,3 +1,4 @@
+
 # Idea Saver - AI-Powered Voice Notes
 
 Idea Saver is a modern Progressive Web App (PWA) designed to instantly capture your thoughts and ideas through voice notes. It leverages the power of generative AI to not only transcribe your recordings but also to organize, summarize, and expand upon them, turning fleeting thoughts into actionable plans.
@@ -169,6 +170,7 @@ This is a critical but often missed step. Firebase Authentication uses Google Cl
   - Redesigned the Settings page into logical cards for better organization.
   - Improved the layout of the note details dialog in the History page for better use of space.
   - Styled semi-hidden buttons with unique border colors for easy identification (Feedback: purple, History: blue, Debug: yellow).
+  - Added visual success (green highlight) and error (red highlight) indicators on the record page after an action is performed.
 
 **Fixes:**
 
@@ -176,9 +178,11 @@ This is a critical but often missed step. Firebase Authentication uses Google Cl
 - **Database Errors:** Fixed a critical bug where saving settings with an `undefined` value (e.g., for free users without a trial date) would cause a Firestore error.
 - **Internationalization (i18n):** Resolved a pluralization bug in Spanish translations that incorrectly displayed "{plural}" in the UI.
 - **Routing:** Fixed an issue where the app would incorrectly block access to the pricing page for existing users, causing a "flash" when trying to change plans.
+- **Audio Compatibility:** Improved audio recording format to prioritize MP4 (`.m4a`), significantly enhancing compatibility for sharing to mobile apps like WhatsApp.
 - **UI Glitches:**
   - Corrected an issue where the audio player timer would display `NaN:NaN`.
-  - Fixed responsive layout issues where buttons would overlap on smaller screens.
-  - Eliminated an infinite loading spinner on the History page.
+  - Fixed responsive layout issues where buttons would overlap on smaller screens on the Record and History pages.
+  - Eliminated an infinite loading spinner on the History page by making the data fetching logic more robust.
   - Resolved a bug that prevented notes from being reliably deleted from the History page.
   - Adjusted button alignment on History cards to ensure the delete button is always visible.
+  - Fixed multiple instances where the "Transcribe" button was not visible after recording or in the history view for audio-only notes.
