@@ -153,3 +153,32 @@ This is a critical but often missed step. Firebase Authentication uses Google Cl
 
 - **Clear Browser Cache:** Sometimes your browser can cache old settings. Try clearing your browser's cache and cookies, or open the app in an Incognito/Private window.
 - **Restart Development Server:** After making changes to your `.env` file, always stop and restart your `npm run dev` server to ensure the new variables are loaded.
+
+## Changelog
+
+### Version 1.0.0
+
+**New Features:**
+
+- **Plan Management:** Users can now downgrade from a Pro plan to a Free plan directly from the Settings page.
+- **One-Time Pro Trial:** The 7-day Pro trial is now strictly a one-time offer. The system tracks trial usage to prevent reactivation.
+- **Debug Drawer:** A new semi-hidden debug button has been added, opening a panel that displays live logs from application events for easier debugging. It includes one-click copy and clear functionality.
+- **Global Logger:** Implemented a centralized logging system to capture key user interactions and application events.
+- **History Button:** Added a new semi-hidden button on the right side of the screen for quick access to the Recording History page.
+- **UI Enhancements:**
+  - Redesigned the Settings page into logical cards for better organization.
+  - Improved the layout of the note details dialog in the History page for better use of space.
+  - Styled semi-hidden buttons with unique border colors for easy identification (Feedback: purple, History: blue, Debug: yellow).
+
+**Fixes:**
+
+- **Account Deletion:** Corrected the account deletion flow. It now automatically signs the user out and redirects to the login page, especially after a re-authentication requirement.
+- **Database Errors:** Fixed a critical bug where saving settings with an `undefined` value (e.g., for free users without a trial date) would cause a Firestore error.
+- **Internationalization (i18n):** Resolved a pluralization bug in Spanish translations that incorrectly displayed "{plural}" in the UI.
+- **Routing:** Fixed an issue where the app would incorrectly block access to the pricing page for existing users, causing a "flash" when trying to change plans.
+- **UI Glitches:**
+  - Corrected an issue where the audio player timer would display `NaN:NaN`.
+  - Fixed responsive layout issues where buttons would overlap on smaller screens.
+  - Eliminated an infinite loading spinner on the History page.
+  - Resolved a bug that prevented notes from being reliably deleted from the History page.
+  - Adjusted button alignment on History cards to ensure the delete button is always visible.
