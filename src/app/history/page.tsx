@@ -671,7 +671,7 @@ export default function HistoryPage() {
                 <div className="space-y-4 py-4">
                   <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between">
-                          <h3 className="font-semibold">{t('history_audio_playback_title', { defaultValue: 'Audio' })}</h3>
+                          <h3 className="font-semibold">{t('history_audio_playback_title')}</h3>
                           {selectedRecording.audioDataUri && isShareApiAvailable && (
                             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleShareAudio(selectedRecording)}>
                                 <Share2 className="h-4 w-4" />
@@ -907,7 +907,7 @@ export default function HistoryPage() {
                         <CardFooter className="justify-center">
                             <Button onClick={() => handleTranscribeFromHistory(selectedRecording)} disabled={isTranscribing || (!settings.isPro && settings.aiCredits < 1)}>
                                 {isTranscribing ? <Loader2 className="animate-spin mr-2" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                                <span>{settings.isPro ? t('history_transcribe_with_ai') : t('history_transcribe_with_credit')}</span>
+                                {settings.isPro ? t('history_transcribe_with_ai') : t('history_transcribe_with_credit')}
                             </Button>
                         </CardFooter>
                     </Card>
@@ -927,7 +927,7 @@ export default function HistoryPage() {
                                     {t('record_summarize_button')}
                                 </Button>
                               </TooltipTrigger>
-                              {!settings.isPro && <TooltipContent><p>Costs 1 AI Credit</p></TooltipContent>}
+                              {!settings.isPro && <TooltipContent><p>{t('record_credits_no_pro')}</p></TooltipContent>}
                             </Tooltip>
                           </TooltipProvider>
                           <TooltipProvider>
@@ -938,7 +938,7 @@ export default function HistoryPage() {
                                       {t('record_expand_button')}
                                   </Button>
                               </TooltipTrigger>
-                              {!settings.isPro && <TooltipContent><p>Costs 1 AI Credit</p></TooltipContent>}
+                              {!settings.isPro && <TooltipContent><p>{t('record_credits_no_pro')}</p></TooltipContent>}
                             </Tooltip>
                           </TooltipProvider>
                           <TooltipProvider>
@@ -949,7 +949,7 @@ export default function HistoryPage() {
                                       {t('record_project_plan_button')}
                                   </Button>
                               </TooltipTrigger>
-                              {!settings.isPro && <TooltipContent><p>Costs 1 AI Credit</p></TooltipContent>}
+                              {!settings.isPro && <TooltipContent><p>{t('record_credits_no_pro')}</p></TooltipContent>}
                             </Tooltip>
                           </TooltipProvider>
                           <TooltipProvider>
@@ -960,7 +960,7 @@ export default function HistoryPage() {
                                       {t('record_get_tasks_button')}
                                   </Button>
                               </TooltipTrigger>
-                              {!settings.isPro && <TooltipContent><p>Costs 1 AI Credit</p></TooltipContent>}
+                              {!settings.isPro && <TooltipContent><p>{t('record_credits_no_pro')}</p></TooltipContent>}
                             </Tooltip>
                           </TooltipProvider>
                       </div>
