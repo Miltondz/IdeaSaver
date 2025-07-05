@@ -17,6 +17,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useLanguage } from '@/hooks/use-language';
 import { LanguageToggle } from './language-toggle';
 import { FeedbackButton } from './FeedbackButton';
+import { HistoryButton } from './HistoryButton';
 import { useNavigationLoader } from '@/hooks/use-navigation-loader';
 import { PlanBadge } from './PlanBadge';
 
@@ -191,6 +192,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <Header />
       <main className="flex-1">{children}</main>
       <FeedbackButton />
+      <HistoryButton />
     </div>
   );
 }
