@@ -60,10 +60,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 const isPricingPage = pathname === '/pricing';
 
                 if (settings.planSelected) {
-                    if (isAuthPage || isPricingPage) {
+                    // If a user has a plan selected, they should be redirected from the
+                    // auth page to the main app. They should be allowed to visit the pricing page.
+                    if (isAuthPage) {
                         if (pathname !== '/record') router.push('/record');
                     }
                 } else {
+                    // If a user has NOT selected a plan, they should be forced to the pricing page
+                    // if they try to access any non-public, non-auth page.
                     if (!isPricingPage && !isAuthPage) {
                         if (pathname !== '/pricing') router.push('/pricing');
                     }
