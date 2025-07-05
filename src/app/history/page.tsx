@@ -39,7 +39,7 @@ export default function HistoryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [copiedStates, setCopiedStates] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
-  const { user, settings } = useAuth();
+  const { user, settings, refreshSettings } = useAuth();
   const { t, language } = useLanguage();
   const [canShareFiles, setCanShareFiles] = useState(false);
   
@@ -69,8 +69,8 @@ export default function HistoryPage() {
     if (!user || !settings) return;
     const newSettings = { ...settings, aiCredits: settings.aiCredits - 1 };
     await saveSettings(newSettings, user.uid);
-    // No need to set local settings, it will flow from context
-  }, [user, settings]);
+    await refreshSettings();
+  }, [user, settings, refreshSettings]);
 
   const handleAiActionClick = (action: () => void) => {
     if (!settings) return;
@@ -255,8 +255,8 @@ export default function HistoryPage() {
     if (!settings.isPro) await deductCredit();
 
     try {
-        const transcribeResult = await transcribeVoiceNote({ audioDataUri: recording.audioDataUri, aiModel: settings.aiModel });
-        const nameResult = await nameTranscription({ transcription: transcribeResult.transcription, aiModel: settings.aiModel });
+        const transcribeResult = await transcribeVoiceNote({ audioDataUri: recording.audioDataUri });
+        const nameResult = await nameTranscription({ transcription: transcribeResult.transcription });
 
         const updatedRec = {
             ...recording,
@@ -291,7 +291,7 @@ export default function HistoryPage() {
     setProcessingId(recording.id);
     if (!settings.isPro) deductCredit();
 
-    expandNote({ transcription: recording.transcription, aiModel: settings.aiModel })
+    expandNote({ transcription: recording.transcription })
       .then(async (result) => {
         const updatedRec = { ...recording, expandedTranscription: result.expandedDocument };
         await updateRecording(updatedRec, user.uid);
@@ -306,17 +306,20 @@ export default function HistoryPage() {
         setNoteForAi(null);
       })
       .finally(() => {
-        setIsProcessingAi(false)
+        setIsProcessingAi(false);
         setProcessingId(null);
       });
   };
 
   const handleExpandClick = (recording: Recording) => {
+    setProcessingId(recording.id);
+    setAiAction('expand');
     if (recording.expandedTranscription) {
         setConfirmationAction({
             action: () => handleAiActionClick(() => proceedWithExpand(recording)),
             title: t('ai_overwrite_title', { feature: t('history_expanded_note_heading')}),
             description: t('ai_overwrite_desc'),
+            onCancel: () => { setProcessingId(null); setAiAction(null); }
         });
     } else {
         handleAiActionClick(() => proceedWithExpand(recording));
@@ -332,7 +335,7 @@ export default function HistoryPage() {
     setProcessingId(recording.id);
     if (!settings.isPro) deductCredit();
     
-    summarizeNote({ transcription: recording.transcription, aiModel: settings.aiModel })
+    summarizeNote({ transcription: recording.transcription })
       .then(async (result) => {
         const updatedRec = { ...recording, summary: result.summary };
         await updateRecording(updatedRec, user.uid);
@@ -353,11 +356,14 @@ export default function HistoryPage() {
   };
 
   const handleSummarizeClick = (recording: Recording) => {
+    setProcessingId(recording.id);
+    setAiAction('summarize');
     if (recording.summary) {
         setConfirmationAction({
             action: () => handleAiActionClick(() => proceedWithSummarize(recording)),
             title: t('ai_overwrite_title', { feature: t('history_summary_heading')}),
             description: t('ai_overwrite_desc'),
+            onCancel: () => { setProcessingId(null); setAiAction(null); }
         });
     } else {
         handleAiActionClick(() => proceedWithSummarize(recording));
@@ -373,7 +379,7 @@ export default function HistoryPage() {
     setProcessingId(recording.id);
     if (!settings.isPro) deductCredit();
 
-    expandAsProject({ transcription: recording.transcription, aiModel: settings.aiModel })
+    expandAsProject({ transcription: recording.transcription })
       .then(async (result) => {
         const updatedRec = { ...recording, projectPlan: result.projectPlan };
         await updateRecording(updatedRec, user.uid);
@@ -394,11 +400,14 @@ export default function HistoryPage() {
   };
 
   const handleExpandAsProjectClick = (recording: Recording) => {
+    setProcessingId(recording.id);
+    setAiAction('expand-as-project');
     if (recording.projectPlan) {
         setConfirmationAction({
             action: () => handleAiActionClick(() => proceedWithExpandAsProject(recording)),
             title: t('ai_overwrite_title', { feature: t('history_project_plan_heading')}),
             description: t('ai_overwrite_desc'),
+            onCancel: () => { setProcessingId(null); setAiAction(null); }
         });
     } else {
         handleAiActionClick(() => proceedWithExpandAsProject(recording));
@@ -414,7 +423,7 @@ export default function HistoryPage() {
     setProcessingId(recording.id);
     if (!settings.isPro) deductCredit();
 
-    extractTasks({ transcription: recording.transcription, aiModel: settings.aiModel })
+    extractTasks({ transcription: recording.transcription })
       .then(async (result) => {
         const updatedRec = { ...recording, actionItems: result.tasks };
         await updateRecording(updatedRec, user.uid);
@@ -435,11 +444,14 @@ export default function HistoryPage() {
   };
 
   const handleExtractTasksClick = (recording: Recording) => {
+    setProcessingId(recording.id);
+    setAiAction('extract-tasks');
     if (recording.actionItems) {
         setConfirmationAction({
             action: () => handleAiActionClick(() => proceedWithExtractTasks(recording)),
             title: t('ai_overwrite_title', { feature: t('history_action_items_heading')}),
             description: t('ai_overwrite_desc'),
+            onCancel: () => { setProcessingId(null); setAiAction(null); }
         });
     } else {
         handleAiActionClick(() => proceedWithExtractTasks(recording));
@@ -494,7 +506,7 @@ export default function HistoryPage() {
     return t('ai_result_dialog_desc', { action: actionText });
   }
   
-  if (isLoading || !settings) {
+  if (isLoading) {
     return (
         <div className="flex justify-center items-center h-full p-4">
             <div className="flex items-center text-muted-foreground">
@@ -515,7 +527,7 @@ export default function HistoryPage() {
                 <CardTitle>{t('history_no_recordings')}</CardTitle>
                 <CardDescription>
                   {t('history_no_recordings_desc')}
-                  {!settings.isPro && (
+                  {settings && !settings.isPro && (
                     <>
                     <br /> {t('login_and')} <Link href="/pricing" className="underline text-primary">{t('history_no_recordings_pro_trial')}</Link>.
                     </>
@@ -528,98 +540,98 @@ export default function HistoryPage() {
         <ScrollArea className="flex-1 -mx-4">
           <div className="px-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {recordings.map((rec) => (
-              <Card key={rec.id} className="bg-card/80 border-border backdrop-blur-sm flex flex-col">
-                <CardHeader>
-                  <CardTitle className="truncate">{rec.name}</CardTitle>
-                  <CardDescription>
-                    {t('history_recorded_ago', { timeAgo: formatDistanceToNow(new Date(rec.date), { addSuffix: true }) })}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex-1">
-                  {rec.transcription ? (
-                    <p className="text-muted-foreground line-clamp-3">{rec.summary || rec.transcription}</p>
-                  ) : (
-                    <p className="text-muted-foreground italic">{t('history_audio_note_placeholder')}</p>
-                  )}
-                </CardContent>
-                <CardFooter className="flex justify-between items-center">
-                    <div className="flex gap-1 flex-wrap">
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedRecording(rec)}>
-                                    <FileText className="h-4 w-4" />
-                                </Button>
-                                </TooltipTrigger>
-                                <TooltipContent><p>{t('history_view_details_tooltip')}</p></TooltipContent>
-                            </Tooltip>
-                             {rec.transcription && (
-                                <>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleSimpleShare(rec)}>
-                                            <Share2 className="h-4 w-4" />
-                                        </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent><p>{t('history_share_note_tooltip')}</p></TooltipContent>
-                                    </Tooltip>
-                                     <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleSummarizeClick(rec)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
-                                                {processingId === rec.id && aiAction === 'summarize' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent><p>{settings.isPro ? t('history_summarize_tooltip') : t('history_summarize_tooltip_credits', { credits: settings.aiCredits })}</p></TooltipContent>
-                                    </Tooltip>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExpandClick(rec)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
-                                                {processingId === rec.id && aiAction === 'expand' ? <Loader2 className="h-4 w-4 animate-spin" /> : <BrainCircuit className="h-4 w-4" />}
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent><p>{settings.isPro ? t('history_expand_tooltip') : t('history_expand_tooltip_credits', { credits: settings.aiCredits })}</p></TooltipContent>
-                                    </Tooltip>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExpandAsProjectClick(rec)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
-                                                {processingId === rec.id && aiAction === 'expand-as-project' ? <Loader2 className="h-4 w-4 animate-spin" /> : <FolderKanban className="h-4 w-4" />}
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent><p>{settings.isPro ? t('history_project_plan_tooltip') : t('history_project_plan_tooltip_credits', { credits: settings.aiCredits })}</p></TooltipContent>
-                                    </Tooltip>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExtractTasksClick(rec)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
-                                                {processingId === rec.id && aiAction === 'extract-tasks' ? <Loader2 className="h-4 w-4 animate-spin" /> : <ListTodo className="h-4 w-4" />}
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent><p>{settings.isPro ? t('history_extract_tasks_tooltip') : t('history_extract_tasks_tooltip_credits', { credits: settings.aiCredits })}</p></TooltipContent>
-                                    </Tooltip>
-                                </>
-                            )}
-                        </TooltipProvider>
-                    </div>
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="icon" className="h-8 w-8">
-                            <Trash2 className="h-4 w-4" />
-                        </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>{t('history_delete_dialog_title')}</AlertDialogTitle>
-                            <AlertDialogDescription>
-                            {t('history_delete_dialog_desc')}
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>{t('history_cancel_button')}</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDelete(rec.id)}>{t('history_delete_button')}</AlertDialogAction>
-                        </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                </CardFooter>
-              </Card>
+              <TooltipProvider key={rec.id}>
+                <Card className="bg-card/80 border-border backdrop-blur-sm flex flex-col">
+                  <CardHeader>
+                    <CardTitle className="truncate">{rec.name}</CardTitle>
+                    <CardDescription>
+                      {t('history_recorded_ago', { timeAgo: formatDistanceToNow(new Date(rec.date), { addSuffix: true }) })}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex-1">
+                    {rec.transcription ? (
+                      <p className="text-muted-foreground line-clamp-3">{rec.summary || rec.transcription}</p>
+                    ) : (
+                      <p className="text-muted-foreground italic">{t('history_audio_note_placeholder')}</p>
+                    )}
+                  </CardContent>
+                  <CardFooter className="flex items-center gap-2">
+                      <div className="flex-1 flex gap-1 flex-wrap">
+                          <Tooltip>
+                              <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedRecording(rec)}>
+                                  <FileText className="h-4 w-4" />
+                              </Button>
+                              </TooltipTrigger>
+                              <TooltipContent><p>{t('history_view_details_tooltip')}</p></TooltipContent>
+                          </Tooltip>
+                           {rec.transcription && settings && (
+                              <>
+                                  <Tooltip>
+                                      <TooltipTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleSimpleShare(rec)}>
+                                          <Share2 className="h-4 w-4" />
+                                      </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent><p>{t('history_share_note_tooltip')}</p></TooltipContent>
+                                  </Tooltip>
+                                   <Tooltip>
+                                      <TooltipTrigger asChild>
+                                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleSummarizeClick(rec)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
+                                              {processingId === rec.id && aiAction === 'summarize' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                                          </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent><p>{settings.isPro ? t('history_summarize_tooltip') : t('history_summarize_tooltip_credits', { credits: settings.aiCredits })}</p></TooltipContent>
+                                  </Tooltip>
+                                  <Tooltip>
+                                      <TooltipTrigger asChild>
+                                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExpandClick(rec)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
+                                              {processingId === rec.id && aiAction === 'expand' ? <Loader2 className="h-4 w-4 animate-spin" /> : <BrainCircuit className="h-4 w-4" />}
+                                          </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent><p>{settings.isPro ? t('history_expand_tooltip') : t('history_expand_tooltip_credits', { credits: settings.aiCredits })}</p></TooltipContent>
+                                  </Tooltip>
+                                  <Tooltip>
+                                      <TooltipTrigger asChild>
+                                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExpandAsProjectClick(rec)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
+                                              {processingId === rec.id && aiAction === 'expand-as-project' ? <Loader2 className="h-4 w-4 animate-spin" /> : <FolderKanban className="h-4 w-4" />}
+                                          </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent><p>{settings.isPro ? t('history_project_plan_tooltip') : t('history_project_plan_tooltip_credits', { credits: settings.aiCredits })}</p></TooltipContent>
+                                  </Tooltip>
+                                  <Tooltip>
+                                      <TooltipTrigger asChild>
+                                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExtractTasksClick(rec)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
+                                              {processingId === rec.id && aiAction === 'extract-tasks' ? <Loader2 className="h-4 w-4 animate-spin" /> : <ListTodo className="h-4 w-4" />}
+                                          </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent><p>{settings.isPro ? t('history_extract_tasks_tooltip') : t('history_extract_tasks_tooltip_credits', { credits: settings.aiCredits })}</p></TooltipContent>
+                                  </Tooltip>
+                              </>
+                          )}
+                      </div>
+                      <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="icon" className="h-8 w-8 flex-shrink-0">
+                              <Trash2 className="h-4 w-4" />
+                          </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                          <AlertDialogHeader>
+                              <AlertDialogTitle>{t('history_delete_dialog_title')}</AlertDialogTitle>
+                              <AlertDialogDescription>
+                              {t('history_delete_dialog_desc')}
+                              </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                              <AlertDialogCancel>{t('history_cancel_button')}</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDelete(rec.id)}>{t('history_delete_button')}</AlertDialogAction>
+                          </AlertDialogFooter>
+                          </AlertDialogContent>
+                      </AlertDialog>
+                  </CardFooter>
+                </Card>
+              </TooltipProvider>
             ))}
           </div>
         </ScrollArea>
@@ -627,7 +639,7 @@ export default function HistoryPage() {
 
       <Dialog open={!!selectedRecording} onOpenChange={(open) => !open && setSelectedRecording(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
-          {selectedRecording && (
+          {selectedRecording && settings && (
             <>
               <DialogHeader>
                 <DialogTitle>{selectedRecording.name}</DialogTitle>
@@ -887,7 +899,7 @@ export default function HistoryPage() {
                <DialogFooter className="pt-4 border-t mt-auto">
                   {selectedRecording.transcription && (
                     <div className="w-full flex flex-col gap-2">
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-2 gap-2">
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
