@@ -137,8 +137,9 @@ export default function HistoryPage() {
     
     return () => {
       isMounted = false;
+      stopNavigation();
     };
-  }, [user, toast, startNavigation, stopNavigation, t]);
+  }, [user, toast, t, startNavigation, stopNavigation]);
 
 
   useEffect(() => {
@@ -575,8 +576,8 @@ export default function HistoryPage() {
                       <p className="text-muted-foreground italic">{t('history_audio_note_placeholder')}</p>
                     )}
                   </CardContent>
-                  <CardFooter className="flex items-center gap-2">
-                      <div className="flex-1 flex gap-1 flex-wrap">
+                  <CardFooter className="flex justify-between items-center gap-2">
+                      <div className="flex gap-1 flex-wrap">
                           <Tooltip>
                               <TooltipTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedRecording(rec)}>

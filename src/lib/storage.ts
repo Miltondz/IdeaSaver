@@ -356,11 +356,18 @@ export async function updateRecording(recording: Recording, userId: string): Pro
 
 
 export async function deleteRecording(id: string, userId: string): Promise<void> {
+  const settings = await getSettings(userId);
+  
+  if (settings.cloudSyncEnabled && db) {
+      // If cloud sync is enabled, we must delete from the DB first.
+      // If this fails, it will throw and the local deletion will not occur.
+      await deleteRecordingFromDB(id, userId);
+  }
+
+  // If the DB deletion was successful, or if cloud sync is off, proceed with local deletion.
   const recordings = _getRecordingsFromStorage(userId);
   const updatedRecordings = recordings.filter(rec => rec.id !== id);
   _saveRecordingsToStorage(updatedRecordings, userId);
-
-  await deleteRecordingFromDB(id, userId).catch(err => console.error("Could not delete from DB", err));
 
   return Promise.resolve();
 }
