@@ -11,7 +11,7 @@ export const es = {
   logout_success_desc: 'Has cerrado sesión exitosamente.',
   logout_fail_title: 'Error al Cerrar Sesión',
   logout_fail_desc: 'No se pudo cerrar la sesión. Por favor, inténtalo de nuevo.',
-  header_credit_display: '{credits} Créditos Restantes',
+  header_credit_display: '{credits} Crédito{plural} Restante{plural}',
   header_pro_trial_day_left: 'Prueba Pro: 1 día restante',
   header_pro_trial_days_left: 'Prueba Pro: {daysLeft} días restantes',
   
@@ -174,7 +174,7 @@ export const es = {
   record_transcription_placeholder: 'Tu transcripción aparece aquí...',
   record_save_button: 'Guardar',
   record_ai_actions_label: 'Acciones de IA',
-  record_credits_remaining: 'Te quedan {credits} crédito{plural} de IA.',
+  record_credits_remaining: 'Te quedan {credits} crédito{plural} de IA',
   record_credits_no_pro: 'Cuesta 1 Crédito de IA',
   record_credits_no_credits: 'No quedan créditos',
   record_summarize_button: 'Resumir',
@@ -250,7 +250,7 @@ export const es = {
 
   // History Page
   history_page_title: 'Historial de Grabaciones',
-  history_loading: 'Cargando historial...',
+  history_loading: 'Cargando App...',
   history_no_recordings: 'Aún No Hay Grabaciones',
   history_no_recordings_desc: '¡No hay notas todavía! Toca "Grabar" para capturar tu primera idea.',
   history_no_recordings_pro_trial: 'y comienza tu Prueba Pro de 7 días',

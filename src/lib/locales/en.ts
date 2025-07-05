@@ -11,7 +11,7 @@ export const en = {
   logout_success_desc: 'You have been successfully logged out.',
   logout_fail_title: 'Logout Failed',
   logout_fail_desc: 'Could not log you out. Please try again.',
-  header_credit_display: '{credits} Credits Left',
+  header_credit_display: '{credits} Credit{plural} Left',
   header_pro_trial_day_left: 'Pro Trial: 1 day left',
   header_pro_trial_days_left: 'Pro Trial: {daysLeft} days left',
   
@@ -174,7 +174,7 @@ export const en = {
   record_transcription_placeholder: 'Your transcription appears here...',
   record_save_button: 'Save',
   record_ai_actions_label: 'AI Actions',
-  record_credits_remaining: '{credits} Credit{plural} remaining',
+  record_credits_remaining: 'You have {credits} AI credit{plural} remaining',
   record_credits_no_pro: 'Costs 1 AI Credit',
   record_credits_no_credits: 'No credits left',
   record_summarize_button: 'Summarize',
@@ -250,7 +250,7 @@ export const en = {
   
   // History Page
   history_page_title: 'Recording History',
-  history_loading: 'Loading history...',
+  history_loading: 'Loading App...',
   history_no_recordings: 'No Recordings Yet',
   history_no_recordings_desc: "No notes yet! Tap 'Record' to capture your first idea.",
   history_no_recordings_pro_trial: "and start your 7-day Pro Trial",

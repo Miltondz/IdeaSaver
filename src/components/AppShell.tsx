@@ -16,10 +16,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { useLanguage } from '@/hooks/use-language';
 import { LanguageToggle } from './language-toggle';
-import { Badge } from './ui/badge';
-import { Sparkles } from 'lucide-react';
 import { FeedbackButton } from './FeedbackButton';
 import { useNavigationLoader } from '@/hooks/use-navigation-loader';
+import { PlanBadge } from './PlanBadge';
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme()
@@ -38,7 +37,7 @@ function Header() {
     const router = useRouter();
     const { toast } = useToast();
     const [open, setOpen] = React.useState(false);
-    const { user, settings, refreshSettings } = useAuth();
+    const { user, refreshSettings } = useAuth();
     const { t } = useLanguage();
 
     useEffect(() => {
@@ -73,34 +72,6 @@ function Header() {
     ];
     
     if (!user) return null;
-
-    const proTrialEndsAt = settings?.proTrialEndsAt ? new Date(settings.proTrialEndsAt) : null;
-    const daysLeft = proTrialEndsAt ? Math.ceil((proTrialEndsAt.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0;
-
-    const PlanBadge = () => {
-        if (!settings) return null;
-
-        if (settings.isPro && proTrialEndsAt && daysLeft > 0) {
-            return (
-                <Badge variant="outline" className="border-green-500/50 text-green-600 dark:text-green-400 font-semibold">
-                    <Gem className="mr-2 h-3 w-3" />
-                    {daysLeft === 1 ? t('header_pro_trial_day_left') : t('header_pro_trial_days_left', { daysLeft })}
-                </Badge>
-            );
-        }
-
-        if (!settings.isPro) {
-            return (
-                <Badge variant="outline" className="border-primary/50 text-primary font-semibold">
-                    <Sparkles className="mr-2 h-3 w-3" />
-                    {t('header_credit_display', { credits: settings.aiCredits })}
-                </Badge>
-            );
-        }
-        
-        return null;
-    };
-
 
     return (
         <header className="sticky top-0 z-40 w-full border-b bg-card/80 backdrop-blur-sm">
