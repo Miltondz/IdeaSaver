@@ -11,6 +11,7 @@ import { saveSettings } from "@/lib/storage";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/hooks/use-language";
 import { LanguageToggle } from "@/components/language-toggle";
+import { useRouter } from "next/navigation";
 
 
 export default function PricingPage() {
@@ -18,6 +19,7 @@ export default function PricingPage() {
   const { toast } = useToast();
   const { user, settings, refreshSettings } = useAuth();
   const { t } = useLanguage();
+  const router = useRouter();
 
   const handleSelectPlan = async (plan: 'free' | 'pro') => {
     if (!user || !settings) {
@@ -67,6 +69,7 @@ export default function PricingPage() {
       });
     }
     await refreshSettings();
+    router.push('/record');
   };
     
   return (

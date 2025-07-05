@@ -114,7 +114,7 @@ export default function SettingsPage() {
         clearUserLocalStorage(user.uid);
         
         // 3. Delete user from Firebase Auth
-        await deleteUser(user);
+        await deleteUser(auth);
 
         // After this, onAuthStateChanged listener in useAuth will trigger a re-route.
         toast({ title: t('settings_account_deleted_title'), description: t('settings_account_deleted_desc') });
@@ -244,8 +244,8 @@ export default function SettingsPage() {
                                 </AlertDialogContent>
                             </AlertDialog>
                         ) : (
-                            <Button asChild size="sm">
-                                <Link href="/pricing">{t('settings_upgrade_to_pro')}</Link>
+                            <Button size="sm" onClick={() => router.push('/pricing')}>
+                                {t('settings_upgrade_to_pro')}
                             </Button>
                         )}
                     </div>
