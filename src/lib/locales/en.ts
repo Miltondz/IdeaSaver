@@ -151,7 +151,7 @@ export const en = {
   record_share_unsupported_file_title: 'File Sharing Not Supported',
   record_share_unsupported_file_desc: 'Your browser does not support sharing files.',
   record_share_denied_title: 'Sharing Permission Denied',
-  record_share_denied_desc: "We couldn't open the share dialog. The note has been copied to your clipboard instead.",
+  record_share_denied_desc: "We couldn't open the share dialog. Please check your browser or system permissions for this site.",
   record_save_cloud_success_title: 'Saved to Cloud!',
   record_save_cloud_success_desc: 'Your note has been saved to the database.',
   record_save_cloud_fail_title: 'Save Failed',

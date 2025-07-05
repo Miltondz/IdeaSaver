@@ -163,9 +163,19 @@ export default function HistoryPage() {
     try {
       await navigator.share(shareData);
     } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') {
-        // User clicked cancel, this is not an error.
-        return;
+      if (err instanceof DOMException) {
+          if (err.name === 'AbortError') {
+            // User clicked cancel, this is not an error.
+            return;
+          }
+          if (err.name === 'NotAllowedError') {
+            toast({
+              variant: "destructive",
+              title: t('record_share_denied_title'),
+              description: t('record_share_denied_desc'),
+            });
+            return;
+          }
       }
       // For any other error, assume it's a failure and inform the user.
       console.error("Share API failed:", err);
