@@ -133,22 +133,7 @@ export default function SettingsPage() {
   };
   
   if (!user || !settings) {
-    return (
-        <div className="container mx-auto p-4 pt-8 flex justify-center">
-            <Card className="w-full max-w-2xl bg-card/80 backdrop-blur-sm">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Settings className="h-6 w-6" />
-                        {t('settings_page_title')}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="flex items-center justify-center p-8">
-                     <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                    <p>{t('history_loading')}</p>
-                </CardContent>
-            </Card>
-        </div>
-    );
+    return null; // The global loader in AppShell will be visible
   }
 
   return (

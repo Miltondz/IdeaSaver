@@ -7,6 +7,7 @@ import { AppShell } from '@/components/AppShell';
 import { ThemeProvider } from '@/components/theme-provider';
 import { AuthProvider } from '@/hooks/use-auth';
 import { LanguageProvider } from '@/hooks/use-language';
+import { NavigationLoaderProvider } from '@/hooks/use-navigation-loader';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://ideasaver.site'),
@@ -44,10 +45,12 @@ export default function RootLayout({
                 enableSystem
                 disableTransitionOnChange
             >
+              <NavigationLoaderProvider>
                 <AppShell>
                   {children}
                 </AppShell>
                 <Toaster />
+              </NavigationLoaderProvider>
             </ThemeProvider>
           </LanguageProvider>
         </AuthProvider>

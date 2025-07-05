@@ -419,7 +419,7 @@ export default function Home() {
     }
   };
 
-  const handleShare = async (recording: Recording) => {
+  const handleShare = async (recording: Recording | null) => {
     if (!recording?.transcription) return;
     await shareContent({
       title: recording.name,
@@ -743,14 +743,7 @@ export default function Home() {
   }
 
   if (!settings) {
-    return (
-        <div className="flex justify-center items-center h-full p-4">
-            <div className="flex items-center text-muted-foreground">
-                <Loader2 className="h-6 w-6 animate-spin" />
-                <p className="ml-3">Loading...</p>
-            </div>
-        </div>
-    );
+    return null; // The global loader in AppShell will be visible
   }
 
   return (
@@ -878,7 +871,7 @@ export default function Home() {
                               </TooltipProvider>
                            </div>
                            <div className="grid grid-cols-2 gap-2">
-                                <Button variant="outline" onClick={() => lastRecording && handleShare(lastRecording)} disabled={!isShareApiAvailable || !lastRecording?.transcription}>
+                                <Button variant="outline" onClick={() => handleShare(lastRecording)} disabled={!isShareApiAvailable || !lastRecording?.transcription}>
                                     <Share2 /> {t('record_share_note_button')}
                                 </Button>
                                 <Button variant="outline" onClick={() => router.push('/history')}>

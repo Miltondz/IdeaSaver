@@ -26,6 +26,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { marked } from 'marked';
 import DOMPurify from 'isomorphic-dompurify';
 import { useLanguage } from "@/hooks/use-language";
+import { useNavigationLoader } from "@/hooks/use-navigation-loader";
 
 
 const createMarkup = (markdownText: string | null | undefined) => {
@@ -36,12 +37,13 @@ const createMarkup = (markdownText: string | null | undefined) => {
 export default function HistoryPage() {
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [selectedRecording, setSelectedRecording] = useState<Recording | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [copiedStates, setCopiedStates] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
   const { user, settings, refreshSettings } = useAuth();
   const { t, language } = useLanguage();
   const [isShareApiAvailable, setIsShareApiAvailable] = useState(false);
+  const { startNavigation, stopNavigation } = useNavigationLoader();
   
   // AI Action State
   const [aiAction, setAiAction] = useState<'expand' | 'summarize' | 'expand-as-project' | 'extract-tasks' | null>(null);
@@ -86,7 +88,7 @@ export default function HistoryPage() {
 
   const refreshRecordings = useCallback(() => {
     if (!user) return;
-    setIsLoading(true);
+    startNavigation();
     getRecordings(user.uid)
       .then(setRecordings)
       .catch(() => {
@@ -96,12 +98,17 @@ export default function HistoryPage() {
           description: "Could not fetch recordings. Please try again.",
         });
       })
-      .finally(() => setIsLoading(false));
-  }, [user, toast]);
+      .finally(() => {
+        setIsDataLoaded(true);
+        stopNavigation();
+      });
+  }, [user, toast, startNavigation, stopNavigation]);
 
   useEffect(() => {
     if (user) {
       refreshRecordings();
+    } else {
+      setIsDataLoaded(true);
     }
   }, [user, refreshRecordings]);
 
@@ -488,15 +495,8 @@ export default function HistoryPage() {
     return t('ai_result_dialog_desc', { action: actionText });
   }
   
-  if (isLoading) {
-    return (
-        <div className="flex justify-center items-center h-full p-4">
-            <div className="flex items-center text-muted-foreground">
-                <Loader2 className="h-6 w-6 animate-spin" />
-                <p className="ml-3">{t('history_loading')}</p>
-            </div>
-        </div>
-    );
+  if (!isDataLoaded) {
+    return null; // The global loader in AppShell will be visible
   }
 
   return (

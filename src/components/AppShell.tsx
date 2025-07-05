@@ -3,9 +3,9 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Lightbulb, Settings, LogOut, Menu, Sun, Moon, Gem } from 'lucide-react';
+import { Lightbulb, Settings, LogOut, Menu, Sun, Moon, Gem, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import React, { useState, useEffect } from 'react';
 import { Separator } from './ui/separator';
@@ -19,6 +19,7 @@ import { LanguageToggle } from './language-toggle';
 import { Badge } from './ui/badge';
 import { Sparkles } from 'lucide-react';
 import { FeedbackButton } from './FeedbackButton';
+import { useNavigationLoader } from '@/hooks/use-navigation-loader';
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme()
@@ -31,7 +32,6 @@ function ThemeToggle() {
     </Button>
   )
 }
-
 
 function Header() {
     const pathname = usePathname();
@@ -144,13 +144,13 @@ function Header() {
                                 </Button>
                             </SheetTrigger>
                             <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-                                <SheetHeader className="p-4 pb-0">
-                                  <SheetTitle className="sr-only">Menu</SheetTitle>
-                                  <SheetDescription className="sr-only">Main application navigation and options.</SheetDescription>
-                                  <div className="flex justify-end">
-                                      <PlanBadge isMobile={true} />
-                                  </div>
+                                <SheetHeader>
+                                    <SheetTitle className="sr-only">Menu</SheetTitle>
+                                    <SheetDescription className="sr-only">Main application navigation and options.</SheetDescription>
                                 </SheetHeader>
+                                <div className="flex justify-end p-4 pb-0">
+                                    <PlanBadge isMobile={true} />
+                                </div>
                                 <div className="p-4">
                                   <nav className="flex flex-col gap-4">
                                       {navItems.map((item) => (
@@ -182,18 +182,30 @@ function Header() {
     );
 }
 
+const LoadingOverlay = () => (
+  <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background/80 backdrop-blur-sm">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+);
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, loading } = useAuth();
+  const { isNavigating } = useNavigationLoader();
   const { t } = useLanguage();
 
   const noShellRoutes = ['/', '/pricing', '/forgot-password', '/terms', '/privacy'];
   
   if (loading) {
      return (
-        <div className="flex h-screen w-full items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin" />
+        <div className="flex h-screen w-full flex-col items-center justify-center bg-background gap-4">
+            <div className="bg-primary/10 border border-primary/20 rounded-full p-4">
+                <Lightbulb className="h-12 w-12 text-primary" />
+            </div>
+            <div className="flex items-center text-muted-foreground">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <p className="ml-3 text-lg">{t('history_loading')}</p>
+            </div>
         </div>
     );
   }
@@ -204,6 +216,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="relative flex min-h-screen flex-col bg-background">
+      {isNavigating && <LoadingOverlay />}
       <Header />
       <main className="flex-1">{children}</main>
       <FeedbackButton />
