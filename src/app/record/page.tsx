@@ -818,15 +818,13 @@ export default function Home() {
                                 {t('record_ai_actions_label')}
                                 {!settings.isPro && ` (${t('record_credits_remaining', { credits: settings.aiCredits, plural: settings.aiCredits !== 1 ? 's' : '' })})`}
                             </h3>
-                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                           <div className="grid grid-cols-2 sm:grid-cols-2 gap-2">
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <div className="w-full">
-                                      <Button className="w-full" variant="outline" onClick={() => lastRecording && handleSummarizeClick(lastRecording)} disabled={!settings.isPro && settings.aiCredits < 1}>
-                                          <Sparkles /> {t('record_summarize_button')}
-                                      </Button>
-                                    </div>
+                                    <Button className="w-full" variant="outline" onClick={() => lastRecording && handleSummarizeClick(lastRecording)} disabled={!settings.isPro && settings.aiCredits < 1}>
+                                        <Sparkles className="mr-2 h-4 w-4"/> {t('record_summarize_button')}
+                                    </Button>
                                   </TooltipTrigger>
                                   {!settings.isPro && <TooltipContent><p>{settings.aiCredits < 1 ? t('record_credits_no_credits') : t('record_credits_no_pro')}</p></TooltipContent>}
                                 </Tooltip>
@@ -835,11 +833,9 @@ export default function Home() {
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                     <div className="w-full">
                                       <Button className="w-full" variant="outline" onClick={() => lastRecording && handleExpandClick(lastRecording)} disabled={!settings.isPro && settings.aiCredits < 1}>
-                                          <BrainCircuit /> {t('record_expand_button')}
+                                          <BrainCircuit className="mr-2 h-4 w-4"/> {t('record_expand_button')}
                                       </Button>
-                                    </div>
                                   </TooltipTrigger>
                                   {!settings.isPro && <TooltipContent><p>{settings.aiCredits < 1 ? t('record_credits_no_credits') : t('record_credits_no_pro')}</p></TooltipContent>}
                                 </Tooltip>
@@ -848,11 +844,9 @@ export default function Home() {
                                <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                     <div className="w-full">
                                       <Button className="w-full" variant="outline" onClick={() => lastRecording && handleExpandAsProjectClick(lastRecording)} disabled={!settings.isPro && settings.aiCredits < 1}>
-                                          <FolderKanban /> {t('record_project_plan_button')}
+                                          <FolderKanban className="mr-2 h-4 w-4"/> {t('record_project_plan_button')}
                                       </Button>
-                                    </div>
                                   </TooltipTrigger>
                                   {!settings.isPro && <TooltipContent><p>{settings.aiCredits < 1 ? t('record_credits_no_credits') : t('record_credits_no_pro')}</p></TooltipContent>}
                                 </Tooltip>
@@ -861,11 +855,9 @@ export default function Home() {
                                <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                     <div className="w-full">
                                       <Button className="w-full" variant="outline" onClick={() => lastRecording && handleExtractTasksClick(lastRecording)} disabled={!settings.isPro && settings.aiCredits < 1}>
-                                          <ListTodo /> {t('record_get_tasks_button')}
+                                          <ListTodo className="mr-2 h-4 w-4"/> {t('record_get_tasks_button')}
                                       </Button>
-                                    </div>
                                   </TooltipTrigger>
                                   {!settings.isPro && <TooltipContent><p>{settings.aiCredits < 1 ? t('record_credits_no_credits') : t('record_credits_no_pro')}</p></TooltipContent>}
                                 </Tooltip>
@@ -873,10 +865,10 @@ export default function Home() {
                            </div>
                            <div className="grid grid-cols-2 gap-2">
                                 <Button variant="outline" onClick={() => handleShare(lastRecording)} disabled={!isShareApiAvailable || !lastRecording?.transcription}>
-                                    <Share2 /> {t('record_share_note_button')}
+                                    <Share2 className="mr-2 h-4 w-4"/> {t('record_share_note_button')}
                                 </Button>
                                 <Button variant="outline" onClick={() => router.push('/history')}>
-                                    <History /> {t('record_view_history_button')}
+                                    <History className="mr-2 h-4 w-4"/> {t('record_view_history_button')}
                                 </Button>
                            </div>
                         </div>
@@ -884,7 +876,7 @@ export default function Home() {
                     <CardFooter className="pt-4">
                         <div className="grid grid-cols-2 gap-2 w-full">
                             <Button variant="outline" className="border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10 hover:text-destructive" onClick={handleDiscardLastRecording}>
-                                <Trash2 /> {t('record_discard_button')}
+                                <Trash2 className="mr-2 h-4 w-4"/> {t('record_discard_button')}
                             </Button>
                             <Button onClick={resetToIdle}>
                                 {t('record_record_another_button')}
