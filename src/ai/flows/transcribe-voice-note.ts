@@ -48,7 +48,7 @@ const transcribeVoiceNoteFlow = ai.defineFlow(
     outputSchema: TranscribeVoiceNoteOutputSchema,
   },
   async input => {
-    const modelToUse = resolveModel(input.aiModel);
+    const modelToUse = await resolveModel(input.aiModel);
     const {output} = await prompt(input, { model: modelToUse });
     return output!;
   }

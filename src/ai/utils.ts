@@ -11,7 +11,7 @@
  * @param aiModel - The model identifier from user settings.
  * @returns The fully qualified model name string.
  */
-export function resolveModel(aiModel: string | undefined | null): string {
+export async function resolveModel(aiModel: string | undefined | null): Promise<string> {
     const defaultModel = 'gemini-1.5-flash-latest';
     
     const modelToUse = (aiModel && aiModel.includes('/')) 
