@@ -10,7 +10,7 @@ This application is built with a professional tech stack, featuring user authent
 - **AI-Powered Transcription:** Fast and accurate multilingual transcription of your voice notes.
 - **AI-Powered Note Titling:** Automatically generate a concise, relevant title for each note.
 - **Editable Transcriptions:** Manually refine and correct transcriptions to ensure perfect accuracy.
-- **Shareable Notes:** Share individual note sections (like a summary or task list) or the entire bundle of generated content as a single text file.
+- **Shareable Notes:** Share individual note sections (like a summary or task list), or the entire audio file via your device's native share functionality.
 - **Secure Authentication:** User accounts handled securely by Firebase Authentication, with support for email/password and Google Sign-In.
 - **Free & Pro Tiers:** Provides a feature-rich free tier and unlocks advanced AI capabilities with a Pro subscription.
 - **PWA (Progressive Web App):** Installable on any device (desktop or mobile) for an app-like experience and offline capabilities.
