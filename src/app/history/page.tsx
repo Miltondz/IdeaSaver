@@ -47,6 +47,7 @@ export default function HistoryPage() {
   // AI Action State
   const [aiAction, setAiAction] = useState<'expand' | 'summarize' | 'expand-as-project' | 'extract-tasks' | null>(null);
   const [isProcessingAi, setIsProcessingAi] = useState(false);
+  const [processingId, setProcessingId] = useState<string | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [aiResult, setAiResult] = useState<string | null>(null);
   const [noteForAi, setNoteForAi] = useState<Recording | null>(null);
@@ -263,6 +264,7 @@ export default function HistoryPage() {
 
   const proceedWithTranscribe = async (recording: Recording) => {
     if (!user || !settings || !recording.audioDataUri) return;
+    setProcessingId(recording.id);
     setIsTranscribing(true);
     if (!settings.isPro) deductCredit();
 
@@ -286,6 +288,7 @@ export default function HistoryPage() {
         toast({ variant: "destructive", title: t('ai_transcribe_fail_title'), description: t('ai_transcribe_fail') });
     } finally {
         setIsTranscribing(false);
+        setProcessingId(null);
     }
   };
 
@@ -299,6 +302,7 @@ export default function HistoryPage() {
     setAiAction('expand');
     setAiResult(null);
     setIsProcessingAi(true);
+    setProcessingId(recording.id);
     if (!settings.isPro) deductCredit();
 
     expandNote({ transcription: recording.transcription, aiModel: settings.aiModel })
@@ -315,7 +319,10 @@ export default function HistoryPage() {
         toast({ variant: "destructive", title: t('ai_expand_fail_title'), description: t('ai_expand_fail') });
         setNoteForAi(null);
       })
-      .finally(() => setIsProcessingAi(false));
+      .finally(() => {
+        setIsProcessingAi(false)
+        setProcessingId(null);
+      });
   };
 
   const handleExpandClick = (recording: Recording) => {
@@ -336,6 +343,7 @@ export default function HistoryPage() {
     setAiAction('summarize');
     setAiResult(null);
     setIsProcessingAi(true);
+    setProcessingId(recording.id);
     if (!settings.isPro) deductCredit();
     
     summarizeNote({ transcription: recording.transcription, aiModel: settings.aiModel })
@@ -352,7 +360,10 @@ export default function HistoryPage() {
         toast({ variant: "destructive", title: t('ai_summarize_fail_title'), description: t('ai_summarize_fail') });
         setNoteForAi(null);
       })
-      .finally(() => setIsProcessingAi(false));
+      .finally(() => {
+        setIsProcessingAi(false);
+        setProcessingId(null);
+      });
   };
 
   const handleSummarizeClick = (recording: Recording) => {
@@ -373,6 +384,7 @@ export default function HistoryPage() {
     setAiAction('expand-as-project');
     setAiResult(null);
     setIsProcessingAi(true);
+    setProcessingId(recording.id);
     if (!settings.isPro) deductCredit();
 
     expandAsProject({ transcription: recording.transcription, aiModel: settings.aiModel })
@@ -389,7 +401,10 @@ export default function HistoryPage() {
         toast({ variant: "destructive", title: t('ai_project_plan_fail_title'), description: t('ai_project_plan_fail') });
         setNoteForAi(null);
       })
-      .finally(() => setIsProcessingAi(false));
+      .finally(() => {
+        setIsProcessingAi(false);
+        setProcessingId(null);
+      });
   };
 
   const handleExpandAsProjectClick = (recording: Recording) => {
@@ -410,6 +425,7 @@ export default function HistoryPage() {
     setAiAction('extract-tasks');
     setAiResult(null);
     setIsProcessingAi(true);
+    setProcessingId(recording.id);
     if (!settings.isPro) deductCredit();
 
     extractTasks({ transcription: recording.transcription, aiModel: settings.aiModel })
@@ -426,7 +442,10 @@ export default function HistoryPage() {
         toast({ variant: "destructive", title: t('ai_extract_tasks_fail_title'), description: t('ai_extract_tasks_fail') });
         setNoteForAi(null);
       })
-      .finally(() => setIsProcessingAi(false));
+      .finally(() => {
+        setIsProcessingAi(false);
+        setProcessingId(null);
+      });
   };
 
   const handleExtractTasksClick = (recording: Recording) => {
@@ -560,32 +579,32 @@ export default function HistoryPage() {
                                     </Tooltip>
                                      <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleSummarizeClick(rec)} disabled={!settings.isPro && settings.aiCredits < 1}>
-                                                <Sparkles className="h-4 w-4" />
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleSummarizeClick(rec)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
+                                                {processingId === rec.id && aiAction === 'summarize' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                                             </Button>
                                         </TooltipTrigger>
                                         <TooltipContent><p>{settings.isPro ? t('history_summarize_tooltip') : t('history_summarize_tooltip_credits', { credits: settings.aiCredits })}</p></TooltipContent>
                                     </Tooltip>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExpandClick(rec)} disabled={!settings.isPro && settings.aiCredits < 1}>
-                                                <BrainCircuit className="h-4 w-4" />
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExpandClick(rec)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
+                                                {processingId === rec.id && aiAction === 'expand' ? <Loader2 className="h-4 w-4 animate-spin" /> : <BrainCircuit className="h-4 w-4" />}
                                             </Button>
                                         </TooltipTrigger>
                                         <TooltipContent><p>{settings.isPro ? t('history_expand_tooltip') : t('history_expand_tooltip_credits', { credits: settings.aiCredits })}</p></TooltipContent>
                                     </Tooltip>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExpandAsProjectClick(rec)} disabled={!settings.isPro && settings.aiCredits < 1}>
-                                                <FolderKanban className="h-4 w-4" />
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExpandAsProjectClick(rec)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
+                                                {processingId === rec.id && aiAction === 'expand-as-project' ? <Loader2 className="h-4 w-4 animate-spin" /> : <FolderKanban className="h-4 w-4" />}
                                             </Button>
                                         </TooltipTrigger>
                                         <TooltipContent><p>{settings.isPro ? t('history_project_plan_tooltip') : t('history_project_plan_tooltip_credits', { credits: settings.aiCredits })}</p></TooltipContent>
                                     </Tooltip>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExtractTasksClick(rec)} disabled={!settings.isPro && settings.aiCredits < 1}>
-                                                <ListTodo className="h-4 w-4" />
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExtractTasksClick(rec)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
+                                                {processingId === rec.id && aiAction === 'extract-tasks' ? <Loader2 className="h-4 w-4 animate-spin" /> : <ListTodo className="h-4 w-4" />}
                                             </Button>
                                         </TooltipTrigger>
                                         <TooltipContent><p>{settings.isPro ? t('history_extract_tasks_tooltip') : t('history_extract_tasks_tooltip_credits', { credits: settings.aiCredits })}</p></TooltipContent>
@@ -889,8 +908,9 @@ export default function HistoryPage() {
                         <Tooltip>
                           <TooltipTrigger asChild>
                               <div className="inline-block">
-                                <Button variant="outline" onClick={() => handleSummarizeClick(selectedRecording!)} disabled={!settings.isPro && settings.aiCredits < 1}>
-                                    <Sparkles className="mr-2 h-4 w-4" /> {t('record_summarize_button')}
+                                <Button variant="outline" onClick={() => handleSummarizeClick(selectedRecording!)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
+                                    {processingId === selectedRecording.id && aiAction === 'summarize' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                                    {t('record_summarize_button')}
                                 </Button>
                               </div>
                           </TooltipTrigger>
@@ -901,8 +921,9 @@ export default function HistoryPage() {
                         <Tooltip>
                           <TooltipTrigger asChild>
                               <div className="inline-block">
-                                <Button variant="outline" onClick={() => handleExpandClick(selectedRecording!)} disabled={!settings.isPro && settings.aiCredits < 1}>
-                                    <BrainCircuit className="mr-2 h-4 w-4" /> {t('record_expand_button')}
+                                <Button variant="outline" onClick={() => handleExpandClick(selectedRecording!)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
+                                    {processingId === selectedRecording.id && aiAction === 'expand' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BrainCircuit className="mr-2 h-4 w-4" />}
+                                    {t('record_expand_button')}
                                 </Button>
                               </div>
                           </TooltipTrigger>
@@ -913,8 +934,9 @@ export default function HistoryPage() {
                         <Tooltip>
                           <TooltipTrigger asChild>
                               <div className="inline-block">
-                                <Button variant="outline" onClick={() => handleExpandAsProjectClick(selectedRecording!)} disabled={!settings.isPro && settings.aiCredits < 1}>
-                                    <FolderKanban className="mr-2 h-4 w-4" /> {t('record_project_plan_button')}
+                                <Button variant="outline" onClick={() => handleExpandAsProjectClick(selectedRecording!)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
+                                    {processingId === selectedRecording.id && aiAction === 'expand-as-project' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FolderKanban className="mr-2 h-4 w-4" />}
+                                    {t('record_project_plan_button')}
                                 </Button>
                               </div>
                           </TooltipTrigger>
@@ -925,8 +947,9 @@ export default function HistoryPage() {
                         <Tooltip>
                           <TooltipTrigger asChild>
                               <div className="inline-block">
-                                <Button variant="outline" onClick={() => handleExtractTasksClick(selectedRecording!)} disabled={!settings.isPro && settings.aiCredits < 1}>
-                                    <ListTodo className="mr-2 h-4 w-4" /> {t('record_get_tasks_button')}
+                                <Button variant="outline" onClick={() => handleExtractTasksClick(selectedRecording!)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
+                                    {processingId === selectedRecording.id && aiAction === 'extract-tasks' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ListTodo className="mr-2 h-4 w-4" />}
+                                    {t('record_get_tasks_button')}
                                 </Button>
                               </div>
                           </TooltipTrigger>
