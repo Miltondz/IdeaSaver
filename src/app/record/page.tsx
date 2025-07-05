@@ -820,9 +820,9 @@ export default function Home() {
             ) : recordingStatus === 'completed' && lastRecording ? (
               <div className="w-full max-w-2xl mx-auto">
                 <Card className={cn(
-                  "w-full bg-card/80 border backdrop-blur-sm shadow-lg transition-all duration-300",
-                  showSuccessIndicator && "border-green-500/50 shadow-green-500/10",
-                  showErrorIndicator && "border-destructive/50 shadow-destructive/10"
+                  "w-full bg-card/80 border backdrop-blur-sm shadow-lg transition-all duration-500",
+                  showSuccessIndicator && "border-2 border-green-500 shadow-green-500/20",
+                  showErrorIndicator && "border-2 border-destructive shadow-destructive/20"
                 )}>
                     <CardHeader>
                       <div className="flex justify-between items-start">
