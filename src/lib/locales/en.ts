@@ -291,6 +291,8 @@ export const en = {
   history_ready_to_transcribe_desc: 'This is an audio-only note. Use an AI credit to get the transcription and unlock more actions.',
   history_transcribe_with_ai: 'Transcribe with AI',
   history_transcribe_with_credit: 'Transcribe with AI (1 Credit)',
+  history_failed_to_load_title: 'Failed to Load History',
+  history_failed_to_load_desc: 'Could not fetch your recordings. Please try again.',
   
   // Settings Page
   settings_page_title: 'Settings',

@@ -94,23 +94,51 @@ export default function HistoryPage() {
       .catch(() => {
         toast({
           variant: "destructive",
-          title: "Failed to refresh history",
-          description: "Could not fetch recordings. Please try again.",
+          title: t('history_failed_to_load_title'),
+          description: t('history_failed_to_load_desc'),
         });
       })
       .finally(() => {
         setIsDataLoaded(true);
         stopNavigation();
       });
-  }, [user, toast, startNavigation, stopNavigation]);
+  }, [user, toast, startNavigation, stopNavigation, t]);
 
   useEffect(() => {
-    if (user) {
-      refreshRecordings();
-    } else {
+    if (!user) {
       setIsDataLoaded(true);
+      return;
     }
-  }, [user, refreshRecordings]);
+
+    let isMounted = true;
+    startNavigation();
+
+    getRecordings(user.uid)
+      .then((recordings) => {
+        if (isMounted) {
+          setRecordings(recordings);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          toast({
+            variant: "destructive",
+            title: t('history_failed_to_load_title'),
+            description: t('history_failed_to_load_desc'),
+          });
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsDataLoaded(true);
+          stopNavigation();
+        }
+      });
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [user, toast, startNavigation, stopNavigation, t]);
 
 
   useEffect(() => {

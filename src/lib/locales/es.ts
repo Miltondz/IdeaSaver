@@ -291,6 +291,8 @@ export const es = {
   history_ready_to_transcribe_desc: 'Esta es una nota solo de audio. Usa un crédito de IA para obtener la transcripción y desbloquear más acciones.',
   history_transcribe_with_ai: 'Transcribir con IA',
   history_transcribe_with_credit: 'Transcribir con IA (1 Crédito)',
+  history_failed_to_load_title: 'Error al Cargar Historial',
+  history_failed_to_load_desc: 'No se pudieron cargar tus grabaciones. Por favor, inténtalo de nuevo.',
 
   // Settings Page
   settings_page_title: 'Ajustes',
