@@ -17,12 +17,18 @@ interface LanguageContextType {
 export const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider = ({ children }: { children: ReactNode }) => {
-    const [language, setLanguage] = useState<Language>('es'); // Default to Spanish
+    const [language, setLanguage] = useState<Language>('en'); // Default to English, will be updated by effect
 
     useEffect(() => {
         const storedLang = localStorage.getItem('idea-saver-lang') as Language | null;
-        if (storedLang && (storedLang === 'en' || storedLang === 'es')) {
+        if (storedLang) {
             setLanguage(storedLang);
+        } else if (typeof window !== 'undefined') {
+            // If no preference stored, detect browser language
+            const browserLang = navigator.language.split(/[-_]/)[0];
+            const newLang = browserLang === 'es' ? 'es' : 'en';
+            setLanguage(newLang);
+            localStorage.setItem('idea-saver-lang', newLang);
         }
     }, []);
 

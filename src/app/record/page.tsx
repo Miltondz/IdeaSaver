@@ -896,7 +896,7 @@ export default function Home() {
                               </TooltipProvider>
                            </div>
                            <div className="grid grid-cols-2 gap-2">
-                                <Button variant="outline" onClick={() => handleShare(lastRecording)}>
+                                <Button variant="outline" onClick={() => lastRecording && handleShare(lastRecording)}>
                                     <Share2 /> {t('record_share_note_button')}
                                 </Button>
                                 <Button variant="outline" onClick={() => router.push('/history')}>
