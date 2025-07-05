@@ -11,7 +11,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { getSettings, saveSettings, getLocalRecordings, deleteRecording as deleteRecordingFromStorage, AppSettings, deleteUserData, clearUserLocalStorage } from "@/lib/storage";
-import { Settings, Trash2, Trello, Save, Database, Archive, Code, BarChart3, LayoutDashboard, Server, Gem, Loader2, AlertTriangle } from "lucide-react";
+import { Settings, Trash2, Trello, Save, Database, Archive, Code, BarChart3, LayoutDashboard, Gem, Loader2, AlertTriangle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { Recording } from "@/types";

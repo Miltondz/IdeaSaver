@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Mic, Loader2, Share2, History, PlusCircle, Cloud, Terminal, Sparkles, BrainCircuit, Trash2, Play, Send, Pause, Save, Copy, Check, FolderKanban, ListTodo } from "lucide-react";
+import { Mic, Loader2, Share2, History, Trash2, Play, Send, Pause, Save, Copy, Check, FolderKanban, ListTodo, Sparkles, BrainCircuit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { transcribeVoiceNote } from "@/ai/flows/transcribe-voice-note";
@@ -924,7 +924,7 @@ export default function Home() {
                                 <Trash2 /> {t('record_discard_button')}
                             </Button>
                             <Button onClick={resetToIdle}>
-                                <PlusCircle /> {t('record_record_another_button')}
+                                {t('record_record_another_button')}
                             </Button>
                         </div>
                     </CardFooter>
@@ -1070,34 +1070,7 @@ export default function Home() {
                 )}
             </DialogContent>
         </Dialog>
-
-        <div className="fixed bottom-4 right-4 z-50">
-            <Sheet>
-                <SheetTrigger asChild>
-                    <Button variant="outline" size="icon" className="rounded-full shadow-lg">
-                        <Terminal className="h-5 w-5" />
-                    </Button>
-                </SheetTrigger>
-                <SheetContent>
-                    <SheetHeader>
-                        <SheetTitle>{t('record_console_logs_title')}</SheetTitle>
-                        <SheetDescription>
-                            {t('record_console_logs_desc')}
-                        </SheetDescription>
-                    </SheetHeader>
-                    <ScrollArea className="h-[calc(100%-4rem)] w-full rounded-md border p-2 bg-muted/50 mt-4">
-                        <pre className="p-2 text-xs font-mono whitespace-pre-wrap break-words">
-                            {logs.length > 0 ? (
-                                logs.join('\n')
-                            ) : (
-                                t('record_console_logs_empty')
-                            )}
-                        </pre>
-                    </ScrollArea>
-                </SheetContent>
-            </Sheet>
-        </div>
-
+        
         <AlertDialog open={!!confirmationAction} onOpenChange={(open) => !open && setConfirmationAction(null)}>
             <AlertDialogContent>
               <AlertDialogHeader>

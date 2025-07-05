@@ -3,7 +3,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Lightbulb, Settings, LogOut, Menu, UserCircle, Sun, Moon } from 'lucide-react';
+import { Lightbulb, Settings, LogOut, Menu, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
