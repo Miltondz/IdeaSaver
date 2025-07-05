@@ -354,7 +354,7 @@ export const en = {
   settings_delete_account_fail_title: 'Failed to Delete Account',
   settings_delete_account_fail_desc: 'An error occurred while deleting your account:',
   settings_reauth_required_title: 'Re-authentication Required',
-  settings_reauth_required_desc: 'This is a sensitive operation. Please sign out and sign back in before deleting your account to ensure it is you.',
+  settings_reauth_required_desc: 'For your security, you have been signed out. Please sign in again to proceed with deleting your account.',
   settings_downgrade_to_free: 'Switch to Free Plan',
   settings_downgrade_confirm_title: 'Switch to Free Plan?',
   settings_downgrade_confirm_desc: "You will lose access to Pro features like unlimited AI actions and cloud sync. Your existing synced notes will remain, but new notes won't be synced. Are you sure?",

@@ -19,7 +19,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/hooks/use-language";
-import { deleteUser } from "firebase/auth";
+import { deleteUser, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
 type DeletionPolicy = "never" | "7" | "15" | "30";
@@ -108,10 +108,12 @@ export default function SettingsPage() {
         clearUserLocalStorage(user.uid);
         await deleteUser(auth.currentUser);
         toast({ title: t('settings_account_deleted_title'), description: t('settings_account_deleted_desc') });
-        // The useAuth hook will handle the redirect to the login page
+        // The useAuth hook will handle the redirect to the login page after deleteUser signs out.
     } catch(error: any) {
         if (error.code === 'auth/requires-recent-login') {
             toast({ variant: "destructive", title: t('settings_reauth_required_title'), description: t('settings_reauth_required_desc') });
+            await signOut(auth); // Sign out the user automatically
+            // The useAuth hook will catch the auth state change and redirect to login.
         } else {
             toast({ variant: "destructive", title: t('settings_delete_account_fail_title'), description: `${t('settings_delete_account_fail_desc')} ${error.message}` });
         }

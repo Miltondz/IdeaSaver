@@ -354,7 +354,7 @@ export const es = {
   settings_delete_account_fail_title: 'Fallo al Eliminar la Cuenta',
   settings_delete_account_fail_desc: 'Ocurrió un error al eliminar tu cuenta:',
   settings_reauth_required_title: 'Se Requiere Re-autenticación',
-  settings_reauth_required_desc: 'Esta es una operación sensible. Por favor, cierra sesión y vuelve a iniciarla antes de eliminar tu cuenta para asegurar que eres tú.',
+  settings_reauth_required_desc: 'Por tu seguridad, se ha cerrado tu sesión. Por favor, inicia sesión de nuevo para proceder con la eliminación de tu cuenta.',
   settings_downgrade_to_free: 'Cambiar al Plan Gratuito',
   settings_downgrade_confirm_title: '¿Cambiar al Plan Gratuito?',
   settings_downgrade_confirm_desc: 'Perderás el acceso a las funciones Pro como acciones de IA ilimitadas y sincronización en la nube. Tus notas sincronizadas existentes permanecerán, pero las nuevas notas no se sincronizarán. ¿Estás seguro?',
