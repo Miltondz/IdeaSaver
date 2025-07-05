@@ -44,7 +44,8 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
         let translation = translations[language][key] || translations['en'][key];
         if (replacements) {
             Object.keys(replacements).forEach(placeholder => {
-                translation = translation.replace(`{${placeholder}}`, String(replacements[placeholder]));
+                const regex = new RegExp(`\\{${placeholder}\\}`, 'g');
+                translation = translation.replace(regex, String(replacements[placeholder]));
             });
         }
         return translation;
