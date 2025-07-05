@@ -818,48 +818,52 @@ export default function Home() {
                                 {t('record_ai_actions_label')}
                                 {!settings.isPro && ` (${t('record_credits_remaining', { credits: settings.aiCredits, plural: settings.aiCredits !== 1 ? 's' : '' })})`}
                             </h3>
-                           <div className="grid grid-cols-2 sm:grid-cols-2 gap-2">
+                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <Button className="w-full" variant="outline" onClick={() => lastRecording && handleSummarizeClick(lastRecording)} disabled={!settings.isPro && settings.aiCredits < 1}>
-                                        <Sparkles className="mr-2 h-4 w-4"/> {t('record_summarize_button')}
-                                    </Button>
+                                      <Button variant="outline" onClick={() => lastRecording && handleSummarizeClick(lastRecording)} disabled={!settings.isPro && settings.aiCredits < 1}>
+                                        <Sparkles className="mr-2 h-4 w-4" />
+                                        <span>{t('record_summarize_button')}</span>
+                                      </Button>
                                   </TooltipTrigger>
-                                  {!settings.isPro && <TooltipContent><p>{settings.aiCredits < 1 ? t('record_credits_no_credits') : t('record_credits_no_pro')}</p></TooltipContent>}
+                                  {!settings.isPro && <TooltipContent><p>{t('record_credits_no_pro')}</p></TooltipContent>}
                                 </Tooltip>
                               </TooltipProvider>
                               
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                      <Button className="w-full" variant="outline" onClick={() => lastRecording && handleExpandClick(lastRecording)} disabled={!settings.isPro && settings.aiCredits < 1}>
-                                          <BrainCircuit className="mr-2 h-4 w-4"/> {t('record_expand_button')}
+                                      <Button variant="outline" onClick={() => lastRecording && handleExpandClick(lastRecording)} disabled={!settings.isPro && settings.aiCredits < 1}>
+                                          <BrainCircuit className="mr-2 h-4 w-4"/>
+                                          <span>{t('record_expand_button')}</span>
                                       </Button>
                                   </TooltipTrigger>
-                                  {!settings.isPro && <TooltipContent><p>{settings.aiCredits < 1 ? t('record_credits_no_credits') : t('record_credits_no_pro')}</p></TooltipContent>}
+                                  {!settings.isPro && <TooltipContent><p>{t('record_credits_no_pro')}</p></TooltipContent>}
                                 </Tooltip>
                               </TooltipProvider>
 
                                <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                      <Button className="w-full" variant="outline" onClick={() => lastRecording && handleExpandAsProjectClick(lastRecording)} disabled={!settings.isPro && settings.aiCredits < 1}>
-                                          <FolderKanban className="mr-2 h-4 w-4"/> {t('record_project_plan_button')}
+                                      <Button variant="outline" onClick={() => lastRecording && handleExpandAsProjectClick(lastRecording)} disabled={!settings.isPro && settings.aiCredits < 1}>
+                                          <FolderKanban className="mr-2 h-4 w-4"/>
+                                          <span>{t('record_project_plan_button')}</span>
                                       </Button>
                                   </TooltipTrigger>
-                                  {!settings.isPro && <TooltipContent><p>{settings.aiCredits < 1 ? t('record_credits_no_credits') : t('record_credits_no_pro')}</p></TooltipContent>}
+                                  {!settings.isPro && <TooltipContent><p>{t('record_credits_no_pro')}</p></TooltipContent>}
                                 </Tooltip>
                               </TooltipProvider>
 
                                <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                      <Button className="w-full" variant="outline" onClick={() => lastRecording && handleExtractTasksClick(lastRecording)} disabled={!settings.isPro && settings.aiCredits < 1}>
-                                          <ListTodo className="mr-2 h-4 w-4"/> {t('record_get_tasks_button')}
+                                      <Button variant="outline" onClick={() => lastRecording && handleExtractTasksClick(lastRecording)} disabled={!settings.isPro && settings.aiCredits < 1}>
+                                          <ListTodo className="mr-2 h-4 w-4"/>
+                                          <span>{t('record_get_tasks_button')}</span>
                                       </Button>
                                   </TooltipTrigger>
-                                  {!settings.isPro && <TooltipContent><p>{settings.aiCredits < 1 ? t('record_credits_no_credits') : t('record_credits_no_pro')}</p></TooltipContent>}
+                                  {!settings.isPro && <TooltipContent><p>{t('record_credits_no_pro')}</p></TooltipContent>}
                                 </Tooltip>
                               </TooltipProvider>
                            </div>
@@ -921,19 +925,19 @@ export default function Home() {
                         <CardFooter className="flex flex-col gap-2">
                            <div className="flex flex-col sm:flex-row gap-2 w-full">
                                 <Button variant="secondary" onClick={handleSaveAudioOnly} className="flex-1">
-                                    <Save /> {t('record_save_audio_only')}
+                                    <Save className="mr-2 h-4 w-4" /> <span>{t('record_save_audio_only')}</span>
                                 </Button>
                                 <Button onClick={() => handleAiActionClick(handleProcessRecording)} disabled={!settings.isPro && settings.aiCredits < 1} className="flex-1">
-                                    <Send /> {!settings.isPro ? t('record_transcribe_with_credit') : t('record_transcribe_button')}
+                                    <Send className="mr-2 h-4 w-4" /> <span>{!settings.isPro ? t('record_transcribe_with_credit') : t('record_transcribe_button')}</span>
                                 </Button>
                            </div>
                            {isShareApiAvailable && (
                                <Button variant="outline" className="w-full" onClick={handleShareAudio}>
-                                   <Share2 /> {t('record_share_audio_button')}
+                                   <Share2 className="mr-2 h-4 w-4" /> <span>{t('record_share_audio_button')}</span>
                                </Button>
                            )}
                            <Button variant="outline" className="w-full border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10 hover:text-destructive" onClick={resetToIdle}>
-                                <Trash2 /> {t('record_discard_button')}
+                                <Trash2 className="mr-2 h-4 w-4" /> <span>{t('record_discard_button')}</span>
                            </Button>
                         </CardFooter>
                     </Card>

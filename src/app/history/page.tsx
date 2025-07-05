@@ -906,8 +906,8 @@ export default function HistoryPage() {
                         </CardHeader>
                         <CardFooter className="justify-center">
                             <Button onClick={() => handleTranscribeFromHistory(selectedRecording)} disabled={isTranscribing || (!settings.isPro && settings.aiCredits < 1)}>
-                                {isTranscribing ? <Loader2 className="animate-spin mr-2" /> : <Sparkles className="mr-2" />}
-                                {settings.isPro ? t('history_transcribe_with_ai') : t('history_transcribe_with_credit')}
+                                {isTranscribing ? <Loader2 className="animate-spin mr-2" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                                <span>{settings.isPro ? t('history_transcribe_with_ai') : t('history_transcribe_with_credit')}</span>
                             </Button>
                         </CardFooter>
                     </Card>
