@@ -77,12 +77,12 @@ function Header() {
     const proTrialEndsAt = settings?.proTrialEndsAt ? new Date(settings.proTrialEndsAt) : null;
     const daysLeft = proTrialEndsAt ? Math.ceil((proTrialEndsAt.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0;
 
-    const PlanBadge = ({ isMobile = false }) => {
+    const PlanBadge = () => {
         if (!settings) return null;
 
         if (settings.isPro && proTrialEndsAt && daysLeft > 0) {
             return (
-                <Badge variant="outline" className={cn("border-green-500/50 text-green-600 dark:text-green-400 font-semibold", !isMobile && "hidden sm:flex")}>
+                <Badge variant="outline" className="border-green-500/50 text-green-600 dark:text-green-400 font-semibold">
                     <Gem className="mr-2 h-3 w-3" />
                     {daysLeft === 1 ? t('header_pro_trial_day_left') : t('header_pro_trial_days_left', { daysLeft })}
                 </Badge>
@@ -91,7 +91,7 @@ function Header() {
 
         if (!settings.isPro) {
             return (
-                <Badge variant="outline" className={cn("border-primary/50 text-primary font-semibold", !isMobile && "hidden sm:flex")}>
+                <Badge variant="outline" className="border-primary/50 text-primary font-semibold">
                     <Sparkles className="mr-2 h-3 w-3" />
                     {t('header_credit_display', { credits: settings.aiCredits })}
                 </Badge>
@@ -149,7 +149,7 @@ function Header() {
                                     <SheetDescription className="sr-only">Main application navigation and options.</SheetDescription>
                                 </SheetHeader>
                                 <div className="flex justify-end p-4 pb-0">
-                                    <PlanBadge isMobile={true} />
+                                    <PlanBadge />
                                 </div>
                                 <div className="p-4">
                                   <nav className="flex flex-col gap-4">
