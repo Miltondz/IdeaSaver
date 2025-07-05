@@ -54,7 +54,11 @@ export function FeedbackButton() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon" className="fixed top-20 left-4 h-14 w-14 rounded-full shadow-lg bg-card/80 backdrop-blur-sm z-50">
+        <Button 
+          variant="outline" 
+          size="icon" 
+          className="fixed top-1/2 -translate-y-1/2 left-0 -translate-x-8 h-14 w-14 rounded-full shadow-lg bg-card/80 backdrop-blur-sm z-50 transition-transform duration-300 ease-in-out hover:translate-x-0"
+        >
           <MessageSquarePlus className="h-6 w-6" />
         </Button>
       </DialogTrigger>
