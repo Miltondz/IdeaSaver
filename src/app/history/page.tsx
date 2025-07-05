@@ -218,7 +218,8 @@ export default function HistoryPage() {
     if (!recording.audioDataUri) return;
     try {
         const blob = await (await fetch(recording.audioDataUri)).blob();
-        const file = new File([blob], `${recording.name}.webm`, { type: 'audio/webm' });
+        const fileExtension = recording.audioMimeType?.startsWith('audio/mp4') ? 'm4a' : 'webm';
+        const file = new File([blob], `${recording.name}.${fileExtension}`, { type: recording.audioMimeType || 'audio/webm' });
         await shareContent({
             title: recording.name,
             files: [file]
@@ -905,10 +906,17 @@ export default function HistoryPage() {
                             <CardDescription>{t('history_ready_to_transcribe_desc')}</CardDescription>
                         </CardHeader>
                         <CardFooter className="justify-center">
-                            <Button onClick={() => handleTranscribeFromHistory(selectedRecording)} disabled={isTranscribing || (!settings.isPro && settings.aiCredits < 1)}>
-                                {isTranscribing ? <Loader2 className="animate-spin mr-2" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                                {settings.isPro ? t('history_transcribe_with_ai') : t('history_transcribe_with_credit')}
-                            </Button>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button onClick={() => handleTranscribeFromHistory(selectedRecording)} disabled={isTranscribing || (!settings.isPro && settings.aiCredits < 1)}>
+                                        {isTranscribing ? <Loader2 className="animate-spin mr-2" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                                        {settings.isPro ? t('history_transcribe_with_ai') : t('history_transcribe_with_credit')}
+                                    </Button>
+                                </TooltipTrigger>
+                                {!settings.isPro && <TooltipContent><p>{t('record_credits_no_pro')}</p></TooltipContent>}
+                              </Tooltip>
+                           </TooltipProvider>
                         </CardFooter>
                     </Card>
                   )}

@@ -206,6 +206,8 @@ export const en = {
   record_overwrite_tasks_desc: 'An action item list for this note already exists. Generating a new one will overwrite the existing list. Are you sure you want to continue?',
   record_overwrite_transcription_title: 'Overwrite Transcription?',
   record_overwrite_transcription_desc: 'This will save your changes and overwrite the previous transcription. Are you sure?',
+  record_unsupported_format_title: 'Format Not Supported',
+  record_unsupported_format_desc: 'Your browser does not support the required audio formats (MP4, WebM).',
 
   // AI Actions (General)
   ai_confirmation_title: 'Confirm AI Action',

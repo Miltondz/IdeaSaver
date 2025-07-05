@@ -206,6 +206,8 @@ export const es = {
   record_overwrite_tasks_desc: 'Ya existe una lista de elementos de acción para esta nota. Generar una nueva sobrescribirá la lista existente. ¿Estás seguro de que quieres continuar?',
   record_overwrite_transcription_title: '¿Sobrescribir Transcripción?',
   record_overwrite_transcription_desc: 'Esto guardará tus cambios y sobrescribirá la transcripción anterior. ¿Estás seguro?',
+  record_unsupported_format_title: 'Formato no Soportado',
+  record_unsupported_format_desc: 'Tu navegador no soporta los formatos de audio requeridos (MP4, WebM).',
 
   // AI Actions (General)
   ai_confirmation_title: 'Confirmar Acción de IA',
@@ -413,5 +415,3 @@ export const es = {
   debug_drawer_clear_button: "Limpiar Registros",
   debug_drawer_cleared_toast: "¡Registros limpiados!",
 };
-
-    

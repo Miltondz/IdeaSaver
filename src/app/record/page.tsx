@@ -54,7 +54,7 @@ export default function Home() {
   const [recordingStatus, setRecordingStatus] = useState<RecordingStatus>("idle");
   const [elapsedTime, setElapsedTime] = useState(0);
   const [lastRecording, setLastRecording] = useState<Recording | null>(null);
-  const [recordedAudio, setRecordedAudio] = useState<{ blob: Blob; dataUri: string } | null>(null);
+  const [recordedAudio, setRecordedAudio] = useState<{ blob: Blob; dataUri: string; mimeType: string; } | null>(null);
   const { user, settings } = useAuth();
   const [idleQuote, setIdleQuote] = useState('');
   const router = useRouter();
@@ -152,7 +152,12 @@ export default function Home() {
     log('Attempting to save audio note only.');
     try {
         const name = `${t('record_audio_note_prefix')} - ${new Date().toLocaleString()}`;
-        await saveRecording({ name, transcription: '', audioDataUri: recordedAudio.dataUri }, user.uid);
+        await saveRecording({
+            name,
+            transcription: '',
+            audioDataUri: recordedAudio.dataUri,
+            audioMimeType: recordedAudio.mimeType
+        }, user.uid);
         toast({ title: t('record_audio_note_saved'), description: t('record_save_audio_only_success') });
         resetToIdle();
     } catch (error) {
@@ -203,6 +208,7 @@ export default function Home() {
           name,
           transcription,
           audioDataUri,
+          audioMimeType: recordedAudio.mimeType,
         };
         log("handleProcessRecording: Calling saveRecording with data:", recordingData);
         const newRecording = await saveRecording(recordingData, user.uid);
@@ -229,7 +235,7 @@ export default function Home() {
       }
   }, [resetToIdle, toast, log, settings, user, recordedAudio, deductCredit, t]);
 
-  const onStop = useCallback(async () => {
+  const onStop = useCallback(async (mimeType: string) => {
     log("onStop: Recording stopped, entering review phase.");
 
     if (audioChunksRef.current.length === 0) {
@@ -239,10 +245,10 @@ export default function Home() {
         return;
     }
 
-    const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+    const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
     const audioDataUri = await blobToDataUri(audioBlob);
 
-    setRecordedAudio({ blob: audioBlob, dataUri: audioDataUri });
+    setRecordedAudio({ blob: audioBlob, dataUri: audioDataUri, mimeType });
     setRecordingStatus("reviewing");
     audioChunksRef.current = [];
   }, [log, resetToIdle, toast, t]);
@@ -284,7 +290,22 @@ export default function Home() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
-      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      const mimeTypes = ['audio/mp4', 'audio/webm;codecs=opus']; // Prioritize mp4
+      const supportedMimeType = mimeTypes.find(type => MediaRecorder.isTypeSupported(type));
+
+      if (!supportedMimeType) {
+        toast({
+          variant: "destructive",
+          title: t('record_unsupported_format_title'),
+          description: t('record_unsupported_format_desc'),
+        });
+        resetToIdle();
+        return;
+      }
+
+      log(`Using supported MIME type: ${supportedMimeType}`);
+      
+      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: supportedMimeType });
       audioChunksRef.current = [];
 
       mediaRecorderRef.current.ondataavailable = (event) => {
@@ -293,7 +314,7 @@ export default function Home() {
         }
       };
       
-      mediaRecorderRef.current.onstop = onStop;
+      mediaRecorderRef.current.onstop = () => onStop(supportedMimeType);
       mediaRecorderRef.current.start();
       
       setRecordingStatus("recording");
@@ -426,8 +447,9 @@ export default function Home() {
   const handleShareAudio = async () => {
     if (!recordedAudio) return;
     try {
-        const fileName = `Idea Saver Note - ${new Date().toLocaleString()}.webm`;
-        const file = new File([recordedAudio.blob], fileName, { type: 'audio/webm' });
+        const fileExtension = recordedAudio.mimeType.startsWith('audio/mp4') ? 'm4a' : 'webm';
+        const fileName = `Idea Saver Note - ${new Date().toLocaleString()}.${fileExtension}`;
+        const file = new File([recordedAudio.blob], fileName, { type: recordedAudio.mimeType });
         await shareContent({
             title: fileName,
             files: [file]
