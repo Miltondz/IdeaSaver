@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Lightbulb, Settings, LogOut, Menu, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import React, { useState, useEffect } from 'react';
 import { Separator } from './ui/separator';
@@ -39,24 +39,18 @@ function Header() {
     const router = useRouter();
     const { toast } = useToast();
     const [open, setOpen] = React.useState(false);
-    const { user } = useAuth();
+    const { user, settings, refreshSettings } = useAuth();
     const { t } = useLanguage();
-    const [settings, setSettings] = useState<AppSettings | null>(null);
 
     useEffect(() => {
-        if (user) {
-            getSettings(user.uid).then(setSettings);
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key && e.key.includes('voice-note-settings')) {
+                refreshSettings();
+            }
         }
-        
-        const handleSettingsChange = async () => {
-          if (user) {
-            setSettings(await getSettings(user.uid));
-          }
-        };
-        
-        window.addEventListener('storage', handleSettingsChange);
-        return () => window.removeEventListener('storage', handleSettingsChange);
-    }, [user]);
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, [refreshSettings]);
 
     const handleLogout = async () => {
       if (!auth) {
@@ -65,8 +59,8 @@ function Header() {
       }
       try {
         await signOut(auth);
-        toast({ title: t('logout_success_title'), description: t('logout_success_desc') });
         router.push('/');
+        toast({ title: t('logout_success_title'), description: t('logout_success_desc') });
       } catch (error) {
         toast({ variant: 'destructive', title: t('logout_fail_title'), description: t('logout_fail_desc') });
       }
@@ -128,6 +122,10 @@ function Header() {
                                 </Button>
                             </SheetTrigger>
                             <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                                <SheetHeader className="sr-only">
+                                  <SheetTitle>Menu</SheetTitle>
+                                  <SheetDescription>Main application navigation and options.</SheetDescription>
+                                </SheetHeader>
                                 <div className="p-4">
                                   <div className="flex justify-end mb-4">
                                       {settings && !settings.isPro && (
