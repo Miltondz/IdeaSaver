@@ -28,7 +28,6 @@ import { Label } from "@/components/ui/label";
 import { marked } from 'marked';
 import DOMPurify from 'isomorphic-dompurify';
 import { useLanguage } from "@/hooks/use-language";
-import { OnboardingSplash } from "@/components/OnboardingSplash";
 
 
 type RecordingStatus = "idle" | "recording" | "reviewing" | "transcribing" | "naming" | "completed";
@@ -58,7 +57,6 @@ export default function Home() {
   const [logs, setLogs] = useState<string[]>([]);
   const { user } = useAuth();
   const [settings, setSettings] = useState<AppSettings | null>(null);
-  const [showOnboarding, setShowOnboarding] = useState(false);
   const [idleQuote, setIdleQuote] = useState('');
   const router = useRouter();
   const { t } = useLanguage();
@@ -119,9 +117,6 @@ export default function Home() {
     if (user) {
       getSettings(user.uid).then(s => {
         setSettings(s);
-        if (s.planSelected && !s.hasSeenOnboardingSplash) {
-            setShowOnboarding(true);
-        }
       });
       applyDeletions(user.uid);
     }
@@ -778,15 +773,6 @@ export default function Home() {
     return t('ai_result_dialog_desc', { action: actionText });
   }
 
-  const handleOnboardingComplete = async (dontShowAgain: boolean) => {
-    setShowOnboarding(false);
-    if (dontShowAgain && user && settings) {
-        const newSettings = { ...settings, hasSeenOnboardingSplash: true };
-        await saveSettings(newSettings, user.uid);
-        setSettings(newSettings);
-    }
-  };
-
   if (!settings) {
     return (
         <div className="flex justify-center items-center h-full p-4">
@@ -800,7 +786,6 @@ export default function Home() {
 
   return (
     <div className="flex h-full flex-col items-center justify-between p-4 text-center">
-        {showOnboarding && <OnboardingSplash onComplete={handleOnboardingComplete} />}
         <div className="h-16 flex items-center justify-center">
              <h1 className="text-2xl font-light whitespace-pre-line">{getStatusText()}</h1>
         </div>

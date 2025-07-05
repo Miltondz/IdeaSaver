@@ -20,7 +20,6 @@ type DeletionPolicy = "never" | "7" | "15" | "30";
 export interface AppSettings {
   isPro: boolean;
   planSelected: boolean;
-  hasSeenOnboardingSplash: boolean;
   deletionPolicy: DeletionPolicy;
   aiModel: string;
   cloudSyncEnabled: boolean;
@@ -72,7 +71,6 @@ const _saveSettingsToCache = (settings: AppSettings, userId: string) => {
 const defaultSettings: Omit<AppSettings, 'monthlyCreditsLastUpdated'> = { 
     isPro: false,
     planSelected: false,
-    hasSeenOnboardingSplash: false,
     deletionPolicy: "never",
     aiModel: "gemini-1.5-flash-latest",
     cloudSyncEnabled: false,
