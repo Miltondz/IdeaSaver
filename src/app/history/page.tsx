@@ -252,7 +252,7 @@ export default function HistoryPage() {
     if (!user || !settings || !recording.audioDataUri) return;
     setProcessingId(recording.id);
     setIsTranscribing(true);
-    if (!settings.isPro) deductCredit();
+    if (!settings.isPro) await deductCredit();
 
     try {
         const transcribeResult = await transcribeVoiceNote({ audioDataUri: recording.audioDataUri, aiModel: settings.aiModel });
@@ -636,7 +636,7 @@ export default function HistoryPage() {
                 </DialogDescription>
               </DialogHeader>
               
-              <div className="flex-1 overflow-y-auto pr-6 -mr-6">
+              <div className="flex-1 overflow-y-auto min-h-0 pr-6 -mr-6">
                 <div className="space-y-4 py-4">
                   <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between">
@@ -884,65 +884,59 @@ export default function HistoryPage() {
                 </div>
               </div>
 
-               <DialogFooter className="flex-wrap justify-end gap-2 pt-4 border-t mt-auto">
+               <DialogFooter className="pt-4 border-t mt-auto">
                   {selectedRecording.transcription && (
-                    <>
-                      <Button variant="outline" onClick={() => handleShareAll(selectedRecording)}>
-                          <Share2 className="mr-2 h-4 w-4" /> {t('history_share_all_button')}
-                      </Button>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                              <div className="inline-block">
-                                <Button variant="outline" onClick={() => handleSummarizeClick(selectedRecording!)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
+                    <div className="w-full flex flex-col gap-2">
+                      <div className="grid grid-cols-2 gap-2">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button className="w-full" variant="outline" onClick={() => handleSummarizeClick(selectedRecording!)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
                                     {processingId === selectedRecording.id && aiAction === 'summarize' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                                     {t('record_summarize_button')}
                                 </Button>
-                              </div>
-                          </TooltipTrigger>
-                          {!settings.isPro && <TooltipContent><p>Costs 1 AI Credit</p></TooltipContent>}
-                        </Tooltip>
-                      </TooltipProvider>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                              <div className="inline-block">
-                                <Button variant="outline" onClick={() => handleExpandClick(selectedRecording!)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
-                                    {processingId === selectedRecording.id && aiAction === 'expand' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BrainCircuit className="mr-2 h-4 w-4" />}
-                                    {t('record_expand_button')}
-                                </Button>
-                              </div>
-                          </TooltipTrigger>
-                          {!settings.isPro && <TooltipContent><p>Costs 1 AI Credit</p></TooltipContent>}
-                        </Tooltip>
-                      </TooltipProvider>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                              <div className="inline-block">
-                                <Button variant="outline" onClick={() => handleExpandAsProjectClick(selectedRecording!)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
-                                    {processingId === selectedRecording.id && aiAction === 'expand-as-project' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FolderKanban className="mr-2 h-4 w-4" />}
-                                    {t('record_project_plan_button')}
-                                </Button>
-                              </div>
-                          </TooltipTrigger>
-                          {!settings.isPro && <TooltipContent><p>Costs 1 AI Credit</p></TooltipContent>}
-                        </Tooltip>
-                      </TooltipProvider>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                              <div className="inline-block">
-                                <Button variant="outline" onClick={() => handleExtractTasksClick(selectedRecording!)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
-                                    {processingId === selectedRecording.id && aiAction === 'extract-tasks' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ListTodo className="mr-2 h-4 w-4" />}
-                                    {t('record_get_tasks_button')}
-                                </Button>
-                              </div>
-                          </TooltipTrigger>
-                          {!settings.isPro && <TooltipContent><p>Costs 1 AI Credit</p></TooltipContent>}
-                        </Tooltip>
-                      </TooltipProvider>
-                    </>
+                              </TooltipTrigger>
+                              {!settings.isPro && <TooltipContent><p>Costs 1 AI Credit</p></TooltipContent>}
+                            </Tooltip>
+                          </TooltipProvider>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                  <Button className="w-full" variant="outline" onClick={() => handleExpandClick(selectedRecording!)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
+                                      {processingId === selectedRecording.id && aiAction === 'expand' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BrainCircuit className="mr-2 h-4 w-4" />}
+                                      {t('record_expand_button')}
+                                  </Button>
+                              </TooltipTrigger>
+                              {!settings.isPro && <TooltipContent><p>Costs 1 AI Credit</p></TooltipContent>}
+                            </Tooltip>
+                          </TooltipProvider>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                  <Button className="w-full" variant="outline" onClick={() => handleExpandAsProjectClick(selectedRecording!)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
+                                      {processingId === selectedRecording.id && aiAction === 'expand-as-project' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FolderKanban className="mr-2 h-4 w-4" />}
+                                      {t('record_project_plan_button')}
+                                  </Button>
+                              </TooltipTrigger>
+                              {!settings.isPro && <TooltipContent><p>Costs 1 AI Credit</p></TooltipContent>}
+                            </Tooltip>
+                          </TooltipProvider>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                  <Button className="w-full" variant="outline" onClick={() => handleExtractTasksClick(selectedRecording!)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
+                                      {processingId === selectedRecording.id && aiAction === 'extract-tasks' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ListTodo className="mr-2 h-4 w-4" />}
+                                      {t('record_get_tasks_button')}
+                                  </Button>
+                              </TooltipTrigger>
+                              {!settings.isPro && <TooltipContent><p>Costs 1 AI Credit</p></TooltipContent>}
+                            </Tooltip>
+                          </TooltipProvider>
+                      </div>
+                      <Button variant="outline" className="w-full" onClick={() => handleShareAll(selectedRecording)}>
+                          <Share2 className="mr-2 h-4 w-4" /> {t('history_share_all_button')}
+                      </Button>
+                    </div>
                   )}
               </DialogFooter>
             </>
