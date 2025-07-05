@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { getRecordings, deleteRecording as deleteRecordingFromStorage, getSettings, updateRecording, AppSettings, saveSettings } from "@/lib/storage";
+import { getRecordings, deleteRecording as deleteRecordingFromStorage, AppSettings, saveSettings, updateRecording } from "@/lib/storage";
 import type { Recording } from "@/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
@@ -39,8 +39,7 @@ export default function HistoryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [copiedStates, setCopiedStates] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
-  const { user } = useAuth();
-  const [settings, setSettings] = useState<AppSettings | null>(null);
+  const { user, settings } = useAuth();
   const { t, language } = useLanguage();
   const [canShareFiles, setCanShareFiles] = useState(false);
   
@@ -65,25 +64,12 @@ export default function HistoryPage() {
         setCanShareFiles(true);
     }
   }, []);
-
-  useEffect(() => {
-    if (user) {
-      getSettings(user.uid).then(setSettings);
-    }
-    const handleSettingsChange = async () => {
-      if (user) {
-        setSettings(await getSettings(user.uid));
-      }
-    };
-    window.addEventListener('storage', handleSettingsChange);
-    return () => window.removeEventListener('storage', handleSettingsChange);
-  }, [user]);
-
+  
   const deductCredit = useCallback(async () => {
     if (!user || !settings) return;
     const newSettings = { ...settings, aiCredits: settings.aiCredits - 1 };
     await saveSettings(newSettings, user.uid);
-    setSettings(newSettings);
+    // No need to set local settings, it will flow from context
   }, [user, settings]);
 
   const handleAiActionClick = (action: () => void) => {
@@ -1059,5 +1045,3 @@ export default function HistoryPage() {
     </div>
   );
 }
-
-    

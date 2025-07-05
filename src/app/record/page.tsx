@@ -55,8 +55,7 @@ export default function Home() {
   const [lastRecording, setLastRecording] = useState<Recording | null>(null);
   const [recordedAudio, setRecordedAudio] = useState<{ blob: Blob; dataUri: string } | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
-  const { user } = useAuth();
-  const [settings, setSettings] = useState<AppSettings | null>(null);
+  const { user, settings } = useAuth();
   const [idleQuote, setIdleQuote] = useState('');
   const router = useRouter();
   const { t } = useLanguage();
@@ -107,25 +106,13 @@ export default function Home() {
         t('record_motivation_19'),
     ];
     setIdleQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
+  }, [t]);
 
-    const handleSettingsChange = async () => {
-      if (user) {
-        setSettings(await getSettings(user.uid));
-      }
-    };
-    
+  useEffect(() => {
     if (user) {
-      getSettings(user.uid).then(s => {
-        setSettings(s);
-      });
-      applyDeletions(user.uid);
+        applyDeletions(user.uid);
     }
-    window.addEventListener('storage', handleSettingsChange);
-
-    return () => {
-      window.removeEventListener('storage', handleSettingsChange);
-    };
-  }, [user, t]);
+  }, [user]);
 
   const log = useCallback((...args: any[]) => {
     const message = args.map(arg => {
@@ -174,7 +161,7 @@ export default function Home() {
     if (!user || !settings) return;
     const newSettings = { ...settings, aiCredits: settings.aiCredits - 1 };
     await saveSettings(newSettings, user.uid);
-    setSettings(newSettings);
+    // Settings will be updated via context provider, no local set needed
   }, [user, settings]);
 
   const handleSaveAudioOnly = async () => {

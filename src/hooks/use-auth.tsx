@@ -5,12 +5,13 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth as firebaseAuth } from '@/lib/firebase';
 import { Loader2 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
-import { getSettings } from '@/lib/storage';
+import { getSettings, type AppSettings } from '@/lib/storage';
 
-export const AuthContext = createContext<{ user: User | null; loading: boolean }>({ user: null, loading: true });
+export const AuthContext = createContext<{ user: User | null; settings: AppSettings | null; loading: boolean }>({ user: null, settings: null, loading: true });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
+    const [settings, setSettings] = useState<AppSettings | null>(null);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
     const pathname = usePathname();
@@ -20,49 +21,51 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setLoading(false);
             return;
         }
-        const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
-            setUser(user);
+
+        const unsubscribe = onAuthStateChanged(firebaseAuth, async (currentUser) => {
+            setUser(currentUser);
+            if (currentUser) {
+                const userSettings = await getSettings(currentUser.uid);
+                setSettings(userSettings);
+            } else {
+                setSettings(null);
+            }
             setLoading(false);
         });
         return () => unsubscribe();
     }, []);
 
     useEffect(() => {
-        const routeUser = async () => {
+        const routeUser = () => {
             if (loading) return;
 
             const publicPages = ['/', '/pricing', '/forgot-password', '/terms', '/privacy', '/about'];
 
-            // --- Logged out user routing ---
             if (!user) {
                 if (!publicPages.includes(pathname)) {
                     if (pathname !== '/') router.push('/');
                 }
                 return;
             }
+            
+            if (settings) {
+                const isAuthPage = pathname === '/';
+                const isPricingPage = pathname === '/pricing';
 
-            // --- Logged in user routing ---
-            const settings = await getSettings(user.uid);
-            const isAuthPage = pathname === '/';
-            const isPricingPage = pathname === '/pricing';
-
-            if (settings.planSelected) {
-                // User has completed onboarding, redirect them from auth/pricing pages.
-                if (isAuthPage || isPricingPage) {
-                    if (pathname !== '/record') router.push('/record');
-                }
-            } else {
-                // User has NOT completed onboarding. They must select a plan.
-                if (!isPricingPage && !isAuthPage) {
-                    // If they try to navigate anywhere else (e.g. /history), force them to /pricing.
-                    // We allow isAuthPage to prevent a redirect loop immediately after signup.
-                    if (pathname !== '/pricing') router.push('/pricing');
+                if (settings.planSelected) {
+                    if (isAuthPage || isPricingPage) {
+                        if (pathname !== '/record') router.push('/record');
+                    }
+                } else {
+                    if (!isPricingPage && !isAuthPage) {
+                        if (pathname !== '/pricing') router.push('/pricing');
+                    }
                 }
             }
         };
 
         routeUser();
-    }, [user, loading, router, pathname]);
+    }, [user, settings, loading, router, pathname]);
 
     if (loading) {
         return (
@@ -77,8 +80,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return null;
     }
 
-
-    return <AuthContext.Provider value={{ user, loading }}>{children}</AuthContext.Provider>;
+    return <AuthContext.Provider value={{ user, settings, loading }}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => useContext(AuthContext);

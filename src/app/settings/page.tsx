@@ -10,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { getSettings, saveSettings, getLocalRecordings, deleteRecording as deleteRecordingFromStorage, AppSettings, deleteUserData, clearUserLocalStorage } from "@/lib/storage";
+import { saveSettings, getLocalRecordings, deleteRecording as deleteRecordingFromStorage, AppSettings, deleteUserData, clearUserLocalStorage } from "@/lib/storage";
 import { Settings, Trash2, Trello, Save, Database, Archive, Code, BarChart3, LayoutDashboard, Gem, Loader2, AlertTriangle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -28,7 +28,7 @@ import { auth } from "@/lib/firebase";
 type DeletionPolicy = "never" | "7" | "15" | "30";
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user, settings: contextSettings } = useAuth();
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const { t } = useLanguage();
   const router = useRouter();
@@ -44,17 +44,10 @@ export default function SettingsPage() {
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 
   useEffect(() => {
-    const handleSettingsChange = async () => {
-        if (user) {
-            setSettings(await getSettings(user.uid));
-        }
-    };
-    if (user) {
-        getSettings(user.uid).then(setSettings);
+    if (contextSettings) {
+        setSettings(contextSettings);
     }
-    window.addEventListener('storage', handleSettingsChange);
-    return () => window.removeEventListener('storage', handleSettingsChange);
-  }, [user]);
+  }, [contextSettings]);
   
   const updateSetting = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     if (!settings) return;
