@@ -105,6 +105,8 @@ export const es = {
   pricing_select_error: 'Debes iniciar sesión para seleccionar un plan.',
   pricing_pro_trial_activated: '¡Prueba Pro Activada!',
   pricing_pro_trial_activated_desc: 'La Sincronización en la Nube ahora está habilitada. ¡Bienvenido a bordo!',
+  pricing_pro_trial_used_title: 'Prueba Pro ya Utilizada',
+  pricing_pro_trial_used_desc: 'Ya has utilizado tu prueba Pro de 7 días. Por favor, actualiza a un plan de pago para seguir usando las funciones Pro.',
   pricing_free_plan_selected: 'Plan Gratuito Seleccionado',
   pricing_free_plan_selected_desc: '¡Bienvenido a Idea Saver! Tienes 3 créditos de IA para empezar.',
 
@@ -351,6 +353,12 @@ export const es = {
   settings_delete_account_fail_desc: 'Ocurrió un error al eliminar tu cuenta:',
   settings_reauth_required_title: 'Se Requiere Re-autenticación',
   settings_reauth_required_desc: 'Esta es una operación sensible. Por favor, cierra sesión y vuelve a iniciarla antes de eliminar tu cuenta para asegurar que eres tú.',
+  settings_downgrade_to_free: 'Cambiar al Plan Gratuito',
+  settings_downgrade_confirm_title: '¿Cambiar al Plan Gratuito?',
+  settings_downgrade_confirm_desc: 'Perderás el acceso a las funciones Pro como acciones de IA ilimitadas y sincronización en la nube. Tus notas sincronizadas existentes permanecerán, pero las nuevas notas no se sincronizarán. ¿Estás seguro?',
+  settings_downgrade_confirm_button: 'Sí, Cambiar a Gratuito',
+  settings_downgrade_success_title: 'Cambiado al Plan Gratuito',
+  settings_downgrade_success_desc: 'Ahora estás en el Plan Gratuito.',
 
   // About Page
   about_title: 'Desarrollador y Creador Único',

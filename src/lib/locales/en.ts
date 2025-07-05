@@ -105,6 +105,8 @@ export const en = {
   pricing_select_error: 'You must be logged in to select a plan.',
   pricing_pro_trial_activated: 'Pro Trial Activated!',
   pricing_pro_trial_activated_desc: 'Cloud Sync is now enabled. Welcome aboard!',
+  pricing_pro_trial_used_title: 'Pro Trial Already Used',
+  pricing_pro_trial_used_desc: "You have already used your 7-day Pro trial. Please upgrade to a paid plan to continue using Pro features.",
   pricing_free_plan_selected: 'Free Plan Selected',
   pricing_free_plan_selected_desc: 'Welcome to Idea Saver! You have 3 AI credits to start.',
   
@@ -351,6 +353,12 @@ export const en = {
   settings_delete_account_fail_desc: 'An error occurred while deleting your account:',
   settings_reauth_required_title: 'Re-authentication Required',
   settings_reauth_required_desc: 'This is a sensitive operation. Please sign out and sign back in before deleting your account to ensure it is you.',
+  settings_downgrade_to_free: 'Switch to Free Plan',
+  settings_downgrade_confirm_title: 'Switch to Free Plan?',
+  settings_downgrade_confirm_desc: "You will lose access to Pro features like unlimited AI actions and cloud sync. Your existing synced notes will remain, but new notes won't be synced. Are you sure?",
+  settings_downgrade_confirm_button: 'Yes, Switch to Free',
+  settings_downgrade_success_title: 'Switched to Free Plan',
+  settings_downgrade_success_desc: 'You are now on the Free plan.',
 
   
   // About Page

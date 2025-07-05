@@ -28,7 +28,7 @@ import { auth } from "@/lib/firebase";
 type DeletionPolicy = "never" | "7" | "15" | "30";
 
 export default function SettingsPage() {
-  const { user, settings: contextSettings } = useAuth();
+  const { user, settings: contextSettings, refreshSettings } = useAuth();
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const { t } = useLanguage();
   const router = useRouter();
@@ -131,6 +131,24 @@ export default function SettingsPage() {
         setShowDeleteConfirm2(false);
     }
   };
+
+  const handleDowngradeToFree = async () => {
+    if (!user || !settings) return;
+
+    await saveSettings({
+        ...settings,
+        isPro: false,
+        cloudSyncEnabled: false,
+        autoCloudSync: false,
+        proTrialEndsAt: undefined, // Clear trial end date when downgrading
+    }, user.uid);
+
+    await refreshSettings();
+    toast({
+        title: t('settings_downgrade_success_title'),
+        description: t('settings_downgrade_success_desc'),
+    });
+  };
   
   if (!user || !settings) {
     return null; // The global loader in AppShell will be visible
@@ -207,7 +225,25 @@ export default function SettingsPage() {
                                 <p className="text-sm text-muted-foreground">{t('settings_credits_remaining', { credits: settings.aiCredits, plural: settings.aiCredits !== 1 ? 's' : '' })}</p>
                             )}
                         </div>
-                        {!settings.isPro && (
+                        {settings.isPro ? (
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="outline" size="sm">{t('settings_downgrade_to_free')}</Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>{t('settings_downgrade_confirm_title')}</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                        {t('settings_downgrade_confirm_desc')}
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>{t('history_cancel_button')}</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleDowngradeToFree}>{t('settings_downgrade_confirm_button')}</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        ) : (
                             <Button asChild size="sm">
                                 <Link href="/pricing">{t('settings_upgrade_to_pro')}</Link>
                             </Button>

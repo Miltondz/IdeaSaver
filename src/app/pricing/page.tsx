@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { saveSettings, getSettings } from "@/lib/storage";
+import { saveSettings } from "@/lib/storage";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/hooks/use-language";
 import { LanguageToggle } from "@/components/language-toggle";
@@ -16,16 +16,24 @@ import { LanguageToggle } from "@/components/language-toggle";
 export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
   const { toast } = useToast();
-  const { user, refreshSettings } = useAuth();
+  const { user, settings, refreshSettings } = useAuth();
   const { t } = useLanguage();
 
   const handleSelectPlan = async (plan: 'free' | 'pro') => {
-    if (!user) {
+    if (!user || !settings) {
         toast({ variant: "destructive", title: t('pricing_error_title'), description: t('pricing_select_error') });
         return;
     }
-    const settings = await getSettings(user.uid);
+
     if (plan === 'pro') {
+      if (settings.proTrialUsed) {
+        toast({
+            variant: "destructive",
+            title: t('pricing_pro_trial_used_title'),
+            description: t('pricing_pro_trial_used_desc'),
+        });
+        return;
+      }
       const trialEndDate = new Date();
       trialEndDate.setDate(trialEndDate.getDate() + 7);
 
@@ -36,6 +44,7 @@ export default function PricingPage() {
         cloudSyncEnabled: true,
         autoCloudSync: true,
         proTrialEndsAt: trialEndDate.toISOString(),
+        proTrialUsed: true,
       }, user.uid);
       toast({ 
           title: t('pricing_pro_trial_activated'),

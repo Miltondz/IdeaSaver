@@ -27,6 +27,7 @@ export interface AppSettings {
   aiCredits: number;
   monthlyCreditsLastUpdated: string; // ISO string
   proTrialEndsAt?: string;
+  proTrialUsed?: boolean;
 }
 
 const getSettingsKey = (userId: string) => `${SETTINGS_KEY}_${userId}`;
@@ -78,6 +79,7 @@ const defaultSettings: Omit<AppSettings, 'monthlyCreditsLastUpdated'> = {
     autoCloudSync: false,
     aiCredits: 0,
     proTrialEndsAt: undefined,
+    proTrialUsed: false,
 };
 
 // --- Public API for Storage ---
