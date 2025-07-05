@@ -105,14 +105,13 @@ export default function HistoryPage() {
   }, [user, toast, startNavigation, stopNavigation, t]);
 
   useEffect(() => {
+    let isMounted = true;
     if (!user) {
       setIsDataLoaded(true);
       return;
     }
 
-    let isMounted = true;
     startNavigation();
-
     getRecordings(user.uid)
       .then((recordings) => {
         if (isMounted) {
@@ -137,7 +136,6 @@ export default function HistoryPage() {
     
     return () => {
       isMounted = false;
-      stopNavigation();
     };
   }, [user, toast, t, startNavigation, stopNavigation]);
 
@@ -675,16 +673,9 @@ export default function HistoryPage() {
                       <div className="flex items-center justify-between">
                           <h3 className="font-semibold">{t('history_audio_playback_title', { defaultValue: 'Audio' })}</h3>
                           {selectedRecording.audioDataUri && isShareApiAvailable && (
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleShareAudio(selectedRecording)}>
-                                            <Share2 className="h-4 w-4" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>{t('history_share_audio_tooltip')}</p></TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
+                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleShareAudio(selectedRecording)}>
+                                <Share2 className="h-4 w-4" />
+                            </Button>
                           )}
                       </div>
                       {selectedRecording.audioDataUri ? (
@@ -1079,5 +1070,3 @@ export default function HistoryPage() {
     </div>
   );
 }
-
-    
