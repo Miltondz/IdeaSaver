@@ -116,8 +116,8 @@ export default function SettingsPage() {
         // 3. Delete user from Firebase Auth
         await deleteUser(user);
 
+        // After this, onAuthStateChanged listener in useAuth will trigger a re-route.
         toast({ title: t('settings_account_deleted_title'), description: t('settings_account_deleted_desc') });
-        router.push('/');
 
     } catch(error: any) {
         if (error.code === 'auth/requires-recent-login') {
