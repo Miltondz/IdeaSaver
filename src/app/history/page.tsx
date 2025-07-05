@@ -558,7 +558,7 @@ export default function HistoryPage() {
         </div>
       ) : (
         <ScrollArea className="flex-1 -mx-4">
-          <div className="px-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 pl-4 pb-4 pr-16 md:pr-4">
             {recordings.map((rec) => (
               <TooltipProvider key={rec.id}>
                 <Card className="bg-card/80 border-border backdrop-blur-sm flex flex-col">
@@ -575,8 +575,8 @@ export default function HistoryPage() {
                       <p className="text-muted-foreground italic">{t('history_audio_note_placeholder')}</p>
                     )}
                   </CardContent>
-                  <CardFooter className="flex justify-between items-center gap-2">
-                      <div className="flex gap-1 flex-wrap">
+                  <CardFooter className="flex items-center flex-wrap gap-x-2 gap-y-2 pt-4">
+                      <div className="flex items-center gap-1 flex-wrap">
                           <Tooltip>
                               <TooltipTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedRecording(rec)}>
@@ -630,6 +630,7 @@ export default function HistoryPage() {
                               </>
                           )}
                       </div>
+                      <div className="flex-grow" />
                       <AlertDialog>
                           <AlertDialogTrigger asChild>
                           <Button variant="destructive" size="icon" className="h-8 w-8 flex-shrink-0">
