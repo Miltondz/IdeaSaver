@@ -501,7 +501,7 @@ export default function Home() {
 
   // --- Custom Audio Player Logic ---
   const formatTime = (seconds: number) => {
-    if (isNaN(seconds) || seconds === 0) return "00:00";
+    if (!isFinite(seconds)) return "00:00";
     const date = new Date(seconds * 1000);
     const mm = date.getUTCMinutes().toString().padStart(2, '0');
     const ss = date.getUTCSeconds().toString().padStart(2, '0');
@@ -527,7 +527,12 @@ export default function Home() {
 
   const handleLoadedMetadata = () => {
     if (audioPlayerRef.current) {
-        setAudioDuration(audioPlayerRef.current.duration);
+        const duration = audioPlayerRef.current.duration;
+        if (isFinite(duration)) {
+            setAudioDuration(duration);
+        } else {
+            setAudioDuration(0);
+        }
     }
   };
 
@@ -936,11 +941,11 @@ export default function Home() {
                             </div>
                         </CardContent>
                         <CardFooter className="flex flex-col gap-2">
-                           <div className="grid grid-cols-2 gap-2 w-full">
-                                <Button variant="secondary" onClick={handleSaveAudioOnly}>
+                           <div className="flex flex-col sm:flex-row gap-2 w-full">
+                                <Button variant="secondary" onClick={handleSaveAudioOnly} className="flex-1">
                                     <Save /> {t('record_save_audio_only')}
                                 </Button>
-                                <Button onClick={() => handleAiActionClick(handleProcessRecording)} disabled={!settings.isPro && settings.aiCredits < 1}>
+                                <Button onClick={() => handleAiActionClick(handleProcessRecording)} disabled={!settings.isPro && settings.aiCredits < 1} className="flex-1">
                                     <Send /> {!settings.isPro ? t('record_transcribe_with_credit') : t('record_transcribe_button')}
                                 </Button>
                            </div>
