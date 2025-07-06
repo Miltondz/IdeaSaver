@@ -46,7 +46,7 @@ export const es = {
   auth_invalid_email: 'Por favor, introduce un correo electrónico válido.',
   auth_user_not_found: 'No se encontró una cuenta con esa combinación de correo y contraseña.',
   auth_wrong_password: 'Contraseña incorrecta. Por favor, inténtalo de nuevo.',
-  auth_email_in_use: 'Ya existe una cuenta con esta dirección de correo.',
+  auth_email_in_use: 'Este correo ya está registrado. Prueba a iniciar sesión o usa Google si te registraste con él previamente.',
   auth_email_in_use_google: 'Este correo ya está registrado. Intenta iniciar sesión con Google.',
   auth_email_in_use_password: 'Ya existe una cuenta con esta dirección de correo. Por favor, inicia sesión.',
   auth_weak_password: 'La contraseña debe tener al menos 6 caracteres.',
@@ -422,3 +422,5 @@ export const es = {
   debug_drawer_clear_button: "Limpiar Registros",
   debug_drawer_cleared_toast: "¡Registros limpiados!",
 };
+
+    

@@ -46,7 +46,7 @@ export const en = {
   auth_invalid_email: 'Please enter a valid email address.',
   auth_user_not_found: 'No account found with that email and password combination.',
   auth_wrong_password: 'Incorrect password. Please try again.',
-  auth_email_in_use: 'An account already exists with this email address.',
+  auth_email_in_use: 'This email is already registered. Try signing in, or use Google if you signed up with it previously.',
   auth_email_in_use_google: 'This email is already registered. Try signing in with Google instead.',
   auth_email_in_use_password: 'An account already exists with this email address. Please sign in.',
   auth_weak_password: 'Password should be at least 6 characters.',
@@ -423,5 +423,7 @@ export const en = {
   debug_drawer_clear_button: "Clear Logs",
   debug_drawer_cleared_toast: "Logs cleared!",
 };
+
+    
 
     
