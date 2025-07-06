@@ -195,7 +195,6 @@ export default function HistoryPage() {
 
   const shareContent = async (shareData: ShareData) => {
     if (!navigator.share) {
-      // Fallback for browsers that don't support the Share API
       if (shareData.text) {
         handleCopyToClipboard(shareData.text, 'share-fallback');
         toast({ title: t('record_share_unsupported_title'), description: t('record_share_unsupported_desc') });
@@ -210,7 +209,6 @@ export default function HistoryPage() {
     } catch (err) {
       if (err instanceof DOMException) {
           if (err.name === 'AbortError') {
-            // User clicked cancel, this is not an error.
             return;
           }
           if (err.name === 'NotAllowedError') {
@@ -222,7 +220,6 @@ export default function HistoryPage() {
             return;
           }
       }
-      // For any other error, assume it's a failure and inform the user.
       console.error("Share API failed:", err);
       toast({
         variant: "destructive",
@@ -232,54 +229,42 @@ export default function HistoryPage() {
     }
   };
   
-  const handleShareAudio = async (recording: Recording) => {
+  const handleShareAudio = (recording: Recording) => {
     if (!recording.audioDataUri || !recording.audioMimeType) {
-        toast({
-            variant: "destructive",
-            title: 'Audio Not Ready',
-            description: 'The audio file is still loading or unavailable. Please try again in a moment.',
-        });
+        toast({ variant: "destructive", title: 'Audio Not Ready', description: 'The audio for this note is not available on this device.' });
         return;
     }
     
     const audioBlob = dataURIToBlob(recording.audioDataUri);
-
     if (!audioBlob) {
-        toast({
-            variant: "destructive",
-            title: 'File Conversion Error',
-            description: 'Could not prepare the audio file for sharing.',
-        });
+        toast({ variant: "destructive", title: 'File Conversion Error', description: 'Could not prepare the audio file for sharing.' });
         return;
     }
 
-    try {
-        const fileExtension = recording.audioMimeType.startsWith('audio/mp4') ? 'mp4' : 'webm';
-        const safeName = recording.name.replace(/[\\/:"*?<>|]/g, '_');
-        const file = new File([audioBlob], `${safeName}.${fileExtension}`, { type: recording.audioMimeType });
-        await shareContent({
-            title: recording.name,
-            files: [file]
-        });
-    } catch (error) {
-        console.error("Error preparing audio file for sharing:", error);
-        toast({
-            variant: "destructive",
-            title: t('record_share_audio_fail_title'),
-            description: t('record_share_audio_fail_desc'),
-        });
+    const fileExtension = recording.audioMimeType.includes('mp4') ? 'mp4' : 'webm';
+    const safeName = recording.name.replace(/[\\/:"*?<>|]/g, '_');
+    const file = new File([audioBlob], `${safeName}.${fileExtension}`, { type: recording.audioMimeType });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      shareContent({
+        title: recording.name,
+        text: `Audio note: ${recording.name}`,
+        files: [file],
+      });
+    } else {
+      toast({ variant: "destructive", title: 'File Sharing Not Supported', description: 'Your browser does not support sharing this type of file.' });
     }
   };
 
 
-  const handleSimpleShare = async (recording: Recording | null) => {
+  const handleSimpleShare = (recording: Recording | null) => {
     if (!recording) return;
     const textToShare = (recording.summary || recording.transcription).replace(/<[^>]*>?/gm, '');
     if (!textToShare) return;
-    await shareContent({ title: recording.name, text: textToShare });
+    shareContent({ title: recording.name, text: textToShare });
   }
 
-  const handleShareAll = async (recording: Recording | null) => {
+  const handleShareAll = (recording: Recording | null) => {
     if (!recording) return;
 
     const sections = [
@@ -303,13 +288,13 @@ export default function HistoryPage() {
       });
       return;
     }
-    await shareContent({ title: recording.name, text: textToShare });
+    shareContent({ title: recording.name, text: textToShare });
   };
   
-  const handleShareSection = async (title: string, text: string | undefined | null) => {
+  const handleShareSection = (title: string, text: string | undefined | null) => {
     if (!text) return;
     const cleanText = text.replace(/<[^>]*>?/gm, '');
-    await shareContent({ title, text: cleanText });
+    shareContent({ title, text: cleanText });
   };
 
   const proceedWithTranscribe = async (recording: Recording) => {
@@ -630,7 +615,7 @@ export default function HistoryPage() {
                       <p className="text-muted-foreground italic">{t('history_audio_note_placeholder')}</p>
                     )}
                   </CardContent>
-                  <CardFooter className="flex items-center justify-between pt-4 gap-2">
+                  <CardFooter className="flex justify-between items-center pt-4">
                     <div className="flex items-center flex-wrap gap-2">
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -686,27 +671,25 @@ export default function HistoryPage() {
                         )}
                     </div>
                     
-                    <div className="flex-shrink-0">
-                      <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                          <Button variant="destructive" size="icon" className="h-8 w-8">
-                              <Trash2 className="h-4 w-4" />
-                          </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                          <AlertDialogHeader>
-                              <AlertDialogTitle>{t('history_delete_dialog_title')}</AlertDialogTitle>
-                              <AlertDialogDescription>
-                              {t('history_delete_dialog_desc')}
-                              </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                              <AlertDialogCancel>{t('history_cancel_button')}</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(rec.id)}>{t('history_delete_button')}</AlertDialogAction>
-                          </AlertDialogFooter>
-                          </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="icon" className="h-8 w-8 ml-auto flex-shrink-0">
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>{t('history_delete_dialog_title')}</AlertDialogTitle>
+                            <AlertDialogDescription>
+                            {t('history_delete_dialog_desc')}
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>{t('history_cancel_button')}</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(rec.id)}>{t('history_delete_button')}</AlertDialogAction>
+                        </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                   </CardFooter>
                 </Card>
               </TooltipProvider>
