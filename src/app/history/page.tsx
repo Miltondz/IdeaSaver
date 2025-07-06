@@ -648,26 +648,27 @@ export default function HistoryPage() {
                               </Tooltip>
                           </>
                       )}
-                      <div className="flex-grow" />
-                      <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                          <Button variant="destructive" size="icon" className="h-8 w-8 flex-shrink-0">
-                              <Trash2 className="h-4 w-4" />
-                          </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                          <AlertDialogHeader>
-                              <AlertDialogTitle>{t('history_delete_dialog_title')}</AlertDialogTitle>
-                              <AlertDialogDescription>
-                              {t('history_delete_dialog_desc')}
-                              </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                              <AlertDialogCancel>{t('history_cancel_button')}</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(rec.id)}>{t('history_delete_button')}</AlertDialogAction>
-                          </AlertDialogFooter>
-                          </AlertDialogContent>
-                      </AlertDialog>
+                      <div className="ml-auto">
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="icon" className="h-8 w-8 flex-shrink-0">
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>{t('history_delete_dialog_title')}</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                {t('history_delete_dialog_desc')}
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>{t('history_cancel_button')}</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDelete(rec.id)}>{t('history_delete_button')}</AlertDialogAction>
+                            </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                   </CardFooter>
                 </Card>
               </TooltipProvider>
