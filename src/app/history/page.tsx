@@ -195,36 +195,6 @@ export default function HistoryPage() {
     });
   };
 
-  const shareText = (shareData: ShareData) => {
-    log('Attempting to share text from History page:', shareData);
-
-    if (!navigator.share) {
-        handleCopyToClipboard(shareData.text || '', 'share-fallback');
-        toast({ title: t('record_share_unsupported_title'), description: t('record_share_unsupported_desc') });
-        return;
-    }
-
-    navigator.share(shareData)
-        .then(() => log('Share successful.'))
-        .catch((err: Error) => {
-            log('Share API failed:', err);
-            // User cancellation is not an error
-            if (err.name === 'AbortError') {
-                log('Share was aborted by the user.');
-                return;
-            }
-            const errorMessage = `${err.name}: ${err.message}`;
-            let toastTitle = t('record_share_fail_title');
-            let toastDescription = t('record_share_fail_desc', { error: errorMessage });
-
-            if (err.name === 'NotAllowedError') {
-                toastTitle = t('record_share_denied_title');
-                toastDescription = t('record_share_denied_desc', { error: errorMessage });
-            }
-            toast({ variant: "destructive", title: toastTitle, description: toastDescription });
-        });
-  };
-  
   const handleShareAudio = (recording: Recording) => {
     if (!recording.audioDataUri || !recording.audioMimeType) {
         toast({ variant: "destructive", title: 'Audio Not Ready', description: 'The audio for this note is not available on this device.' });
@@ -237,39 +207,37 @@ export default function HistoryPage() {
         return;
     }
 
-    const fileExtension = recording.audioMimeType.includes('mp4') ? 'mp4' : 'webm';
+    // Use .m4a for better audio file compatibility on mobile, it's still an mp4 container.
+    const fileExtension = recording.audioMimeType.includes('mp4') ? 'm4a' : 'webm';
     const safeName = recording.name.replace(/[\\/:"*?<>|]/g, '_');
-    const file = new File([audioBlob], `${safeName}.${fileExtension}`, { type: recording.audioMimeType });
+    const fileName = `${safeName}.${fileExtension}`;
+    
+    const file = new File([audioBlob], fileName, { type: recording.audioMimeType });
 
+    // The data object for sharing. ONLY include files for file sharing.
     const shareData = {
-        title: recording.name,
-        text: `Audio note: ${recording.name}`,
         files: [file],
     };
 
-    if (!navigator.share || (navigator.canShare && !navigator.canShare(shareData))) {
-        toast({ variant: "destructive", title: 'File Sharing Not Supported', description: 'Your browser does not support sharing this type of file.' });
-        return;
+    // Check if the browser can share this specific data
+    if (navigator.canShare && navigator.canShare(shareData)) {
+        log('Attempting to share file from History page:', shareData);
+        // Use a direct .then/.catch to avoid breaking the user gesture chain
+        navigator.share(shareData)
+            .then(() => log('File share successful.'))
+            .catch((err: Error) => {
+                log('File Share API failed:', err);
+                if (err.name === 'AbortError') {
+                    log('Share was aborted by the user.');
+                    return;
+                }
+                toast({ variant: "destructive", title: t('record_share_fail_title'), description: t('record_share_fail_desc', { error: `${err.name}: ${err.message}` }) });
+            });
+    } else {
+        // If it can't be shared, show the toast.
+        log('navigator.canShare returned false for data:', shareData);
+        toast({ variant: "destructive", title: t('record_share_unsupported_file_title'), description: t('record_share_unsupported_file_desc') });
     }
-    
-    log('Attempting to share file from History page:', shareData);
-    navigator.share(shareData)
-        .then(() => log('File share successful.'))
-        .catch((err: Error) => {
-            log('File Share API failed:', err);
-             if (err.name === 'AbortError') {
-                log('Share was aborted by the user.');
-                return;
-            }
-            const errorMessage = `${err.name}: ${err.message}`;
-            let toastTitle = t('record_share_fail_title');
-            let toastDescription = t('record_share_fail_desc', { error: errorMessage });
-             if (err.name === 'NotAllowedError') {
-                toastTitle = t('record_share_denied_title');
-                toastDescription = t('record_share_denied_desc', { error: errorMessage });
-            }
-            toast({ variant: "destructive", title: toastTitle, description: toastDescription });
-        });
   };
 
 
@@ -277,7 +245,19 @@ export default function HistoryPage() {
     if (!recording) return;
     const textToShare = (recording.summary || recording.transcription).replace(/<[^>]*>?/gm, '');
     if (!textToShare) return;
-    shareText({ title: recording.name, text: textToShare });
+    const shareData = { title: recording.name, text: textToShare };
+
+    log('Attempting to share simple text from History page:', shareData);
+    navigator.share(shareData)
+        .then(() => log('Share successful.'))
+        .catch((err: Error) => {
+            log('Share API failed:', err);
+            if (err.name === 'AbortError') {
+                log('Share was aborted by the user.');
+                return;
+            }
+            toast({ variant: "destructive", title: t('record_share_fail_title'), description: t('record_share_fail_desc', { error: `${err.name}: ${err.message}` }) });
+        });
   }
 
   const handleShareAll = (recording: Recording | null) => {
@@ -304,13 +284,37 @@ export default function HistoryPage() {
       });
       return;
     }
-    shareText({ title: recording.name, text: textToShare });
+    const shareData = { title: recording.name, text: textToShare };
+    
+    log('Attempting to share all text from History page:', shareData);
+    navigator.share(shareData)
+        .then(() => log('Share successful.'))
+        .catch((err: Error) => {
+            log('Share API failed:', err);
+            if (err.name === 'AbortError') {
+                log('Share was aborted by the user.');
+                return;
+            }
+            toast({ variant: "destructive", title: t('record_share_fail_title'), description: t('record_share_fail_desc', { error: `${err.name}: ${err.message}` }) });
+        });
   };
   
   const handleShareSection = (title: string, text: string | undefined | null) => {
     if (!text) return;
     const cleanText = text.replace(/<[^>]*>?/gm, '');
-    shareText({ title, text: cleanText });
+    const shareData = { title, text: cleanText };
+
+    log('Attempting to share section text from History page:', shareData);
+    navigator.share(shareData)
+        .then(() => log('Share successful.'))
+        .catch((err: Error) => {
+            log('Share API failed:', err);
+            if (err.name === 'AbortError') {
+                log('Share was aborted by the user.');
+                return;
+            }
+            toast({ variant: "destructive", title: t('record_share_fail_title'), description: t('record_share_fail_desc', { error: `${err.name}: ${err.message}` }) });
+        });
   };
 
   const proceedWithTranscribe = async (recording: Recording) => {
