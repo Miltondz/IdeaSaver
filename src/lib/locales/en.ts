@@ -185,7 +185,7 @@ export const en = {
   record_get_tasks_button: 'Get Tasks',
   record_share_note_button: 'Share Note',
   record_view_history_button: 'View History',
-  record_record_another_button: 'Record Another',
+  record_close_button: 'Close',
   record_console_logs_title: 'Console Logs',
   record_console_logs_desc: 'Live output from the recording and transcription process.',
   record_console_logs_empty: 'No logs yet. Start a recording to see output.',
@@ -296,6 +296,11 @@ export const en = {
   history_transcribe_with_credit: 'Transcribe with AI (1 Credit)',
   history_failed_to_load_title: 'Failed to Load History',
   history_failed_to_load_desc: 'Could not fetch your recordings. Please try again.',
+  history_retranscribe_button: 'Re-transcribe',
+  history_retranscribe_confirm_title: 'Re-transcribe Note?',
+  history_retranscribe_confirm_desc: 'This will use 1 AI credit (if not on Pro plan) and will replace the current transcription and all previously generated AI content (summaries, expansions, etc.). This action cannot be undone.',
+  history_retranscribe_confirm_button: 'Yes, Re-transcribe',
+  history_retranscribe_no_audio_desc: 'Cannot re-transcribe without the original audio data.',
   
   // Settings Page
   settings_page_title: 'Settings',

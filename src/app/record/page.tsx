@@ -959,7 +959,7 @@ export default function Home() {
                                 <Trash2 className="mr-2 h-4 w-4"/> {t('record_discard_button')}
                             </Button>
                             <Button onClick={resetToIdle}>
-                                {t('record_record_another_button')}
+                                {t('record_close_button')}
                             </Button>
                         </div>
                     </CardFooter>

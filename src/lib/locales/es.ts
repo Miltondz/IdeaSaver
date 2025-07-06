@@ -185,7 +185,7 @@ export const es = {
   record_get_tasks_button: 'Obtener Tareas',
   record_share_note_button: 'Compartir Nota',
   record_view_history_button: 'Ver Historial',
-  record_record_another_button: 'Grabar Otra',
+  record_close_button: 'Cerrar',
   record_console_logs_title: 'Registros de Consola',
   record_console_logs_desc: 'Salida en vivo del proceso de grabación y transcripción.',
   record_console_logs_empty: 'Aún no hay registros. Inicia una grabación para ver la salida.',
@@ -296,6 +296,11 @@ export const es = {
   history_transcribe_with_credit: 'Transcribir con IA (1 Crédito)',
   history_failed_to_load_title: 'Error al Cargar Historial',
   history_failed_to_load_desc: 'No se pudieron cargar tus grabaciones. Por favor, inténtalo de nuevo.',
+  history_retranscribe_button: 'Re-transcribir',
+  history_retranscribe_confirm_title: '¿Re-transcribir Nota?',
+  history_retranscribe_confirm_desc: 'Esto usará 1 crédito de IA (si no estás en el plan Pro) y reemplazará la transcripción actual y todo el contenido de IA generado previamente (resúmenes, expansiones, etc.). Esta acción no se puede deshacer.',
+  history_retranscribe_confirm_button: 'Sí, Re-transcribir',
+  history_retranscribe_no_audio_desc: 'No se puede re-transcribir sin los datos de audio originales.',
 
   // Settings Page
   settings_page_title: 'Ajustes',

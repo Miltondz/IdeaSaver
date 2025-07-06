@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Trash2, FileText, Share2, BrainCircuit, Send, Loader2, Copy, Check, Save, Sparkles, FolderKanban, ListTodo } from "lucide-react";
+import { Trash2, FileText, Share2, BrainCircuit, Send, Loader2, Copy, Check, Save, Sparkles, FolderKanban, ListTodo, RefreshCw } from "lucide-react";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -52,7 +52,7 @@ export default function HistoryPage() {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [aiResult, setAiResult] = useState<string | null>(null);
   const [noteForAi, setNoteForAi] = useState<Recording | null>(null);
-  const [confirmationAction, setConfirmationAction] = useState<{ action: () => void; title: string; description: string; onCancel?: () => void; } | null>(null);
+  const [confirmationAction, setConfirmationAction] = useState<{ action: () => void; title: string; description: string; onCancel?: () => void; confirmText?: string; } | null>(null);
   const [creditConfirmation, setCreditConfirmation] = useState<{ action: () => void } | null>(null);
 
   // State for editing transcription
@@ -289,6 +289,10 @@ export default function HistoryPage() {
             ...recording,
             transcription: transcribeResult.transcription,
             name: nameResult.name,
+            summary: '',
+            expandedTranscription: '',
+            projectPlan: '',
+            actionItems: '',
         };
 
         await updateRecording(updatedRec, user.uid);
@@ -308,6 +312,20 @@ export default function HistoryPage() {
   const handleTranscribeFromHistory = (recording: Recording) => {
     handleAiActionClick(() => proceedWithTranscribe(recording));
   };
+  
+  const handleReTranscribeClick = (recording: Recording) => {
+    if (!recording.audioDataUri) {
+        toast({ variant: "destructive", title: t('history_audio_playback_unavailable'), description: t('history_retranscribe_no_audio_desc') });
+        return;
+    }
+    setConfirmationAction({
+        action: () => handleAiActionClick(() => proceedWithTranscribe(recording)),
+        title: t('history_retranscribe_confirm_title'),
+        description: t('history_retranscribe_confirm_desc'),
+        confirmText: t('history_retranscribe_confirm_button'),
+    });
+};
+
 
   const proceedWithExpand = (recording: Recording) => {
     if (!user || !settings) return;
@@ -575,7 +593,7 @@ export default function HistoryPage() {
                       <p className="text-muted-foreground italic">{t('history_audio_note_placeholder')}</p>
                     )}
                   </CardContent>
-                  <CardFooter className="flex items-center flex-wrap gap-x-2 gap-y-2 pt-4">
+                  <CardFooter className="flex items-center justify-between flex-wrap gap-2 pt-4">
                       <div className="flex items-center gap-1 flex-wrap">
                           <Tooltip>
                               <TooltipTrigger asChild>
@@ -630,7 +648,6 @@ export default function HistoryPage() {
                               </>
                           )}
                       </div>
-                      <div className="flex-grow" />
                       <AlertDialog>
                           <AlertDialogTrigger asChild>
                           <Button variant="destructive" size="icon" className="h-8 w-8 flex-shrink-0">
@@ -973,6 +990,17 @@ export default function HistoryPage() {
                             </Tooltip>
                           </TooltipProvider>
                       </div>
+                      <TooltipProvider>
+                          <Tooltip>
+                              <TooltipTrigger asChild>
+                                  <Button className="w-full" variant="outline" onClick={() => handleReTranscribeClick(selectedRecording!)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
+                                      {isTranscribing && processingId === selectedRecording.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                                      {t('history_retranscribe_button')}
+                                  </Button>
+                              </TooltipTrigger>
+                              {!settings.isPro && <TooltipContent><p>{t('record_credits_no_pro')}</p></TooltipContent>}
+                          </Tooltip>
+                      </TooltipProvider>
                       <Button variant="outline" className="w-full" onClick={() => handleShareAll(selectedRecording)}>
                           <Share2 className="mr-2 h-4 w-4" /> {t('history_share_all_button')}
                       </Button>
@@ -1050,7 +1078,7 @@ export default function HistoryPage() {
                 confirmationAction?.action();
                 setConfirmationAction(null);
             }}>
-                {t('ai_overwrite_button')}
+                {confirmationAction?.confirmText || t('ai_overwrite_button')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
