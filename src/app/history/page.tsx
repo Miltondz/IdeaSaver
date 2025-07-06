@@ -583,7 +583,7 @@ export default function HistoryPage() {
               <TooltipProvider key={rec.id}>
                 <Card className="bg-card/80 border-border backdrop-blur-sm flex flex-col">
                   <CardHeader>
-                    <CardTitle className="truncate">{rec.name}</CardTitle>
+                    <CardTitle className="truncate min-w-0">{rec.name}</CardTitle>
                     <CardDescription>
                       {t('history_recorded_ago', { timeAgo: formatDistanceToNow(new Date(rec.date), { addSuffix: true }) })}
                     </CardDescription>
@@ -595,61 +595,60 @@ export default function HistoryPage() {
                       <p className="text-muted-foreground italic">{t('history_audio_note_placeholder')}</p>
                     )}
                   </CardContent>
-                  <CardFooter className="flex items-center justify-between flex-wrap gap-2 pt-4">
-                      <div className="flex items-center gap-1 flex-wrap">
-                          <Tooltip>
-                              <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedRecording(rec)}>
-                                  <FileText className="h-4 w-4" />
-                              </Button>
-                              </TooltipTrigger>
-                              <TooltipContent><p>{t('history_view_details_tooltip')}</p></TooltipContent>
-                          </Tooltip>
-                           {rec.transcription && settings && (
-                              <>
-                                  <Tooltip>
-                                      <TooltipTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleSimpleShare(rec)}>
-                                          <Share2 className="h-4 w-4" />
+                  <CardFooter className="flex items-center flex-wrap gap-2 pt-4">
+                      <Tooltip>
+                          <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedRecording(rec)}>
+                              <FileText className="h-4 w-4" />
+                          </Button>
+                          </TooltipTrigger>
+                          <TooltipContent><p>{t('history_view_details_tooltip')}</p></TooltipContent>
+                      </Tooltip>
+                       {rec.transcription && settings && (
+                          <>
+                              <Tooltip>
+                                  <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleSimpleShare(rec)}>
+                                      <Share2 className="h-4 w-4" />
+                                  </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>{t('history_share_note_tooltip')}</p></TooltipContent>
+                              </Tooltip>
+                               <Tooltip>
+                                  <TooltipTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleSummarizeClick(rec)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
+                                          {processingId === rec.id && aiAction === 'summarize' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                                       </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent><p>{t('history_share_note_tooltip')}</p></TooltipContent>
-                                  </Tooltip>
-                                   <Tooltip>
-                                      <TooltipTrigger asChild>
-                                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleSummarizeClick(rec)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
-                                              {processingId === rec.id && aiAction === 'summarize' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                                          </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent><p>{settings.isPro ? t('history_summarize_tooltip') : t('history_summarize_tooltip_credits', { credits: settings.aiCredits })}</p></TooltipContent>
-                                  </Tooltip>
-                                  <Tooltip>
-                                      <TooltipTrigger asChild>
-                                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExpandClick(rec)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
-                                              {processingId === rec.id && aiAction === 'expand' ? <Loader2 className="h-4 w-4 animate-spin" /> : <BrainCircuit className="h-4 w-4" />}
-                                          </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent><p>{settings.isPro ? t('history_expand_tooltip') : t('history_expand_tooltip_credits', { credits: settings.aiCredits })}</p></TooltipContent>
-                                  </Tooltip>
-                                  <Tooltip>
-                                      <TooltipTrigger asChild>
-                                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExpandAsProjectClick(rec)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
-                                              {processingId === rec.id && aiAction === 'expand-as-project' ? <Loader2 className="h-4 w-4 animate-spin" /> : <FolderKanban className="h-4 w-4" />}
-                                          </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent><p>{settings.isPro ? t('history_project_plan_tooltip') : t('history_project_plan_tooltip_credits', { credits: settings.aiCredits })}</p></TooltipContent>
-                                  </Tooltip>
-                                  <Tooltip>
-                                      <TooltipTrigger asChild>
-                                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExtractTasksClick(rec)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
-                                              {processingId === rec.id && aiAction === 'extract-tasks' ? <Loader2 className="h-4 w-4 animate-spin" /> : <ListTodo className="h-4 w-4" />}
-                                          </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent><p>{settings.isPro ? t('history_extract_tasks_tooltip') : t('history_extract_tasks_tooltip_credits', { credits: settings.aiCredits })}</p></TooltipContent>
-                                  </Tooltip>
-                              </>
-                          )}
-                      </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>{settings.isPro ? t('history_summarize_tooltip') : t('history_summarize_tooltip_credits', { credits: settings.aiCredits })}</p></TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                  <TooltipTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExpandClick(rec)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
+                                          {processingId === rec.id && aiAction === 'expand' ? <Loader2 className="h-4 w-4 animate-spin" /> : <BrainCircuit className="h-4 w-4" />}
+                                      </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>{settings.isPro ? t('history_expand_tooltip') : t('history_expand_tooltip_credits', { credits: settings.aiCredits })}</p></TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                  <TooltipTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExpandAsProjectClick(rec)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
+                                          {processingId === rec.id && aiAction === 'expand-as-project' ? <Loader2 className="h-4 w-4 animate-spin" /> : <FolderKanban className="h-4 w-4" />}
+                                      </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>{settings.isPro ? t('history_project_plan_tooltip') : t('history_project_plan_tooltip_credits', { credits: settings.aiCredits })}</p></TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                  <TooltipTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExtractTasksClick(rec)} disabled={(!settings.isPro && settings.aiCredits < 1) || !!processingId}>
+                                          {processingId === rec.id && aiAction === 'extract-tasks' ? <Loader2 className="h-4 w-4 animate-spin" /> : <ListTodo className="h-4 w-4" />}
+                                      </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>{settings.isPro ? t('history_extract_tasks_tooltip') : t('history_extract_tasks_tooltip_credits', { credits: settings.aiCredits })}</p></TooltipContent>
+                              </Tooltip>
+                          </>
+                      )}
+                      <div className="flex-grow" />
                       <AlertDialog>
                           <AlertDialogTrigger asChild>
                           <Button variant="destructive" size="icon" className="h-8 w-8 flex-shrink-0">
