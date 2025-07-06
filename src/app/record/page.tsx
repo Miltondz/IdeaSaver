@@ -431,12 +431,10 @@ export default function Home() {
     };
     log('Attempting to share text from Record page:', shareData);
 
-    // Use a direct .then/.catch to avoid breaking the user gesture chain
     navigator.share(shareData)
         .then(() => log('Share successful.'))
         .catch((err: Error) => {
             log('Share API failed:', err);
-            // User cancellation is not an error
             if (err.name === 'AbortError') {
                 log('Share was aborted by the user.');
                 return;
@@ -451,6 +449,11 @@ export default function Home() {
 
   const handleShareAudio = () => {
     if (!recordedAudio) return;
+
+    if (!navigator.share) {
+        toast({ variant: "destructive", title: t('record_share_unsupported_title'), description: t('share_api_not_available') });
+        return;
+    }
     
     // Use .m4a for better audio file compatibility, especially for WhatsApp etc.
     const fileExtension = recordedAudio.mimeType.startsWith('audio/mp4') ? 'm4a' : 'webm';
@@ -463,23 +466,18 @@ export default function Home() {
         files: [file]
     };
 
-    if (navigator.canShare && navigator.canShare(shareData)) {
-      log('Attempting to share file from Record page:', shareData);
-      navigator.share(shareData)
-          .then(() => log('File share successful.'))
-          .catch((err: Error) => {
-              log('File Share API failed:', err);
-              if (err.name === 'AbortError') { return; }
-              toast({
-                  variant: "destructive",
-                  title: t('record_share_audio_fail_title'),
-                  description: t('record_share_audio_fail_desc', { error: `${err.name}: ${err.message}` }),
-              });
-          });
-    } else {
-      log('navigator.canShare returned false for data:', shareData);
-      toast({ variant: "destructive", title: t('record_share_unsupported_file_title'), description: t('record_share_unsupported_file_desc') });
-    }
+    log('Attempting to share file from Record page:', shareData);
+    navigator.share(shareData)
+        .then(() => log('File share successful.'))
+        .catch((err: Error) => {
+            log('File Share API failed:', err);
+            if (err.name === 'AbortError') { return; }
+            toast({
+                variant: "destructive",
+                title: t('record_share_audio_fail_title'),
+                description: t('record_share_fail_desc', { error: `${err.name}: ${err.message}` }),
+            });
+        });
   };
 
 
@@ -1151,3 +1149,5 @@ export default function Home() {
     </div>
   );
 }
+
+    

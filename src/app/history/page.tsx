@@ -184,6 +184,11 @@ export default function HistoryPage() {
       return;
     }
 
+    if (!navigator.share) {
+        toast({ variant: 'destructive', title: t('record_share_unsupported_title'), description: t('share_api_not_available') });
+        return;
+    }
+
     try {
       log('Sharing audio. Manually converting data URI to blob.');
       
@@ -209,32 +214,24 @@ export default function HistoryPage() {
         files: [file],
       };
 
-      if (navigator.share && navigator.canShare(shareData)) {
-        log('navigator.canShare returned true. Attempting to share...');
-        navigator.share(shareData)
-          .then(() => log('Share successful.'))
-          .catch((err: any) => {
-            log('Share failed:', err);
-            if (err.name === 'AbortError') {
-              log('Share was aborted by the user.');
-              return;
-            }
-            toast({
-              variant: 'destructive',
-              title: t('record_share_fail_title'),
-              description: t('record_share_fail_desc', { error: `${err.name}: ${err.message}` }),
-            });
+      log('Attempting to share file from History page:', shareData);
+      navigator.share(shareData)
+        .then(() => log('Share successful.'))
+        .catch((err: any) => {
+          log('Share failed:', err);
+          if (err.name === 'AbortError') {
+            log('Share was aborted by the user.');
+            return;
+          }
+          toast({
+            variant: 'destructive',
+            title: t('record_share_fail_title'),
+            description: t('record_share_fail_desc', { error: `${err.name}: ${err.message}` }),
           });
-      } else {
-        log('navigator.canShare returned false or is not available. This is the source of the error.');
-        toast({
-          variant: 'destructive',
-          title: t('record_share_unsupported_file_title'),
-          description: t('record_share_unsupported_file_desc'),
         });
-      }
+
     } catch (err: any) {
-      log('Error during sharing process:', err);
+      log('Error during the file preparation process for sharing:', err);
       toast({
         variant: 'destructive',
         title: t('record_share_fail_title'),
@@ -1153,3 +1150,5 @@ export default function HistoryPage() {
     </div>
   );
 }
+
+    

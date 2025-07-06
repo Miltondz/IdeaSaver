@@ -1,3 +1,4 @@
+
 export const es = {
   // AppShell & Nav
   appName: 'Idea Saver',
@@ -145,6 +146,7 @@ export const es = {
   record_mic_denied_desc: 'Por favor, permite el acceso al micrófono en los ajustes de tu navegador para grabar audio.',
   record_processing_fail_title: 'Error de Procesamiento',
   record_processing_fail_desc: 'No se pudo procesar el audio. Por favor, inténtalo de nuevo.',
+  share_api_not_available: 'La función de compartir no está disponible en este navegador.',
   record_share_fail_title: 'Fallo al compartir',
   record_share_fail_desc: 'No se pudo compartir la nota. Detalles: {error}',
   record_share_audio_fail_title: 'Error al Compartir',
@@ -426,3 +428,5 @@ export const es = {
   tooltip_history: "Ver Historial",
   tooltip_debug: "Registros de Depuración",
 };
+
+    
