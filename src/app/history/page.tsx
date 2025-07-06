@@ -35,6 +35,23 @@ const createMarkup = (markdownText: string | null | undefined) => {
     return { __html: DOMPurify.sanitize(marked(markdownText) as string) };
 };
 
+// Synchronously converts a data URI to a Blob.
+function dataURIToBlob(dataURI: string): Blob | null {
+  try {
+    const byteString = atob(dataURI.split(',')[1]);
+    const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([ab], { type: mimeString });
+  } catch (error) {
+    console.error("Error converting data URI to blob:", error);
+    return null;
+  }
+}
+
 export default function HistoryPage() {
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [selectedRecording, setSelectedRecording] = useState<Recording | null>(null);
@@ -59,7 +76,6 @@ export default function HistoryPage() {
   // State for editing transcription
   const [editableTranscription, setEditableTranscription] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
-  const [audioBlobForShare, setAudioBlobForShare] = useState<Blob | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && navigator.share) {
@@ -145,13 +161,6 @@ export default function HistoryPage() {
   useEffect(() => {
     if (selectedRecording) {
       setEditableTranscription(selectedRecording.transcription);
-      setAudioBlobForShare(null);
-      if (selectedRecording.audioDataUri) {
-          fetch(selectedRecording.audioDataUri)
-              .then(res => res.blob())
-              .then(blob => setAudioBlobForShare(blob))
-              .catch(err => console.error("Failed to fetch audio blob for sharing:", err));
-      }
     }
   }, [selectedRecording]);
   
@@ -224,7 +233,7 @@ export default function HistoryPage() {
   };
   
   const handleShareAudio = async (recording: Recording) => {
-    if (!audioBlobForShare || !recording.audioMimeType) {
+    if (!recording.audioDataUri || !recording.audioMimeType) {
         toast({
             variant: "destructive",
             title: 'Audio Not Ready',
@@ -232,10 +241,22 @@ export default function HistoryPage() {
         });
         return;
     }
+    
+    const audioBlob = dataURIToBlob(recording.audioDataUri);
+
+    if (!audioBlob) {
+        toast({
+            variant: "destructive",
+            title: 'File Conversion Error',
+            description: 'Could not prepare the audio file for sharing.',
+        });
+        return;
+    }
+
     try {
         const fileExtension = recording.audioMimeType.startsWith('audio/mp4') ? 'mp4' : 'webm';
         const safeName = recording.name.replace(/[\\/:"*?<>|]/g, '_');
-        const file = new File([audioBlobForShare], `${safeName}.${fileExtension}`, { type: recording.audioMimeType });
+        const file = new File([audioBlob], `${safeName}.${fileExtension}`, { type: recording.audioMimeType });
         await shareContent({
             title: recording.name,
             files: [file]
