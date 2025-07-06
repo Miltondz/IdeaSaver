@@ -214,6 +214,28 @@ export default function HistoryPage() {
         files: [file],
       };
 
+      // CHECK IF FILE SHARING IS SUPPORTED
+      if (!navigator.canShare || !navigator.canShare(shareData)) {
+        log('File sharing not supported by browser, falling back to download.');
+        
+        // Fallback: Create download link
+        const url = URL.createObjectURL(audioBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        toast({
+          title: t('record_download_title'),
+          description: t('record_download_desc'),
+        });
+        return;
+      }
+
       log('Attempting to share file from History page:', shareData);
       navigator.share(shareData)
         .then(() => log('Share successful.'))
@@ -223,11 +245,31 @@ export default function HistoryPage() {
             log('Share was aborted by the user.');
             return;
           }
-          toast({
-            variant: 'destructive',
-            title: t('record_share_fail_title'),
-            description: t('record_share_fail_desc', { error: `${err.name}: ${err.message}` }),
-          });
+          
+          log('Attempting download fallback after share failure');
+          try {
+            const url = URL.createObjectURL(audioBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            toast({
+              title: t('record_download_title'),
+              description: 'Sharing failed, but audio file has been downloaded.',
+            });
+          } catch (downloadErr) {
+            log('Download fallback also failed:', downloadErr);
+            toast({
+              variant: 'destructive',
+              title: t('record_share_fail_title'),
+              description: t('record_share_fail_desc', { error: `${err.name}: ${err.message}` }),
+            });
+          }
         });
 
     } catch (err: any) {
@@ -1150,5 +1192,3 @@ export default function HistoryPage() {
     </div>
   );
 }
-
-    

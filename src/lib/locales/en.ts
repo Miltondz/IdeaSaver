@@ -211,6 +211,8 @@ export const en = {
   record_overwrite_transcription_desc: 'This will save your changes and overwrite the previous transcription. Are you sure?',
   record_unsupported_format_title: 'Format Not Supported',
   record_unsupported_format_desc: 'Your browser does not support the required audio formats (MP4, WebM).',
+  record_download_title: 'Download Started',
+  record_download_desc: 'Audio file has been downloaded to your device.',
 
   // AI Actions (General)
   ai_confirmation_title: 'Confirm AI Action',
@@ -429,5 +431,3 @@ export const en = {
   tooltip_history: "Ver Historial",
   tooltip_debug: "Registros de Depuración",
 };
-
-    

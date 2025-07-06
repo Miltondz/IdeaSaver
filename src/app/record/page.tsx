@@ -448,36 +448,92 @@ export default function Home() {
   };
 
   const handleShareAudio = () => {
-    if (!recordedAudio) return;
-
+    if (!recordedAudio) {
+      toast({ variant: 'destructive', title: 'Audio Not Ready', description: 'No audio has been recorded yet.' });
+      return;
+    }
+  
     if (!navigator.share) {
-        toast({ variant: "destructive", title: t('record_share_unsupported_title'), description: t('share_api_not_available') });
-        return;
+      toast({ variant: 'destructive', title: t('record_share_unsupported_title'), description: t('share_api_not_available') });
+      return;
     }
     
-    // Use .m4a for better audio file compatibility, especially for WhatsApp etc.
-    const fileExtension = recordedAudio.mimeType.startsWith('audio/mp4') ? 'm4a' : 'webm';
-    const safeTimestamp = new Date().toISOString().slice(0, 19).replace('T', '_').replace(/:/g, '-');
-    const fileName = `Idea Saver Note - ${safeTimestamp}.${fileExtension}`;
-
-    const file = new File([recordedAudio.blob], fileName, { type: recordedAudio.mimeType });
-    
-    const shareData = {
-        files: [file]
-    };
-
-    log('Attempting to share file from Record page:', shareData);
-    navigator.share(shareData)
-        .then(() => log('File share successful.'))
-        .catch((err: Error) => {
-            log('File Share API failed:', err);
-            if (err.name === 'AbortError') { return; }
-            toast({
-                variant: "destructive",
-                title: t('record_share_audio_fail_title'),
-                description: t('record_share_fail_desc', { error: `${err.name}: ${err.message}` }),
-            });
+    try {
+      const audioBlob = recordedAudio.blob;
+      
+      const fileExtension = recordedAudio.mimeType.includes('mp4') ? 'm4a' : 'webm';
+      const safeTimestamp = new Date().toISOString().slice(0, 19).replace('T', '_').replace(/:/g, '-');
+      const fileName = `Idea Saver Note - ${safeTimestamp}.${fileExtension}`;
+      
+      const file = new File([audioBlob], fileName, { type: recordedAudio.mimeType });
+  
+      const shareData = {
+        files: [file],
+      };
+      
+      if (!navigator.canShare || !navigator.canShare(shareData)) {
+        log('File sharing not supported by browser, falling back to download.');
+        
+        const url = URL.createObjectURL(audioBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        toast({
+          title: t('record_download_title'),
+          description: t('record_download_desc'),
         });
+        return;
+      }
+      
+      log('Attempting to share file from Record page:', shareData);
+      navigator.share(shareData)
+        .then(() => log('Share successful.'))
+        .catch((err: any) => {
+          log('Share failed:', err);
+          if (err.name === 'AbortError') {
+            log('Share was aborted by the user.');
+            return;
+          }
+          
+          log('Attempting download fallback after share failure');
+          try {
+            const url = URL.createObjectURL(audioBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            toast({
+              title: t('record_download_title'),
+              description: 'Sharing failed, but audio file has been downloaded.',
+            });
+          } catch (downloadErr) {
+            log('Download fallback also failed:', downloadErr);
+            toast({
+              variant: 'destructive',
+              title: t('record_share_fail_title'),
+              description: t('record_share_fail_desc', { error: `${err.name}: ${err.message}` }),
+            });
+          }
+        });
+  
+    } catch (err: any) {
+      log('Error during the file preparation process for sharing:', err);
+      toast({
+        variant: 'destructive',
+        title: t('record_share_fail_title'),
+        description: t('record_share_fail_desc', { error: `${err.name}: ${err.message}` }),
+      });
+    }
   };
 
 
@@ -1149,5 +1205,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
