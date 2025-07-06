@@ -1,4 +1,3 @@
-
 export const es = {
   // AppShell & Nav
   appName: 'Idea Saver',
@@ -421,6 +420,9 @@ export const es = {
   debug_drawer_copied_toast: "¡Todos los registros copiados al portapapeles!",
   debug_drawer_clear_button: "Limpiar Registros",
   debug_drawer_cleared_toast: "¡Registros limpiados!",
-};
 
-    
+  // Tooltips
+  tooltip_feedback: "Enviar Comentarios",
+  tooltip_history: "Ver Historial",
+  tooltip_debug: "Registros de Depuración",
+};

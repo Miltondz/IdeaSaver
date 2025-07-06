@@ -1,4 +1,3 @@
-
 export const en = {
   // AppShell & Nav
   appName: 'Idea Saver',
@@ -422,9 +421,9 @@ export const en = {
   debug_drawer_copied_toast: "All logs copied to clipboard!",
   debug_drawer_clear_button: "Clear Logs",
   debug_drawer_cleared_toast: "Logs cleared!",
+
+  // Tooltips
+  tooltip_feedback: "Enviar Comentarios",
+  tooltip_history: "Ver Historial",
+  tooltip_debug: "Registros de Depuración",
 };
-
-    
-
-    
-

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -10,6 +9,7 @@ import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
 type FeedbackType = 'bug' | 'suggestion' | 'other';
 
@@ -52,57 +52,66 @@ export function FeedbackButton() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button 
-          variant="outline" 
-          size="icon" 
-          className="fixed top-1/2 -translate-y-1/2 left-0 -translate-x-10 h-14 w-14 rounded-r-full shadow-lg bg-card/80 backdrop-blur-sm z-50 transition-transform duration-300 ease-in-out hover:translate-x-0 border-purple-500/50"
-        >
-          <MessageSquarePlus className="h-6 w-6" />
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>{t('feedback_dialog_title')}</DialogTitle>
-          <DialogDescription>{t('feedback_dialog_desc')}</DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="space-y-2">
-            <Label>{t('feedback_type_label')}</Label>
-            <RadioGroup value={feedbackType} onValueChange={(value: FeedbackType) => setFeedbackType(value)} className="flex gap-4">
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="bug" id="bug" />
-                <Label htmlFor="bug">{t('feedback_type_bug')}</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="suggestion" id="suggestion" />
-                <Label htmlFor="suggestion">{t('feedback_type_suggestion')}</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="other" id="other" />
-                <Label htmlFor="other">{t('feedback_type_other')}</Label>
-              </div>
-            </RadioGroup>
+    <TooltipProvider>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DialogTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="fixed top-1/2 -translate-y-1/2 left-0 -translate-x-10 h-14 w-14 rounded-r-full shadow-lg bg-card/80 backdrop-blur-sm z-50 transition-transform duration-300 ease-in-out hover:translate-x-0 border-purple-500/50"
+              >
+                <MessageSquarePlus className="h-6 w-6" />
+              </Button>
+            </DialogTrigger>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p>{t('tooltip_feedback')}</p>
+          </TooltipContent>
+        </Tooltip>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{t('feedback_dialog_title')}</DialogTitle>
+            <DialogDescription>{t('feedback_dialog_desc')}</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>{t('feedback_type_label')}</Label>
+              <RadioGroup value={feedbackType} onValueChange={(value: FeedbackType) => setFeedbackType(value)} className="flex gap-4">
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="bug" id="bug" />
+                  <Label htmlFor="bug">{t('feedback_type_bug')}</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="suggestion" id="suggestion" />
+                  <Label htmlFor="suggestion">{t('feedback_type_suggestion')}</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="other" id="other" />
+                  <Label htmlFor="other">{t('feedback_type_other')}</Label>
+                </div>
+              </RadioGroup>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="message">{t('feedback_message_label')}</Label>
+              <Textarea
+                id="message"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder={t('feedback_message_placeholder')}
+                className="min-h-[120px]"
+              />
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="message">{t('feedback_message_label')}</Label>
-            <Textarea
-              id="message"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder={t('feedback_message_placeholder')}
-              className="min-h-[120px]"
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? <Loader2 className="animate-spin" /> : <Send />}
-            {t('feedback_submit_button')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter>
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="animate-spin" /> : <Send />}
+              {t('feedback_submit_button')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </TooltipProvider>
   );
 }
