@@ -424,8 +424,9 @@ export default function Home() {
   }, [recordingStatus]);
 
   const shareContent = async (shareData: ShareData) => {
+    log('Attempting to share from Record page:', shareData);
+
     if (!navigator.share) {
-      // Fallback for browsers that don't support the Share API
       if (shareData.text) {
         handleCopyToClipboard(shareData.text, 'share-fallback');
         toast({ title: t('record_share_unsupported_title'), description: t('record_share_unsupported_desc') });
@@ -436,28 +437,31 @@ export default function Home() {
     }
 
     try {
+      log('Calling navigator.share...');
       await navigator.share(shareData);
+      log('Share successful.');
     } catch (err) {
-      if (err instanceof DOMException) {
-          if (err.name === 'AbortError') {
-            // User clicked cancel, this is not an error.
-            return;
-          }
-          if (err.name === 'NotAllowedError') {
-            toast({
-              variant: "destructive",
-              title: t('record_share_denied_title'),
-              description: t('record_share_denied_desc'),
-            });
-            return;
-          }
+      const error = err as Error;
+      log('Share API failed:', error);
+
+      if (error.name === 'AbortError') {
+        log('Share was aborted by the user.');
+        return; // This is not an error, user cancelled.
       }
-      // For any other error, assume it's a failure and inform the user.
-      console.error("Share API failed:", err);
+      
+      const errorMessage = `${error.name}: ${error.message}`;
+      let toastTitle = t('record_share_fail_title');
+      let toastDescription = t('record_share_fail_desc', { error: errorMessage });
+
+      if (error.name === 'NotAllowedError') {
+          toastTitle = t('record_share_denied_title');
+          toastDescription = t('record_share_denied_desc', { error: errorMessage });
+      }
+
       toast({
         variant: "destructive",
-        title: t('record_share_fail_title'),
-        description: t('record_share_fail_desc'),
+        title: toastTitle,
+        description: toastDescription,
       });
     }
   };

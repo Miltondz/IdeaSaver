@@ -28,6 +28,7 @@ import { marked } from 'marked';
 import DOMPurify from 'isomorphic-dompurify';
 import { useLanguage } from "@/hooks/use-language";
 import { useNavigationLoader } from "@/hooks/use-navigation-loader";
+import { useLogger } from "@/hooks/use-logger";
 
 
 const createMarkup = (markdownText: string | null | undefined) => {
@@ -62,6 +63,7 @@ export default function HistoryPage() {
   const { t, language } = useLanguage();
   const [isShareApiAvailable, setIsShareApiAvailable] = useState(false);
   const { startNavigation, stopNavigation } = useNavigationLoader();
+  const { log } = useLogger();
   
   // AI Action State
   const [aiAction, setAiAction] = useState<'expand' | 'summarize' | 'expand-as-project' | 'extract-tasks' | null>(null);
@@ -194,6 +196,7 @@ export default function HistoryPage() {
   };
 
   const shareContent = async (shareData: ShareData) => {
+    log('Attempting to share from History page:', shareData);
     if (!navigator.share) {
       if (shareData.text) {
         handleCopyToClipboard(shareData.text, 'share-fallback');
@@ -205,26 +208,32 @@ export default function HistoryPage() {
     }
 
     try {
+      log('Calling navigator.share...');
       await navigator.share(shareData);
+      log('Share successful.');
     } catch (err) {
-      if (err instanceof DOMException) {
-          if (err.name === 'AbortError') {
-            return;
-          }
-          if (err.name === 'NotAllowedError') {
-            toast({
-              variant: "destructive",
-              title: t('record_share_denied_title'),
-              description: t('record_share_denied_desc'),
-            });
-            return;
-          }
+      const error = err as Error;
+      log('Share API failed:', error);
+
+      // User cancellation is not an error
+      if (error.name === 'AbortError') {
+        log('Share was aborted by the user.');
+        return;
       }
-      console.error("Share API failed:", err);
+      
+      const errorMessage = `${error.name}: ${error.message}`;
+      let toastTitle = t('record_share_fail_title');
+      let toastDescription = t('record_share_fail_desc', { error: errorMessage });
+
+      if (error.name === 'NotAllowedError') {
+          toastTitle = t('record_share_denied_title');
+          toastDescription = t('record_share_denied_desc', { error: errorMessage });
+      }
+
       toast({
         variant: "destructive",
-        title: t('record_share_fail_title'),
-        description: t('record_share_fail_desc'),
+        title: toastTitle,
+        description: toastDescription,
       });
     }
   };
