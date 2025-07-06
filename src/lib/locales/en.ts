@@ -149,6 +149,8 @@ export const en = {
   share_api_not_available: 'Sharing is not available on this browser.',
   record_share_fail_title: 'Sharing failed',
   record_share_fail_desc: 'Could not share the note. Details: {error}',
+  share_text_fail_fallback_title: 'Sharing Failed',
+  share_text_fail_fallback_desc: 'The text has been copied to your clipboard instead.',
   record_share_audio_fail_title: 'Share Failed',
   record_share_audio_fail_desc: 'Could not share the audio file. Details: {error}',
   record_share_unsupported_title: 'Sharing not supported',

@@ -203,7 +203,6 @@ export default function HistoryPage() {
       const byteArray = new Uint8Array(byteNumbers);
       const audioBlob = new Blob([byteArray], { type: mimeType });
 
-      // Use .m4a for better audio file compatibility, especially for WhatsApp etc.
       const fileExtension = recording.audioMimeType.includes('mp4') ? 'm4a' : 'webm';
       const safeName = (recording.name || 'Audio Note').replace(/[\\/:"*?<>|]/g, '_');
       const fileName = `${safeName}.${fileExtension}`;
@@ -214,11 +213,9 @@ export default function HistoryPage() {
         files: [file],
       };
 
-      // CHECK IF FILE SHARING IS SUPPORTED
       if (!navigator.canShare || !navigator.canShare(shareData)) {
         log('File sharing not supported by browser, falling back to download.');
         
-        // Fallback: Create download link
         const url = URL.createObjectURL(audioBlob);
         const a = document.createElement('a');
         a.href = url;
@@ -240,7 +237,6 @@ export default function HistoryPage() {
       navigator.share(shareData)
         .then(() => log('Share successful.'))
         .catch((err: any) => {
-          log('Share failed:', err);
           if (err.name === 'AbortError') {
             log('Share was aborted by the user.');
             return;
@@ -293,12 +289,17 @@ export default function HistoryPage() {
     navigator.share(shareData)
         .then(() => log('Share successful.'))
         .catch((err: Error) => {
-            log('Share API failed:', err);
             if (err.name === 'AbortError') {
                 log('Share was aborted by the user.');
                 return;
             }
-            toast({ variant: "destructive", title: t('record_share_fail_title'), description: t('record_share_fail_desc', { error: `${err.name}: ${err.message}` }) });
+            log('Share API failed, falling back to clipboard:', err);
+            navigator.clipboard.writeText(textToShare).then(() => {
+                toast({ title: t('share_text_fail_fallback_title'), description: t('share_text_fail_fallback_desc'), className: "bg-accent text-accent-foreground border-accent" });
+            }).catch(copyErr => {
+                log('Clipboard fallback also failed:', copyErr);
+                toast({ variant: "destructive", title: t('record_share_fail_title'), description: t('record_share_fail_desc', { error: `${err.name}: ${err.message}` }) });
+            });
         });
   }
 
@@ -332,12 +333,17 @@ export default function HistoryPage() {
     navigator.share(shareData)
         .then(() => log('Share successful.'))
         .catch((err: Error) => {
-            log('Share API failed:', err);
             if (err.name === 'AbortError') {
                 log('Share was aborted by the user.');
                 return;
             }
-            toast({ variant: "destructive", title: t('record_share_fail_title'), description: t('record_share_fail_desc', { error: `${err.name}: ${err.message}` }) });
+            log('Share API failed, falling back to clipboard:', err);
+            navigator.clipboard.writeText(textToShare).then(() => {
+                toast({ title: t('share_text_fail_fallback_title'), description: t('share_text_fail_fallback_desc'), className: "bg-accent text-accent-foreground border-accent" });
+            }).catch(copyErr => {
+                log('Clipboard fallback also failed:', copyErr);
+                toast({ variant: "destructive", title: t('record_share_fail_title'), description: t('record_share_fail_desc', { error: `${err.name}: ${err.message}` }) });
+            });
         });
   };
   
@@ -350,12 +356,17 @@ export default function HistoryPage() {
     navigator.share(shareData)
         .then(() => log('Share successful.'))
         .catch((err: Error) => {
-            log('Share API failed:', err);
             if (err.name === 'AbortError') {
                 log('Share was aborted by the user.');
                 return;
             }
-            toast({ variant: "destructive", title: t('record_share_fail_title'), description: t('record_share_fail_desc', { error: `${err.name}: ${err.message}` }) });
+            log('Share API failed, falling back to clipboard:', err);
+            navigator.clipboard.writeText(cleanText).then(() => {
+                toast({ title: t('share_text_fail_fallback_title'), description: t('share_text_fail_fallback_desc'), className: "bg-accent text-accent-foreground border-accent" });
+            }).catch(copyErr => {
+                log('Clipboard fallback also failed:', copyErr);
+                toast({ variant: "destructive", title: t('record_share_fail_title'), description: t('record_share_fail_desc', { error: `${err.name}: ${err.message}` }) });
+            });
         });
   };
 

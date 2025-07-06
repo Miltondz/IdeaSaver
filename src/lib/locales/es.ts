@@ -149,6 +149,8 @@ export const es = {
   share_api_not_available: 'La función de compartir no está disponible en este navegador.',
   record_share_fail_title: 'Fallo al compartir',
   record_share_fail_desc: 'No se pudo compartir la nota. Detalles: {error}',
+  share_text_fail_fallback_title: 'Fallo al Compartir',
+  share_text_fail_fallback_desc: 'En su lugar, el texto ha sido copiado a tu portapapeles.',
   record_share_audio_fail_title: 'Error al Compartir',
   record_share_audio_fail_desc: 'No se pudo compartir el archivo de audio. Detalles: {error}',
   record_share_unsupported_title: 'Compartir no soportado',

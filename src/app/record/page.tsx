@@ -434,15 +434,20 @@ export default function Home() {
     navigator.share(shareData)
         .then(() => log('Share successful.'))
         .catch((err: Error) => {
-            log('Share API failed:', err);
             if (err.name === 'AbortError') {
                 log('Share was aborted by the user.');
                 return;
             }
-            toast({
-                variant: "destructive",
-                title: t('record_share_fail_title'),
-                description: t('record_share_fail_desc', { error: `${err.name}: ${err.message}` }),
+            log('Share API failed, falling back to clipboard:', err);
+            navigator.clipboard.writeText(shareData.text).then(() => {
+                toast({ title: t('share_text_fail_fallback_title'), description: t('share_text_fail_fallback_desc'), className: "bg-accent text-accent-foreground border-accent" });
+            }).catch(copyErr => {
+                log('Clipboard fallback also failed:', copyErr);
+                toast({
+                    variant: "destructive",
+                    title: t('record_share_fail_title'),
+                    description: t('record_share_fail_desc', { error: `${err.name}: ${err.message}` }),
+                });
             });
         });
   };
@@ -495,7 +500,6 @@ export default function Home() {
       navigator.share(shareData)
         .then(() => log('Share successful.'))
         .catch((err: any) => {
-          log('Share failed:', err);
           if (err.name === 'AbortError') {
             log('Share was aborted by the user.');
             return;
