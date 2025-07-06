@@ -474,7 +474,9 @@ export default function Home() {
     if (!recordedAudio) return;
     try {
         const fileExtension = recordedAudio.mimeType.startsWith('audio/mp4') ? 'm4a' : 'webm';
-        const fileName = `Idea Saver Note - ${new Date().toLocaleString()}.${fileExtension}`;
+        // Create a filename-safe timestamp (e.g., 2023-10-27_14-30-00)
+        const safeTimestamp = new Date().toISOString().slice(0, 19).replace('T', '_').replace(/:/g, '-');
+        const fileName = `Idea Saver Note - ${safeTimestamp}.${fileExtension}`;
         const file = new File([recordedAudio.blob], fileName, { type: recordedAudio.mimeType });
         await shareContent({
             title: fileName,

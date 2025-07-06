@@ -219,7 +219,9 @@ export default function HistoryPage() {
     try {
         const blob = await (await fetch(recording.audioDataUri)).blob();
         const fileExtension = recording.audioMimeType?.startsWith('audio/mp4') ? 'm4a' : 'webm';
-        const file = new File([blob], `${recording.name}.${fileExtension}`, { type: recording.audioMimeType || 'audio/webm' });
+        // Sanitize the recording name to be a safe filename
+        const safeName = recording.name.replace(/[\\/:"*?<>|]/g, '_');
+        const file = new File([blob], `${safeName}.${fileExtension}`, { type: recording.audioMimeType || 'audio/webm' });
         await shareContent({
             title: recording.name,
             files: [file]
