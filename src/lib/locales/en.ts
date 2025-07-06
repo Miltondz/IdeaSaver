@@ -44,11 +44,11 @@ export const en = {
   auth_missing_info: 'Please enter both an email and a password.',
   auth_config_error: 'Firebase is not configured correctly.',
   auth_invalid_email: 'Please enter a valid email address.',
-  auth_user_not_found: 'No account found with that email and password combination.',
+  auth_user_not_found: 'Incorrect email or password. Please check your spelling and try again, or use the "Forgot Password?" link.',
   auth_wrong_password: 'Incorrect password. Please try again.',
   auth_email_in_use: 'This email is already registered. Try signing in, or use Google if you signed up with it previously.',
-  auth_email_in_use_google: 'This email is already registered. Try signing in with Google instead.',
-  auth_email_in_use_password: 'An account already exists with this email address. Please sign in.',
+  auth_email_in_use_google: 'This email was registered using Google. Please use the "Continue with Google" button to sign in.',
+  auth_email_in_use_password: 'This email is already registered with a password. Please go to the "Sign In" tab or use the "Forgot Password?" link if needed.',
   auth_weak_password: 'Password should be at least 6 characters.',
   auth_invalid_api_key: "Your Firebase API Key is invalid. The app is configured with Project ID: '{projectId}'. Please check the API Key in your .env file matches the one from that project in the Firebase Console.",
   auth_popup_blocked: 'Your browser blocked the sign-in popup. Please allow popups for this site.',
@@ -427,3 +427,4 @@ export const en = {
     
 
     
+
