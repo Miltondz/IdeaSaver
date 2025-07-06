@@ -18,7 +18,7 @@ import { LanguageToggle } from '@/components/language-toggle';
 const GoogleIcon = () => <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="w-4 h-4"><title>Google</title><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.1-1.02 1.02-2.6 1.98-4.66 1.98-3.57 0-6.47-2.9-6.47-6.47s2.9-6.47 6.47-6.47c1.98 0 3.06.83 3.79 1.48l2.84-2.76C18.99 1.83 16.14 0 12.48 0 5.61 0 0 5.61 0 12.48s5.61 12.48 12.48 12.48c7.1 0 12.23-4.88 12.23-12.48 0-.79-.08-1.54-.22-2.28H12.48z"/></svg>;
 
 export default function LoginPage() {
-  const [activeTab, setActiveTab] = useState('signup');
+  const [activeTab, setActiveTab] = useState('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -270,6 +270,11 @@ export default function LoginPage() {
           <div className="grid grid-cols-1 gap-2">
             <Button variant="outline" onClick={handleGoogleSignIn} disabled={isLoading}><GoogleIcon/> Google</Button>
           </div>
+        </div>
+        <div className="text-center mt-8">
+            <p className="text-xs text-muted-foreground/80">
+                Version 1.0.0
+            </p>
         </div>
     </div>
   );

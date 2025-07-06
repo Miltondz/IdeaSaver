@@ -1,4 +1,3 @@
-
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,9 +37,12 @@ export default function AboutPage() {
             </Button>
         </CardFooter>
       </Card>
-      <div className="text-center mt-6">
+      <div className="text-center mt-6 space-y-1">
         <p className="text-sm text-muted-foreground">
           {t('about_footer')}
+        </p>
+        <p className="text-xs text-muted-foreground/80">
+          Version 1.0.0
         </p>
       </div>
     </div>
