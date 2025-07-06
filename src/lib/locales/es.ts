@@ -47,6 +47,8 @@ export const es = {
   auth_user_not_found: 'No se encontró una cuenta con esa combinación de correo y contraseña.',
   auth_wrong_password: 'Contraseña incorrecta. Por favor, inténtalo de nuevo.',
   auth_email_in_use: 'Ya existe una cuenta con esta dirección de correo.',
+  auth_email_in_use_google: 'Este correo ya está registrado. Intenta iniciar sesión con Google.',
+  auth_email_in_use_password: 'Ya existe una cuenta con esta dirección de correo. Por favor, inicia sesión.',
   auth_weak_password: 'La contraseña debe tener al menos 6 caracteres.',
   auth_invalid_api_key: "Tu clave de API de Firebase no es válida. La app está configurada con el ID de Proyecto: '{projectId}'. Por favor, comprueba que la clave de API en tu archivo .env coincide con la de ese proyecto en la Consola de Firebase.",
   auth_popup_blocked: 'Tu navegador bloqueó la ventana emergente de inicio de sesión. Por favor, permite las ventanas emergentes para este sitio.',

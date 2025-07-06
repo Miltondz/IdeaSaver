@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
 import { Lightbulb, Loader2 } from 'lucide-react';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo, fetchSignInMethodsForEmail } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { auth, firebaseConfigError } from '@/lib/firebase';
 import { useLanguage } from '@/hooks/use-language';
@@ -69,9 +69,6 @@ export default function LoginPage() {
       case 'auth/wrong-password':
         message = t('auth_wrong_password');
         break;
-      case 'auth/email-already-in-use':
-        message = t('auth_email_in_use');
-        break;
       case 'auth/weak-password':
         message = t('auth_weak_password');
         break;
@@ -110,8 +107,23 @@ export default function LoginPage() {
       await createUserWithEmailAndPassword(auth, email, password);
       toast({ title: t('account_created_title'), description: t('account_created_desc') });
       router.push('/pricing');
-    } catch (error) {
-      handleAuthError(error);
+    } catch (error: any) {
+      if (error.code === 'auth/email-already-in-use') {
+        try {
+            const methods = await fetchSignInMethodsForEmail(auth, email);
+            let message = t('auth_email_in_use');
+            if (methods.includes('google.com')) {
+                message = t('auth_email_in_use_google');
+            } else if (methods.includes('password')) {
+                message = t('auth_email_in_use_password');
+            }
+            toast({ variant: 'destructive', title: t('auth_fail_title'), description: message });
+        } catch (fetchError) {
+            handleAuthError(error);
+        }
+      } else {
+        handleAuthError(error);
+      }
     } finally {
       setIsLoading(false);
     }
