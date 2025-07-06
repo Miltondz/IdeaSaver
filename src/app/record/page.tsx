@@ -423,77 +423,65 @@ export default function Home() {
     };
   }, [recordingStatus]);
 
-  const shareContent = async (shareData: ShareData) => {
-    log('Attempting to share from Record page:', shareData);
+  const handleShare = (recording: Recording | null) => {
+    if (!recording?.transcription) return;
+    const shareData = {
+      title: recording.name,
+      text: recording.transcription,
+    };
+    log('Attempting to share text from Record page:', shareData);
 
     if (!navigator.share) {
-      if (shareData.text) {
-        handleCopyToClipboard(shareData.text, 'share-fallback');
-        toast({ title: t('record_share_unsupported_title'), description: t('record_share_unsupported_desc') });
-      } else {
-        toast({ variant: "destructive", title: t('record_share_unsupported_file_title'), description: t('record_share_unsupported_file_desc') });
-      }
+      handleCopyToClipboard(shareData.text, 'share-fallback');
+      toast({ title: t('record_share_unsupported_title'), description: t('record_share_unsupported_desc') });
       return;
     }
 
-    try {
-      log('Calling navigator.share...');
-      await navigator.share(shareData);
-      log('Share successful.');
-    } catch (err) {
-      const error = err as Error;
-      log('Share API failed:', error);
-
-      if (error.name === 'AbortError') {
-        log('Share was aborted by the user.');
-        return; // This is not an error, user cancelled.
-      }
-      
-      const errorMessage = `${error.name}: ${error.message}`;
-      let toastTitle = t('record_share_fail_title');
-      let toastDescription = t('record_share_fail_desc', { error: errorMessage });
-
-      if (error.name === 'NotAllowedError') {
-          toastTitle = t('record_share_denied_title');
-          toastDescription = t('record_share_denied_desc', { error: errorMessage });
-      }
-
-      toast({
-        variant: "destructive",
-        title: toastTitle,
-        description: toastDescription,
-      });
-    }
+    navigator.share(shareData)
+        .then(() => log('Share successful.'))
+        .catch((err: Error) => {
+            log('Share API failed:', err);
+            if (err.name === 'AbortError') { return; }
+            const errorMessage = `${err.name}: ${err.message}`;
+            toast({
+                variant: "destructive",
+                title: t('record_share_denied_title'),
+                description: t('record_share_denied_desc', { error: errorMessage }),
+            });
+        });
   };
 
-  const handleShare = async (recording: Recording | null) => {
-    if (!recording?.transcription) return;
-    await shareContent({
-      title: recording.name,
-      text: recording.transcription,
-    });
-  };
-
-  const handleShareAudio = async () => {
+  const handleShareAudio = () => {
     if (!recordedAudio) return;
-    try {
-        const fileExtension = recordedAudio.mimeType.startsWith('audio/mp4') ? 'mp4' : 'webm';
-        // Create a filename-safe timestamp (e.g., 2023-10-27_14-30-00)
-        const safeTimestamp = new Date().toISOString().slice(0, 19).replace('T', '_').replace(/:/g, '-');
-        const fileName = `Idea Saver Note - ${safeTimestamp}.${fileExtension}`;
-        const file = new File([recordedAudio.blob], fileName, { type: recordedAudio.mimeType });
-        await shareContent({
-            title: fileName,
-            files: [file]
-        });
-    } catch (error) {
-        log("Error preparing audio file for sharing:", error);
-        toast({
-            variant: "destructive",
-            title: t('record_share_audio_fail_title'),
-            description: t('record_share_audio_fail_desc'),
-        });
+    
+    const fileExtension = recordedAudio.mimeType.startsWith('audio/mp4') ? 'mp4' : 'webm';
+    const safeTimestamp = new Date().toISOString().slice(0, 19).replace('T', '_').replace(/:/g, '-');
+    const fileName = `Idea Saver Note - ${safeTimestamp}.${fileExtension}`;
+    const file = new File([recordedAudio.blob], fileName, { type: recordedAudio.mimeType });
+    
+    const shareData = {
+        title: fileName,
+        files: [file]
+    };
+
+    if (!navigator.share || (navigator.canShare && !navigator.canShare(shareData))) {
+        toast({ variant: "destructive", title: 'File Sharing Not Supported', description: 'Your browser does not support sharing this type of file.' });
+        return;
     }
+
+    log('Attempting to share file from Record page:', shareData);
+    navigator.share(shareData)
+        .then(() => log('File share successful.'))
+        .catch((err: Error) => {
+            log('File Share API failed:', err);
+            if (err.name === 'AbortError') { return; }
+            const errorMessage = `${err.name}: ${err.message}`;
+            toast({
+                variant: "destructive",
+                title: t('record_share_audio_fail_title'),
+                description: t('record_share_audio_fail_desc', { error: errorMessage }),
+            });
+        });
   };
 
 
