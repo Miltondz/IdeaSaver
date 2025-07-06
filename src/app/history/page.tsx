@@ -185,10 +185,21 @@ export default function HistoryPage() {
     }
 
     try {
-      log('Sharing audio. Fetching data URI to create a trusted blob...');
-      const response = await fetch(recording.audioDataUri);
-      const audioBlob = await response.blob();
-      log('Blob created from fetch:', audioBlob);
+      log('Sharing audio. Manually converting data URI to blob to avoid fetch error...');
+      
+      // The fetch() API is not reliable for data URIs in all PWA/browser contexts.
+      // This manual conversion is more robust.
+      const parts = recording.audioDataUri.split(',');
+      const mimeType = parts[0].split(':')[1].split(';')[0];
+      const base64Data = parts[1];
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const audioBlob = new Blob([byteArray], { type: mimeType });
+      log('Blob created manually:', audioBlob);
 
       const fileExtension = recording.audioMimeType.includes('mp4') ? 'mp4' : 'webm';
       const safeName = (recording.name || 'Audio Note').replace(/[\\/:"*?<>|]/g, '_');
