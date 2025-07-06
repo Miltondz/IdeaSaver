@@ -59,6 +59,7 @@ export default function HistoryPage() {
   // State for editing transcription
   const [editableTranscription, setEditableTranscription] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
+  const [audioBlobForShare, setAudioBlobForShare] = useState<Blob | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && navigator.share) {
@@ -144,6 +145,13 @@ export default function HistoryPage() {
   useEffect(() => {
     if (selectedRecording) {
       setEditableTranscription(selectedRecording.transcription);
+      setAudioBlobForShare(null);
+      if (selectedRecording.audioDataUri) {
+          fetch(selectedRecording.audioDataUri)
+              .then(res => res.blob())
+              .then(blob => setAudioBlobForShare(blob))
+              .catch(err => console.error("Failed to fetch audio blob for sharing:", err));
+      }
     }
   }, [selectedRecording]);
   
@@ -216,13 +224,18 @@ export default function HistoryPage() {
   };
   
   const handleShareAudio = async (recording: Recording) => {
-    if (!recording.audioDataUri) return;
+    if (!audioBlobForShare || !recording.audioMimeType) {
+        toast({
+            variant: "destructive",
+            title: 'Audio Not Ready',
+            description: 'The audio file is still loading or unavailable. Please try again in a moment.',
+        });
+        return;
+    }
     try {
-        const blob = await (await fetch(recording.audioDataUri)).blob();
-        const fileExtension = recording.audioMimeType?.startsWith('audio/mp4') ? 'm4a' : 'webm';
-        // Sanitize the recording name to be a safe filename
+        const fileExtension = recording.audioMimeType.startsWith('audio/mp4') ? 'mp4' : 'webm';
         const safeName = recording.name.replace(/[\\/:"*?<>|]/g, '_');
-        const file = new File([blob], `${safeName}.${fileExtension}`, { type: recording.audioMimeType || 'audio/webm' });
+        const file = new File([audioBlobForShare], `${safeName}.${fileExtension}`, { type: recording.audioMimeType });
         await shareContent({
             title: recording.name,
             files: [file]

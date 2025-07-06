@@ -473,7 +473,7 @@ export default function Home() {
   const handleShareAudio = async () => {
     if (!recordedAudio) return;
     try {
-        const fileExtension = recordedAudio.mimeType.startsWith('audio/mp4') ? 'm4a' : 'webm';
+        const fileExtension = recordedAudio.mimeType.startsWith('audio/mp4') ? 'mp4' : 'webm';
         // Create a filename-safe timestamp (e.g., 2023-10-27_14-30-00)
         const safeTimestamp = new Date().toISOString().slice(0, 19).replace('T', '_').replace(/:/g, '-');
         const fileName = `Idea Saver Note - ${safeTimestamp}.${fileExtension}`;
