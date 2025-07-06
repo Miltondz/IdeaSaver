@@ -178,17 +178,15 @@ export default function HistoryPage() {
     });
   };
 
-  const handleShareAudio = async (recording: Recording) => {
+  const handleShareAudio = (recording: Recording) => {
     if (!recording.audioDataUri || !recording.audioMimeType) {
       toast({ variant: 'destructive', title: 'Audio Not Ready', description: 'The audio for this note is not available on this device.' });
       return;
     }
 
     try {
-      log('Sharing audio. Manually converting data URI to blob to avoid fetch error...');
+      log('Sharing audio. Manually converting data URI to blob.');
       
-      // The fetch() API is not reliable for data URIs in all PWA/browser contexts.
-      // This manual conversion is more robust.
       const parts = recording.audioDataUri.split(',');
       const mimeType = parts[0].split(':')[1].split(';')[0];
       const base64Data = parts[1];
@@ -199,24 +197,34 @@ export default function HistoryPage() {
       }
       const byteArray = new Uint8Array(byteNumbers);
       const audioBlob = new Blob([byteArray], { type: mimeType });
-      log('Blob created manually:', audioBlob);
 
-      const fileExtension = recording.audioMimeType.includes('mp4') ? 'mp4' : 'webm';
+      // Use .m4a for better audio file compatibility, especially for WhatsApp etc.
+      const fileExtension = recording.audioMimeType.includes('mp4') ? 'm4a' : 'webm';
       const safeName = (recording.name || 'Audio Note').replace(/[\\/:"*?<>|]/g, '_');
       const fileName = `${safeName}.${fileExtension}`;
       
       const file = new File([audioBlob], fileName, { type: recording.audioMimeType });
-      log('File object created for sharing:', file);
 
       const shareData = {
         files: [file],
-        title: recording.name,
       };
 
-      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      if (navigator.share && navigator.canShare(shareData)) {
         log('navigator.canShare returned true. Attempting to share...');
-        await navigator.share(shareData);
-        log('Share successful.');
+        navigator.share(shareData)
+          .then(() => log('Share successful.'))
+          .catch((err: any) => {
+            log('Share failed:', err);
+            if (err.name === 'AbortError') {
+              log('Share was aborted by the user.');
+              return;
+            }
+            toast({
+              variant: 'destructive',
+              title: t('record_share_fail_title'),
+              description: t('record_share_fail_desc', { error: `${err.name}: ${err.message}` }),
+            });
+          });
       } else {
         log('navigator.canShare returned false or is not available. This is the source of the error.');
         toast({
@@ -227,11 +235,6 @@ export default function HistoryPage() {
       }
     } catch (err: any) {
       log('Error during sharing process:', err);
-      // Don't show toast for user aborting the share.
-      if (err.name === 'AbortError' || err.name === 'NotAllowedError') {
-        log('Share was aborted by the user or permission was denied.');
-        return;
-      }
       toast({
         variant: 'destructive',
         title: t('record_share_fail_title'),
