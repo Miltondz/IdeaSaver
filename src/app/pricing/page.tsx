@@ -35,7 +35,7 @@ export default function PricingPage() {
           const planDetails = {
               plan: billingCycle,
               planName: billingCycle === 'monthly' ? 'Monthly' : 'Yearly',
-              amount: billingCycle === 'monthly' ? 7000 : 84000, // Example amounts in CLP
+              amount: billingCycle === 'monthly' ? 7000 : 70000,
               currency: 'CLP',
           };
 
@@ -138,15 +138,15 @@ export default function PricingPage() {
             <div>
               {billingCycle === 'monthly' ? (
                 <p className="text-4xl font-bold">
-                  $7
-                  <span className="text-lg font-normal text-muted-foreground">{t('pricing_pro_monthly_cost')}</span>
+                  $7.000
+                  <span className="text-lg font-normal text-muted-foreground"> CLP / {t('pricing_month_short')}</span>
                 </p>
               ) : (
                 <>
                   <p className="text-4xl font-bold">
-                    $6.16
+                    $70.000
                     <span className="text-lg font-normal text-muted-foreground">
-                      {t('pricing_pro_monthly_cost')}
+                      {' '}CLP / {t('pricing_year_short')}
                     </span>
                   </p>
                   <p className="text-xs text-muted-foreground -mt-1">{t('pricing_pro_billed_yearly')}</p>
