@@ -12,8 +12,8 @@ export const es = {
   logout_fail_title: 'Error al Cerrar Sesión',
   logout_fail_desc: 'No se pudo cerrar la sesión. Por favor, inténtalo de nuevo.',
   header_credit_display: '{credits} Crédito{plural} Restante{plural}',
-  header_pro_trial_day_left: 'Prueba Pro: 1 día restante',
-  header_pro_trial_days_left: 'Prueba Pro: {daysLeft} días restantes',
+  header_pro_trial_day_left: 'Plan Pro Activo',
+  header_pro_trial_days_left: 'Plan Pro Activo',
   
   // Login Page
   login_header: 'Idea Saver',
@@ -103,9 +103,10 @@ export const es = {
   pricing_pro_feature_9: 'Búsqueda y Organización Avanzada (Carpetas, Etiquetas)',
   pricing_pro_feature_10: 'Soporte al Cliente Prioritario',
   pricing_pro_button: 'Iniciar Prueba Pro de 7 Días',
+  pricing_pro_button_upgrade: 'Actualizar a Pro',
   pricing_error_title: 'Error',
   pricing_select_error: 'Debes iniciar sesión para seleccionar un plan.',
-  pricing_pro_trial_activated: '¡Prueba Pro Activada!',
+  pricing_pro_trial_activated: '¡Plan Pro Activado!',
   pricing_pro_trial_activated_desc: 'La Sincronización en la Nube ahora está habilitada. ¡Bienvenido a bordo!',
   pricing_pro_trial_used_title: 'Prueba Pro ya Utilizada',
   pricing_pro_trial_used_desc: 'Ya has utilizado tu prueba Pro de 7 días. Por favor, actualiza a un plan de pago para seguir usando las funciones Pro.',
@@ -214,7 +215,7 @@ export const es = {
   record_unsupported_format_title: 'Formato no Soportado',
   record_unsupported_format_desc: 'Tu navegador no soporta los formatos de audio requeridos (MP4, WebM).',
   record_download_title: 'Descarga Iniciada',
-  record_download_desc: 'El archivo de audio se ha descargado en tu dispositivo.',
+  record_download_desc: 'El archivo de audio ha sido descargado. Ahora puedes compartirlo manualmente.',
 
   // AI Actions (General)
   ai_confirmation_title: 'Confirmar Acción de IA',

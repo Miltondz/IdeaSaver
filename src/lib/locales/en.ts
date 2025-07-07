@@ -12,8 +12,8 @@ export const en = {
   logout_fail_title: 'Logout Failed',
   logout_fail_desc: 'Could not log you out. Please try again.',
   header_credit_display: '{credits} Credit{plural} Left',
-  header_pro_trial_day_left: 'Pro Trial: 1 day left',
-  header_pro_trial_days_left: 'Pro Trial: {daysLeft} days left',
+  header_pro_trial_day_left: 'Pro Plan Active',
+  header_pro_trial_days_left: 'Pro Plan Active',
   
   // Login Page
   login_header: 'Idea Saver',
@@ -103,9 +103,10 @@ export const en = {
   pricing_pro_feature_9: 'Advanced Search & Organization (Folders, Tags)',
   pricing_pro_feature_10: 'Priority Customer Support',
   pricing_pro_button: 'Start 7-Day Pro Trial',
+  pricing_pro_button_upgrade: 'Upgrade to Pro',
   pricing_error_title: 'Error',
   pricing_select_error: 'You must be logged in to select a plan.',
-  pricing_pro_trial_activated: 'Pro Trial Activated!',
+  pricing_pro_trial_activated: 'Pro Plan Activated!',
   pricing_pro_trial_activated_desc: 'Cloud Sync is now enabled. Welcome aboard!',
   pricing_pro_trial_used_title: 'Pro Trial Already Used',
   pricing_pro_trial_used_desc: "You have already used your 7-day Pro trial. Please upgrade to a paid plan to continue using Pro features.",
@@ -214,7 +215,7 @@ export const en = {
   record_unsupported_format_title: 'Format Not Supported',
   record_unsupported_format_desc: 'Your browser does not support the required audio formats (MP4, WebM).',
   record_download_title: 'Download Started',
-  record_download_desc: 'Audio file has been downloaded to your device.',
+  record_download_desc: 'Audio file has been downloaded. You can now share it manually.',
 
   // AI Actions (General)
   ai_confirmation_title: 'Confirm AI Action',

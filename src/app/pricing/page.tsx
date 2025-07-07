@@ -2,7 +2,7 @@
 'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,10 +12,12 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/hooks/use-language";
 import { LanguageToggle } from "@/components/language-toggle";
 import { useRouter } from "next/navigation";
+import { createPayment } from "@/ai/flows/create-payment-flow";
 
 
 export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const { toast } = useToast();
   const { user, settings, refreshSettings } = useAuth();
   const { t } = useLanguage();
@@ -28,31 +30,38 @@ export default function PricingPage() {
     }
 
     if (plan === 'pro') {
-      if (settings.proTrialUsed) {
-        toast({
-            variant: "destructive",
-            title: t('pricing_pro_trial_used_title'),
-            description: t('pricing_pro_trial_used_desc'),
-        });
-        return;
-      }
-      const trialEndDate = new Date();
-      trialEndDate.setDate(trialEndDate.getDate() + 7);
+      setIsProcessingPayment(true);
+      try {
+          const planDetails = {
+              plan: billingCycle,
+              planName: billingCycle === 'monthly' ? 'Monthly' : 'Yearly',
+              amount: billingCycle === 'monthly' ? 7000 : 84000, // Example amounts in CLP
+              currency: 'CLP',
+          };
 
-      await saveSettings({
-        ...settings,
-        isPro: true,
-        planSelected: true,
-        cloudSyncEnabled: true,
-        autoCloudSync: true,
-        proTrialEndsAt: trialEndDate.toISOString(),
-        proTrialUsed: true,
-      }, user.uid);
-      toast({ 
-          title: t('pricing_pro_trial_activated'),
-          description: t('pricing_pro_trial_activated_desc'),
-          className: "bg-accent text-accent-foreground border-accent",
-      });
+          if (!user.email) {
+            throw new Error("User email is not available for payment.");
+          }
+
+          const result = await createPayment({
+              userId: user.uid,
+              userEmail: user.email,
+              ...planDetails
+          });
+
+          if (result.redirectUrl) {
+              window.location.href = result.redirectUrl;
+          } else {
+              throw new Error("Failed to get payment redirect URL.");
+          }
+      } catch (error: any) {
+          toast({
+              variant: 'destructive',
+              title: 'Payment Error',
+              description: error.message || 'Could not initiate the payment process. Please try again.',
+          });
+          setIsProcessingPayment(false);
+      }
     } else {
        await saveSettings({
         ...settings,
@@ -67,9 +76,9 @@ export default function PricingPage() {
           title: t('pricing_free_plan_selected'),
           description: t('pricing_free_plan_selected_desc'),
       });
+      await refreshSettings();
+      router.push('/record');
     }
-    await refreshSettings();
-    router.push('/record');
   };
     
   return (
@@ -158,8 +167,8 @@ export default function PricingPage() {
             </ul>
           </CardContent>
           <CardFooter>
-             <Button className="w-full" onClick={() => handleSelectPlan('pro')}>
-                {t('pricing_pro_button')}
+             <Button className="w-full" onClick={() => handleSelectPlan('pro')} disabled={isProcessingPayment}>
+                {isProcessingPayment ? <Loader2 className="animate-spin" /> : t('pricing_pro_button_upgrade')}
              </Button>
           </CardFooter>
         </Card>

@@ -31,6 +31,7 @@
     "@radix-ui/react-tooltip": "^1.1.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "crypto-js": "^4.2.0",
     "date-fns": "^3.6.0",
     "dotenv": "^16.5.0",
     "firebase": "^11.9.1",
@@ -47,6 +48,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@types/crypto-js": "^4.2.2",
     "@types/marked": "^6.0.0",
     "@types/node": "^20",
     "@types/react": "^18",
