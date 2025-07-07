@@ -3,6 +3,22 @@ import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getFirestore, Firestore } from "firebase/firestore";
 import { getAuth, Auth } from "firebase/auth";
 
+// --- TEMPORARY DEBUGGING STEP ---
+// The following configuration is hardcoded to bypass any potential issues
+// with the .env file not being loaded by the development server.
+// THIS IS NOT FOR PRODUCTION. Once authentication works, this should be
+// reverted to use process.env variables.
+const firebaseConfig = {
+  apiKey: "AIzaSyCWC36zTrwmtn-If2h2wtvGd_Ef1Y9Y-Bw",
+  authDomain: "ideasaver-6560d.firebaseapp.com",
+  projectId: "ideasaver-6560d",
+  storageBucket: "ideasaver-6560d.appspot.com", // Corrected to standard format
+  messagingSenderId: "855959969241",
+  appId: "1:855959969241:web:f1e06de34fa64c94b88dc8",
+};
+
+// --- ORIGINAL CODE (to be restored later) ---
+/*
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -11,6 +27,7 @@ const firebaseConfig = {
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
+*/
 
 let app: FirebaseApp;
 let db: Firestore;
