@@ -50,7 +50,7 @@ export const en = {
   auth_email_in_use_google: 'This email was registered using Google. Please use the "Continue with Google" button to sign in.',
   auth_email_in_use_password: 'This email is already registered with a password. Please go to the "Sign In" tab or use the "Forgot Password?" link if needed.',
   auth_weak_password: 'Password should be at least 6 characters.',
-  auth_invalid_api_key: "Your Firebase API Key is invalid. The app is configured with Project ID: '{projectId}'. Please check the API Key in your .env file matches the one from that project in the Firebase Console.",
+  auth_invalid_api_key: "Your Firebase API Key is invalid. The app is configured with Project ID: '{projectId}'. Please double-check the API Key in your .env file and ensure it matches the one from that project in the Firebase Console. See the README.md for detailed troubleshooting steps.",
   auth_popup_blocked: 'Your browser blocked the sign-in popup. Please allow popups for this site.',
   auth_popup_closed: 'The sign-in window was closed. Please try again.',
   auth_unauthorized_domain: "This domain isn't authorized for your app (Project ID: '{projectId}'). The most likely cause is an unconfigured OAuth Consent Screen in Google Cloud. Go to your Google Cloud Console 'Credentials' page, click 'Configure Consent Screen', fill out the form, and publish it. See the README for a full guide.",
@@ -74,7 +74,7 @@ export const en = {
 
   // Pricing Page
   pricing_title: 'Choose your plan to get started',
-  pricing_subtitle: "You're almost there! Select a plan to start capturing your ideas.",
+  pricing_subtitle: 'Select a plan to start capturing your ideas. All Pro purchases begin with a 7-day free trial.',
   pricing_monthly: 'Monthly',
   pricing_yearly: 'Yearly (Save 2 months)',
   pricing_month_short: 'mo',
@@ -103,10 +103,10 @@ export const en = {
   pricing_pro_feature_8: 'Unlimited Note Storage',
   pricing_pro_feature_9: 'Advanced Search & Organization (Folders, Tags)',
   pricing_pro_feature_10: 'Priority Customer Support',
-  pricing_pro_button_upgrade: 'Upgrade to Pro',
+  pricing_pro_button_upgrade: 'Start 7-Day Free Trial',
   pricing_error_title: 'Error',
   pricing_select_error: 'You must be logged in to select a plan.',
-  pricing_pro_trial_activated: 'Pro Plan Activated!',
+  pricing_pro_trial_activated: 'Pro Trial Activated!',
   pricing_pro_trial_activated_desc: 'Cloud Sync is now enabled. Welcome aboard!',
   pricing_pro_trial_used_title: 'Pro Trial Already Used',
   pricing_pro_trial_used_desc: "You have already used your 7-day Pro trial. Please upgrade to a paid plan to continue using Pro features.",
@@ -198,7 +198,7 @@ export const en = {
   record_no_changes_to_save: 'No changes to save.',
   record_save_audio_only_success: 'You can find it and transcribe it later from your history.',
   record_audio_note_saved: 'Audio note saved!',
-  record_audio_note_prefix: 'Audio Note',
+  record_audio_note_prefix: 'Idea Saver Note - {timestamp}',
   record_save_audio_only_fail_title: 'Save Failed',
   record_save_audio_only_fail_desc: 'Could not save the audio note.',
   record_overwrite_button: 'Overwrite',
@@ -215,7 +215,7 @@ export const en = {
   record_unsupported_format_title: 'Format Not Supported',
   record_unsupported_format_desc: 'Your browser does not support the required audio formats (MP4, WebM).',
   record_download_title: 'Download Started',
-  record_download_desc: 'Audio file has been downloaded. You can now share it manually with other apps.',
+  record_download_desc: 'Audio file has been downloaded to your device.',
 
   // AI Actions (General)
   ai_confirmation_title: 'Confirm AI Action',
