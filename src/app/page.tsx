@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -8,12 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
-import { Lightbulb, Loader2 } from 'lucide-react';
+import { Lightbulb, Loader2, AlertTriangle } from 'lucide-react';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo, fetchSignInMethodsForEmail } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { auth, firebaseConfigError } from '@/lib/firebase';
 import { useLanguage } from '@/hooks/use-language';
 import { LanguageToggle } from '@/components/language-toggle';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const GoogleIcon = () => <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="w-4 h-4"><title>Google</title><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.1-1.02 1.02-2.6 1.98-4.66 1.98-3.57 0-6.47-2.9-6.47-6.47s2.9-6.47 6.47-6.47c1.98 0 3.06.83 3.79 1.48l2.84-2.76C18.99 1.83 16.14 0 12.48 0 5.61 0 0 5.61 0 12.48s5.61 12.48 12.48 12.48c7.1 0 12.23-4.88 12.23-12.48 0-.79-.08-1.54-.22-2.28H12.48z"/></svg>;
 
@@ -22,10 +24,20 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
   const { t } = useLanguage();
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'Not Set';
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value);
+    if (authError) setAuthError(null);
+  }
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPassword(e.target.value);
+    if (authError) setAuthError(null);
+  }
 
   if (firebaseConfigError) {
     return (
@@ -72,6 +84,7 @@ export default function LoginPage() {
       case 'auth/weak-password':
         message = t('auth_weak_password');
         break;
+      case 'auth/api-key-not-valid':
       case 'auth/invalid-api-key':
         message = t('auth_invalid_api_key', { projectId });
         break;
@@ -91,6 +104,7 @@ export default function LoginPage() {
         console.error(error);
     }
     toast({ variant: 'destructive', title: t('auth_fail_title'), description: message });
+    setAuthError(message);
   };
 
   const handleSignUp = async () => {
@@ -103,6 +117,7 @@ export default function LoginPage() {
         return;
     }
     setIsLoading(true);
+    setAuthError(null);
     try {
       await createUserWithEmailAndPassword(auth, email, password);
       toast({ title: t('account_created_title'), description: t('account_created_desc') });
@@ -118,6 +133,7 @@ export default function LoginPage() {
                 message = t('auth_email_in_use_password');
             }
             toast({ variant: 'destructive', title: t('auth_fail_title'), description: message });
+            setAuthError(message);
         } catch (fetchError) {
             handleAuthError(error);
         }
@@ -139,6 +155,7 @@ export default function LoginPage() {
         return;
     }
     setIsLoading(true);
+    setAuthError(null);
     try {
       await signInWithEmailAndPassword(auth, email, password);
       router.push('/record');
@@ -155,6 +172,7 @@ export default function LoginPage() {
         return;
     }
     setIsLoading(true);
+    setAuthError(null);
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
@@ -198,13 +216,20 @@ export default function LoginPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {authError && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>{t('auth_fail_title')}</AlertTitle>
+                  <AlertDescription>{authError}</AlertDescription>
+                </Alert>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="email-in">{t('login_email_label')}</Label>
-                <Input id="email-in" type="email" placeholder="m@example.com" value={email} onChange={e => setEmail(e.target.value)} disabled={isLoading} />
+                <Input id="email-in" type="email" placeholder="m@example.com" value={email} onChange={handleEmailChange} disabled={isLoading} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password-in">{t('login_password_label')}</Label>
-                <Input id="password-in" type="password" value={password} onChange={e => setPassword(e.target.value)} disabled={isLoading} />
+                <Input id="password-in" type="password" value={password} onChange={handlePasswordChange} disabled={isLoading} />
               </div>
               <Button onClick={handleSignIn} className="w-full" disabled={isLoading}>
                 {isLoading ? <Loader2 className="animate-spin" /> : t('login_signin_button')}
@@ -230,13 +255,20 @@ export default function LoginPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {authError && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>{t('auth_fail_title')}</AlertTitle>
+                  <AlertDescription>{authError}</AlertDescription>
+                </Alert>
+              )}
                <div className="space-y-2">
                 <Label htmlFor="email-up">{t('login_email_label')}</Label>
-                <Input id="email-up" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} disabled={isLoading} />
+                <Input id="email-up" type="email" placeholder="you@example.com" value={email} onChange={handleEmailChange} disabled={isLoading} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password-up">{t('login_password_label')}</Label>
-                <Input id="password-up" type="password" value={password} onChange={e => setPassword(e.target.value)} disabled={isLoading} />
+                <Input id="password-up" type="password" value={password} onChange={handlePasswordChange} disabled={isLoading} />
               </div>
                <Button onClick={handleSignUp} className="w-full" disabled={isLoading}>
                 {isLoading ? <Loader2 className="animate-spin" /> : t('login_create_account_button')}
@@ -279,3 +311,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    
