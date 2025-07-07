@@ -8,6 +8,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { onSnapshot, doc } from "firebase/firestore";
 import { 
     type AppSettings,
+    getSettings,
     saveSettings,
     getSettingsFromCache,
     saveSettingsToCache,
