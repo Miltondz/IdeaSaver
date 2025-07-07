@@ -4,17 +4,21 @@ import { getPaymentStatus } from '@/lib/flow';
 import { getSettings, saveSettings } from '@/lib/storage';
 
 export async function POST(request: NextRequest) {
+  console.log('Flow confirmation webhook received.');
   try {
     const formData = await request.formData();
+    console.log('Flow confirmation: formData parsed successfully.');
     const token = formData.get('token') as string;
+    console.log(`Flow confirmation: raw token from form data is: "${token}"`);
 
     if (!token) {
       console.error('Flow confirmation: Token is missing from POST body');
       return NextResponse.json({ error: 'Token is missing' }, { status: 400 });
     }
     
-    console.log(`Flow confirmation: Received token ${token}`);
+    console.log(`Flow confirmation: Calling getPaymentStatus for token ${token}`);
     const paymentStatus = await getPaymentStatus(token);
+    console.log('Flow confirmation: getPaymentStatus returned:', paymentStatus);
 
     // Status 2 means paid
     if (paymentStatus.status === 2) {
@@ -63,10 +67,11 @@ export async function POST(request: NextRequest) {
     }
     
     // Acknowledge receipt to Flow
+    console.log('Flow confirmation: Process complete. Returning success to Flow.');
     return NextResponse.json({ success: true }, { status: 200 });
 
   } catch (error: any) {
-    console.error('Flow confirmation webhook error:', error);
+    console.error('Flow confirmation webhook UNHANDLED error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
