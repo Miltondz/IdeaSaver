@@ -1,3 +1,4 @@
+
 import { type NextRequest, NextResponse } from 'next/server';
 import { getPaymentStatus } from '@/lib/flow';
 import { getSettings, saveSettings } from '@/lib/storage';
@@ -47,10 +48,9 @@ export async function POST(request: NextRequest) {
           planSelected: true,
           cloudSyncEnabled: true,
           autoCloudSync: true,
-          // We re-use proTrialEndsAt to store the subscription end date.
-          // In a real app, this might be a separate field like `subscriptionEndsAt`.
-          proTrialEndsAt: subscriptionEndDate.toISOString(),
-          proTrialUsed: true, // Mark as paid
+          subscriptionEndsAt: subscriptionEndDate.toISOString(),
+          proTrialEndsAt: undefined, // Clear any old trial data
+          proTrialUsed: true, // Mark as paid to prevent any future trial logic
         };
 
         await saveSettings(newSettings, userId);

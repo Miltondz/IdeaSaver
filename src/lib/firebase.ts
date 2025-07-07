@@ -12,10 +12,12 @@ const firebaseConfig = {
   apiKey: "AIzaSyCWC36zTrwmtn-If2h2wtvGd_Ef1Y9Y-Bw",
   authDomain: "ideasaver-6560d.firebaseapp.com",
   projectId: "ideasaver-6560d",
-  storageBucket: "ideasaver-6560d.appspot.com", // Corrected to standard format
+  storageBucket: "ideasaver-6560d.firebasestorage.app",
   messagingSenderId: "855959969241",
   appId: "1:855959969241:web:f1e06de34fa64c94b88dc8",
+  measurementId: "G-GV8J00PSVX"
 };
+
 
 // --- ORIGINAL CODE (to be restored later) ---
 /*

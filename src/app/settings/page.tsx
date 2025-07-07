@@ -132,6 +132,7 @@ export default function SettingsPage() {
         cloudSyncEnabled: false,
         autoCloudSync: false,
         proTrialEndsAt: undefined,
+        subscriptionEndsAt: undefined,
     }, user.uid);
     await refreshSettings();
     toast({

@@ -26,8 +26,9 @@ export interface AppSettings {
   autoCloudSync: boolean;
   aiCredits: number;
   monthlyCreditsLastUpdated: string; // ISO string
-  proTrialEndsAt?: string;
+  proTrialEndsAt?: string; // Kept for potential future use, but not active
   proTrialUsed?: boolean;
+  subscriptionEndsAt?: string;
 }
 
 const getSettingsKey = (userId: string) => `${SETTINGS_KEY}_${userId}`;
@@ -80,6 +81,7 @@ const defaultSettings: Omit<AppSettings, 'monthlyCreditsLastUpdated'> = {
     aiCredits: 0,
     proTrialEndsAt: undefined,
     proTrialUsed: false,
+    subscriptionEndsAt: undefined,
 };
 
 // --- Public API for Storage ---
@@ -113,15 +115,14 @@ export async function getSettings(userId?: string | null): Promise<AppSettings> 
       settings = _getSettingsFromCache(userId) || getInitialSettings();
     }
     
-    // Check for pro trial expiration
-    if (settings.isPro && settings.proTrialEndsAt) {
-        const trialEndDate = new Date(settings.proTrialEndsAt);
-        if (new Date() > trialEndDate) {
+    // Check for subscription expiration
+    if (settings.isPro && settings.subscriptionEndsAt) {
+        const subEndDate = new Date(settings.subscriptionEndsAt);
+        if (new Date() > subEndDate) {
             settings.isPro = false;
             settings.cloudSyncEnabled = false;
             settings.autoCloudSync = false;
-            settings.proTrialEndsAt = undefined;
-            // Save the new state
+            // Don't clear subscriptionEndsAt, so we know they were a sub once
             await saveSettings(settings, userId); 
         }
     }
