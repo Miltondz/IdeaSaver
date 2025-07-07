@@ -26,7 +26,7 @@ export interface AppSettings {
   autoCloudSync: boolean;
   aiCredits: number;
   monthlyCreditsLastUpdated: string; // ISO string
-  proTrialEndsAt?: string; // Kept for potential future use, but not active
+  proTrialEndsAt?: string;
   proTrialUsed?: boolean;
   subscriptionEndsAt?: string;
 }
@@ -57,21 +57,19 @@ const _saveRecordingsToStorage = (recordings: Recording[], userId: string | null
   }
 };
 
-
-const _getSettingsFromCache = (userId: string): AppSettings | null => {
+export const getSettingsFromCache = (userId: string): AppSettings | null => {
     if (typeof window === "undefined") return null;
     const data = localStorage.getItem(getSettingsKey(userId));
     return data ? JSON.parse(data) : null;
 };
 
-const _saveSettingsToCache = (settings: AppSettings, userId: string) => {
+export const saveSettingsToCache = (settings: AppSettings, userId: string) => {
     if (typeof window === "undefined") return;
     localStorage.setItem(getSettingsKey(userId), JSON.stringify(settings));
-    // Dispatch a storage event to notify other tabs/windows
     window.dispatchEvent(new Event('storage'));
 };
 
-const defaultSettings: Omit<AppSettings, 'monthlyCreditsLastUpdated'> = { 
+export const defaultSettings: Omit<AppSettings, 'monthlyCreditsLastUpdated'> = { 
     isPro: false,
     planSelected: false,
     deletionPolicy: "never",
@@ -99,8 +97,7 @@ export async function getSettings(userId?: string | null): Promise<AppSettings> 
   });
 
   if (!userId || !db) {
-    // Return cached or default settings if no user or DB connection
-    return _getSettingsFromCache(userId || '') || getInitialSettings();
+    return getSettingsFromCache(userId || '') || getInitialSettings();
   }
 
   try {
@@ -111,48 +108,22 @@ export async function getSettings(userId?: string | null): Promise<AppSettings> 
     if (docSnap.exists()) {
       settings = { ...getInitialSettings(), ...docSnap.data() } as AppSettings;
     } else {
-      // First time user, or no settings in DB yet
-      settings = _getSettingsFromCache(userId) || getInitialSettings();
+      settings = getSettingsFromCache(userId) || getInitialSettings();
     }
     
-    // Check for subscription expiration
-    if (settings.isPro && settings.subscriptionEndsAt) {
-        const subEndDate = new Date(settings.subscriptionEndsAt);
-        if (new Date() > subEndDate) {
-            settings.isPro = false;
-            settings.cloudSyncEnabled = false;
-            settings.autoCloudSync = false;
-            // Don't clear subscriptionEndsAt, so we know they were a sub once
-            await saveSettings(settings, userId); 
-        }
-    }
-
-    // Monthly credit refresh logic for Free users who have completed onboarding
-    if (settings.planSelected && !settings.isPro) {
-        const lastUpdate = new Date(settings.monthlyCreditsLastUpdated);
-        const now = new Date();
-        // Check if the last update was in a previous month (of any year)
-        if (now.getFullYear() > lastUpdate.getFullYear() || now.getMonth() > lastUpdate.getMonth()) {
-            settings.aiCredits += 2;
-            settings.monthlyCreditsLastUpdated = now.toISOString();
-            // Save immediately to DB and cache
-            await saveSettings(settings, userId); 
-        }
-    }
-
-    _saveSettingsToCache(settings, userId);
+    saveSettingsToCache(settings, userId);
     return settings;
 
   } catch (error) {
     console.error("Error fetching settings from Firestore, falling back to cache.", error);
-    return _getSettingsFromCache(userId) || getInitialSettings();
+    return getSettingsFromCache(userId) || getInitialSettings();
   }
 }
 
 export async function saveSettings(settings: AppSettings, userId: string): Promise<void> {
   if (!userId) return;
 
-  _saveSettingsToCache(settings, userId);
+  saveSettingsToCache(settings, userId);
 
   if (!db) {
     console.warn("Firestore not available. Settings saved locally only.");
@@ -161,7 +132,6 @@ export async function saveSettings(settings: AppSettings, userId: string): Promi
   
   try {
     const firestoreSettings = { ...settings };
-    // Firestore doesn't allow `undefined` fields. We need to remove them.
     Object.keys(firestoreSettings).forEach(key => {
       const k = key as keyof AppSettings;
       if (firestoreSettings[k] === undefined) {
@@ -173,8 +143,6 @@ export async function saveSettings(settings: AppSettings, userId: string): Promi
     await setDoc(docRef, firestoreSettings, { merge: true });
   } catch(error) {
     console.error("Failed to save settings to Firestore:", error);
-    // The settings are already saved locally, so the app can continue.
-    // We might want to add a retry mechanism here in a real-world app.
   }
 }
 
@@ -190,10 +158,8 @@ export async function deleteUserData(userId: string): Promise<void> {
 
     const batch = writeBatch(db);
 
-    // Delete settings
     batch.delete(settingsDocRef);
 
-    // Find and delete all recordings
     const recordingsSnapshot = await getDocs(recordingsQuery);
     recordingsSnapshot.forEach(doc => {
         batch.delete(doc.ref);
@@ -209,7 +175,6 @@ export async function saveRecordingToDB(recording: Recording): Promise<void> {
     return;
   }
   try {
-    // Create a copy of the recording and remove the audio data before saving to DB
     const { audioDataUri, ...dbData } = recording;
     const docRef = doc(db, "recordings", recording.id);
     await setDoc(docRef, dbData, { merge: true });
@@ -245,29 +210,24 @@ export async function getRecordings(userId: string): Promise<Recording[]> {
       const querySnapshot = await getDocs(q);
       const cloudRecordings = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Recording));
 
-      // Create a map of local recordings for quick lookup of audio data
       const localMap = new Map<string, Recording>(localRecordings.map(rec => [rec.id, rec]));
 
-      // Merge cloud (text) and local (audio) data
       const mergedRecordings = cloudRecordings.map(cloudRec => {
         const localRec = localMap.get(cloudRec.id);
         return {
-          ...cloudRec, // Cloud data is the source of truth for text
-          audioDataUri: localRec?.audioDataUri, // But audio comes from local
+          ...cloudRec,
+          audioDataUri: localRec?.audioDataUri,
         };
       });
       
-      // Add any recordings that are only available locally (e.g., recorded while offline)
       localRecordings.forEach(localRec => {
         if (!mergedRecordings.some(m => m.id === localRec.id)) {
             mergedRecordings.push(localRec);
         }
       });
 
-      // Sort recordings by date descending
       mergedRecordings.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-      // Sync the fully merged result back to local storage
       _saveRecordingsToStorage(mergedRecordings, userId);
       return mergedRecordings;
 
@@ -276,7 +236,6 @@ export async function getRecordings(userId: string): Promise<Recording[]> {
       return Promise.resolve(localRecordings.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     }
   } else {
-    // If cloud sync is off, just return local recordings
     const recordings = _getRecordingsFromStorage(userId);
     recordings.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     return Promise.resolve(recordings);
@@ -299,7 +258,6 @@ export async function getRecording(id: string, userId: string): Promise<Recordin
         console.error("Error fetching doc from Firestore, falling back to local", error);
       }
   }
-  // Fallback to local storage if not found in DB or if DB is disabled
   const recordings = _getRecordingsFromStorage(userId);
   return Promise.resolve(recordings.find(rec => rec.id === id));
 }
@@ -316,11 +274,9 @@ export async function saveRecording(data: Omit<Recording, 'id' | 'date' | 'userI
 
   const recordings = _getRecordingsFromStorage(userId);
   
-  // Always save to local storage first, with audio
   _saveRecordingsToStorage([...recordings, newRecording], userId);
   
   if (settings.cloudSyncEnabled && settings.autoCloudSync) {
-    // saveRecordingToDB will strip audio before sending
     await saveRecordingToDB(newRecording);
   }
   
@@ -332,8 +288,6 @@ export async function updateRecording(recording: Recording, userId: string): Pro
     const allLocalRecordings = _getRecordingsFromStorage(userId);
     const existingRecording = allLocalRecordings.find(r => r.id === recording.id);
 
-    // Create the final updated object, preserving the existing local audio URI 
-    // if the incoming update doesn't have one.
     const updatedRecording: Recording = {
         ...recording,
         audioDataUri: recording.audioDataUri || existingRecording?.audioDataUri,
@@ -348,7 +302,6 @@ export async function updateRecording(recording: Recording, userId: string): Pro
     _saveRecordingsToStorage(allLocalRecordings, userId);
 
     if (settings.cloudSyncEnabled) {
-        // saveRecordingToDB will handle stripping the audio data before saving to Firestore
         await saveRecordingToDB(updatedRecording);
     }
 
@@ -360,12 +313,9 @@ export async function deleteRecording(id: string, userId: string): Promise<void>
   const settings = await getSettings(userId);
   
   if (settings.cloudSyncEnabled && db) {
-      // If cloud sync is enabled, we must delete from the DB first.
-      // If this fails, it will throw and the local deletion will not occur.
       await deleteRecordingFromDB(id, userId);
   }
 
-  // If the DB deletion was successful, or if cloud sync is off, proceed with local deletion.
   const recordings = _getRecordingsFromStorage(userId);
   const updatedRecordings = recordings.filter(rec => rec.id !== id);
   _saveRecordingsToStorage(updatedRecordings, userId);

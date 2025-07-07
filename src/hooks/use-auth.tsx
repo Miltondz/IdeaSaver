@@ -2,10 +2,17 @@
 'use client';
 import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth as firebaseAuth } from '@/lib/firebase';
+import { auth as firebaseAuth, db } from '@/lib/firebase';
 import { Lightbulb, Loader2 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
-import { getSettings, type AppSettings } from '@/lib/storage';
+import { onSnapshot, doc } from "firebase/firestore";
+import { 
+    type AppSettings,
+    saveSettings,
+    getSettingsFromCache,
+    saveSettingsToCache,
+    defaultSettings
+} from '@/lib/storage';
 
 export const AuthContext = createContext<{ user: User | null; settings: AppSettings | null; loading: boolean; refreshSettings: () => Promise<void>; }>({ user: null, settings: null, loading: true, refreshSettings: async () => {} });
 
@@ -23,24 +30,78 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [user]);
 
-    useEffect(() => {
-        if (!firebaseAuth) {
-            setLoading(false);
-            return;
-        }
-
-        const unsubscribe = onAuthStateChanged(firebaseAuth, async (currentUser) => {
+     useEffect(() => {
+        const unsubscribeAuth = onAuthStateChanged(firebaseAuth, (currentUser) => {
             setUser(currentUser);
-            if (currentUser) {
-                const userSettings = await getSettings(currentUser.uid);
-                setSettings(userSettings);
-            } else {
+            if (!currentUser) {
+                setLoading(false);
                 setSettings(null);
             }
+        });
+        return () => unsubscribeAuth();
+    }, []);
+
+    useEffect(() => {
+        if (!user) return; // Don't run if there is no user.
+
+        const getInitialSettings = (): AppSettings => ({
+            ...defaultSettings,
+            monthlyCreditsLastUpdated: new Date().toISOString(),
+        });
+
+        const docRef = doc(db, "settings", user.uid);
+        const unsubscribe = onSnapshot(docRef, async (docSnap) => {
+            let currentSettings: AppSettings;
+
+            if (docSnap.exists()) {
+                currentSettings = { ...getInitialSettings(), ...docSnap.data() };
+            } else {
+                currentSettings = getSettingsFromCache(user.uid) || getInitialSettings();
+                await saveSettings(currentSettings, user.uid); // Create the doc in Firestore
+            }
+            
+            let settingsModified = false;
+
+            // Check for subscription expiration
+            if (currentSettings.isPro && currentSettings.subscriptionEndsAt) {
+                if (new Date() > new Date(currentSettings.subscriptionEndsAt)) {
+                    currentSettings.isPro = false;
+                    currentSettings.cloudSyncEnabled = false;
+                    currentSettings.autoCloudSync = false;
+                    settingsModified = true;
+                }
+            }
+
+            // Monthly credit refresh logic for Free users
+            if (!currentSettings.isPro && currentSettings.planSelected) {
+                const lastUpdate = new Date(currentSettings.monthlyCreditsLastUpdated);
+                const now = new Date();
+                if (now.getFullYear() > lastUpdate.getFullYear() || now.getMonth() > lastUpdate.getMonth()) {
+                    currentSettings.aiCredits = (currentSettings.aiCredits || 0) + 2;
+                    currentSettings.monthlyCreditsLastUpdated = now.toISOString();
+                    settingsModified = true;
+                }
+            }
+
+            if (settingsModified) {
+                // Save the modified settings back to Firestore.
+                // This will trigger another snapshot, but the logic is idempotent so it's safe.
+                await saveSettings(currentSettings, user.uid);
+            }
+
+            setSettings(currentSettings);
+            saveSettingsToCache(currentSettings, user.uid); // Keep local cache in sync
+            setLoading(false);
+
+        }, (error) => {
+            console.error("Firebase listener error, falling back to cached settings:", error);
+            const cachedSettings = getSettingsFromCache(user.uid) || getInitialSettings();
+            setSettings(cachedSettings);
             setLoading(false);
         });
-        return () => unsubscribe();
-    }, []);
+
+        return () => unsubscribe(); // Cleanup on unmount or user change
+    }, [user]);
 
     useEffect(() => {
         const routeUser = () => {
@@ -60,14 +121,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 const isPricingPage = pathname === '/pricing';
 
                 if (settings.planSelected) {
-                    // If a user has a plan selected, they should be redirected from the
-                    // auth page to the main app. They should be allowed to visit the pricing page.
                     if (isAuthPage) {
                         if (pathname !== '/record') router.push('/record');
                     }
                 } else {
-                    // If a user has NOT selected a plan, they should be forced to the pricing page
-                    // if they try to access any non-public, non-auth page.
                     if (!isPricingPage && !isAuthPage) {
                         if (pathname !== '/pricing') router.push('/pricing');
                     }
