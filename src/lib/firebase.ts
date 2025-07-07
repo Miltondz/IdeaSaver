@@ -19,7 +19,6 @@ let firebaseConfigError: string | null = null;
 
 if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
   firebaseConfigError = "Firebase configuration is missing. Please set up your .env file.";
-  console.error(firebaseConfigError);
 }
 
 try {
@@ -28,7 +27,6 @@ try {
     auth = getAuth(app);
 } catch (e: any) {
     firebaseConfigError = `Failed to initialize Firebase: ${e.message}. Please check your .env file and Firebase project setup.`;
-    console.error(e);
 }
 
 export { app, db, auth, firebaseConfigError };
