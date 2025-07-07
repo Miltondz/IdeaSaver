@@ -43,8 +43,12 @@ const createPaymentFlow = ai.defineFlow(
     outputSchema: CreatePaymentOutputSchema,
   },
   async (input) => {
-    // The commerceOrder must be unique for each payment attempt.
-    const commerceOrder = `ideas-pro-${input.plan}-${input.userId}-${Date.now()}`;
+    // The commerceOrder must be unique and <= 45 chars.
+    // Format: is-{m|y}-{userId}-{timestamp_base36}
+    // Example: is-m-28charsFirebaseUID-k1fsl0a1k -> 3+1+1+28+1+9 = 43 chars
+    const planChar = input.plan.charAt(0);
+    const shortTimestamp = Date.now().toString(36);
+    const commerceOrder = `is-${planChar}-${input.userId}-${shortTimestamp}`;
 
     const paymentDetails = {
         commerceOrder,

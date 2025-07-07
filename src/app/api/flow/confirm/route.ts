@@ -20,11 +20,17 @@ export async function POST(request: NextRequest) {
       console.log(`Flow confirmation: Payment successful for token ${token}`);
       const commerceOrder = paymentStatus.commerceOrder;
       
+      // Parse the custom commerceOrder format: is-{m|y}-{userId}-{timestamp}
       const parts = commerceOrder.split('-');
-      const userId = parts[parts.length - 2];
-      const planType = parts[parts.length - 3] as 'monthly' | 'yearly';
+      let userId: string | undefined;
+      let planType: 'monthly' | 'yearly' | undefined;
 
-      if (userId) {
+      if (parts.length === 4 && parts[0] === 'is') {
+        userId = parts[2];
+        planType = parts[1] === 'm' ? 'monthly' : 'yearly';
+      }
+
+      if (userId && planType) {
         console.log(`Flow confirmation: Upgrading user ${userId} to Pro (${planType})`);
         const settings = await getSettings(userId);
         
@@ -50,7 +56,7 @@ export async function POST(request: NextRequest) {
         await saveSettings(newSettings, userId);
         console.log(`Flow confirmation: User ${userId} successfully upgraded.`);
       } else {
-        console.error(`Flow confirmation: Could not extract userId from commerceOrder: ${commerceOrder}`);
+        console.error(`Flow confirmation: Could not parse userId and planType from commerceOrder: ${commerceOrder}`);
       }
     } else {
       console.log(`Flow confirmation: Payment status for token ${token} is not 'paid' (status: ${paymentStatus.status}). No action taken.`);
