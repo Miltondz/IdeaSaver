@@ -74,7 +74,7 @@ export const en = {
 
   // Pricing Page
   pricing_title: 'Choose your plan to get started',
-  pricing_subtitle: 'Select a plan to start capturing your ideas. All Pro purchases begin with a 7-day free trial.',
+  pricing_subtitle: 'Select a plan to start capturing your ideas.',
   pricing_monthly: 'Monthly',
   pricing_yearly: 'Yearly (Save 2 months)',
   pricing_month_short: 'mo',
@@ -103,7 +103,7 @@ export const en = {
   pricing_pro_feature_8: 'Unlimited Note Storage',
   pricing_pro_feature_9: 'Advanced Search & Organization (Folders, Tags)',
   pricing_pro_feature_10: 'Priority Customer Support',
-  pricing_pro_button_upgrade: 'Start 7-Day Free Trial',
+  pricing_pro_button_upgrade: 'Upgrade to Pro',
   pricing_error_title: 'Error',
   pricing_select_error: 'You must be logged in to select a plan.',
   pricing_pro_trial_activated: 'Pro Trial Activated!',
@@ -112,6 +112,8 @@ export const en = {
   pricing_pro_trial_used_desc: "You have already used your 7-day Pro trial. Please upgrade to a paid plan to continue using Pro features.",
   pricing_free_plan_selected: 'Free Plan Selected',
   pricing_free_plan_selected_desc: 'Welcome to Idea Saver! You have 3 AI credits to start.',
+  pricing_config_error_title: 'Configuration Error',
+  pricing_config_error_desc: "Your app's return URL is set to 'localhost', but you are accessing it from a different address. Please update the NEXT_PUBLIC_APP_URL in your .env file to '{hostname}' to proceed with payment.",
   
   // Record Page
   record_motivation_1: "Your ideas, amplified.",

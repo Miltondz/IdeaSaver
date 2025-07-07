@@ -74,7 +74,7 @@ export const es = {
   
   // Pricing Page
   pricing_title: 'Elige tu plan para empezar',
-  pricing_subtitle: '¡Ya casi estás! Selecciona un plan para empezar a capturar tus ideas.',
+  pricing_subtitle: 'Selecciona un plan para empezar a capturar tus ideas.',
   pricing_monthly: 'Mensual',
   pricing_yearly: 'Anual (Ahorra 2 meses)',
   pricing_month_short: 'mes',
@@ -112,6 +112,8 @@ export const es = {
   pricing_pro_trial_used_desc: 'Ya has utilizado tu prueba Pro de 7 días. Por favor, actualiza a un plan de pago para seguir usando las funciones Pro.',
   pricing_free_plan_selected: 'Plan Gratuito Seleccionado',
   pricing_free_plan_selected_desc: '¡Bienvenido a Idea Saver! Tienes 3 créditos de IA para empezar.',
+  pricing_config_error_title: 'Error de Configuración',
+  pricing_config_error_desc: "La URL de retorno de tu app está configurada como 'localhost', pero la estás accediendo desde una dirección diferente. Por favor, actualiza la variable NEXT_PUBLIC_APP_URL en tu archivo .env a '{hostname}' para poder continuar con el pago.",
 
   // Record Page
   record_motivation_1: "Tus ideas, amplificadas.",
