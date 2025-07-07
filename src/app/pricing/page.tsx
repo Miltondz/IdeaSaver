@@ -30,18 +30,6 @@ export default function PricingPage() {
     }
 
     if (plan === 'pro') {
-      // Proactive check for localhost misconfiguration
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
-      if (typeof window !== 'undefined' && appUrl.includes('localhost') && window.location.hostname !== 'localhost') {
-        toast({
-          variant: 'destructive',
-          title: t('pricing_config_error_title'),
-          description: t('pricing_config_error_desc', { hostname: window.location.origin }),
-          duration: 15000, // Make toast persistent
-        });
-        return;
-      }
-
       setIsProcessingPayment(true);
       try {
           const planDetails = {

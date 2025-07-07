@@ -11,10 +11,14 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { createPaymentOrder } from '@/lib/flow';
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL;
+// --- TEMPORARY DEBUGGING STEP ---
+// Hardcoding the URL to bypass any potential issues with the .env file.
+// The correct URL was identified from previous error messages.
+// This should be reverted to use process.env.NEXT_PUBLIC_APP_URL once the .env loading issue is resolved.
+const APP_URL = "https://3000-idx-b-f8a69e7e-b7d6-4441-9498-89ea9331003f.europe-west1.google.com";
 
 if (!APP_URL) {
-    throw new Error("NEXT_PUBLIC_APP_URL is not set in the environment variables.");
+    throw new Error("Application URL is not set. This is a critical configuration error.");
 }
 
 const CreatePaymentInputSchema = z.object({
